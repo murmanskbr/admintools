@@ -830,7 +830,8 @@
                                 )
                                 .value
                                 .trim(),
-                            password.value
+                            password.value,
+                            state.remember
                         )
                         .then(
                             function (
