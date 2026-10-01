@@ -9,26 +9,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BR Admin">
     <title>Black Russia — Мурманск</title>
-    <link rel="stylesheet" href="css/styles.css?v=9">
+    <link rel="stylesheet" href="css/app-v10.css?v=10">
 </head>
 <body>
 <div id="app"></div>
-<script>
-(function(){
-    if("serviceWorker" in navigator){
-        navigator.serviceWorker.getRegistrations().then(function(registrations){
-            registrations.forEach(function(registration){ registration.unregister(); });
-        });
-        if("caches" in window){
-            caches.keys().then(function(keys){
-                keys.forEach(function(key){
-                    if(key.indexOf("br-admin-") === 0) caches.delete(key);
-                });
-            });
-        }
-    }
-})();
-</script>
-<script src="js/app.js?v=9"></script>
+<script src="js/diagnostics.js?v=10"></script>
+<script src="js/app-v10.js?v=10"></script>
 </body>
 </html>
