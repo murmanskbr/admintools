@@ -1332,7 +1332,7 @@
 
             '</div>' +
 
-            '<div class="box table-box" style="margin-top:16px">' +
+            '<div class="box table-box spaced-box">' +
 
                 '<div class="card-head">' +
                     '<h2>Мои нормативы</h2>' +
@@ -1407,7 +1407,7 @@
                 '</div>' +
             '</div>' +
 
-            '<div class="box table-box" style="margin-top:16px">' +
+            '<div class="box table-box spaced-box">' +
 
                 '<table>' +
 
@@ -1520,7 +1520,7 @@
 
             '</div>' +
 
-            '<div class="box table-box" style="margin-top:16px">' +
+            '<div class="box table-box spaced-box">' +
 
                 '<table>' +
 
@@ -1820,7 +1820,7 @@
                 state.user.role ===
                 "management"
                     ? (
-                        '<div class="box" style="margin-bottom:15px">' +
+                        '<div class="box compact-box">' +
 
                             '<form id="notificationForm">' +
 
