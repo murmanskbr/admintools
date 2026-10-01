@@ -931,10 +931,14 @@
                         body +
                     '</section>' +
 
-                    '<div class="watermark">' +
-                        esc(
-                            state.user.nickname
-                        ) +
+                    '<div class="watermark" aria-hidden="true">' +
+                        '<div class="watermark-mark">' +
+                            '<strong>BR</strong>' +
+                            '<span>' +
+                                esc(state.user.nickname) +
+                            '</span>' +
+                            '<small>BLACK RUSSIA • МУРМАНСК</small>' +
+                        '</div>' +
                     '</div>' +
 
                 '</main>' +
