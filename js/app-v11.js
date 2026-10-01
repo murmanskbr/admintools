@@ -1836,7 +1836,11 @@
 
         try {
             var payload =
-                await window.BR_API.serverStats();
+                await window.BR_API.serverStats(
+                    state.user
+                        ? state.user.token
+                        : null
+                );
 
             var server =
                 findMurmanskServer(
