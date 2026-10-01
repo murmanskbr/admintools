@@ -265,6 +265,21 @@
         "https://blackrussia.online/api/gameservers/";
 
     async function fetchGameServers() {
+        var controller =
+            typeof AbortController === "function"
+                ? new AbortController()
+                : null;
+
+        var timeoutId =
+            controller
+                ? window.setTimeout(
+                    function () {
+                        controller.abort();
+                    },
+                    10000
+                )
+                : null;
+
         var response;
 
         try {
@@ -274,11 +289,18 @@
                     {
                         method: "GET",
                         mode: "cors",
+                        credentials: "omit",
                         cache: "no-store",
+                        redirect: "follow",
+                        referrerPolicy: "no-referrer",
                         headers: {
                             "Accept":
                                 "application/json"
-                        }
+                        },
+                        signal:
+                            controller
+                                ? controller.signal
+                                : undefined
                     }
                 );
         } catch (error) {
@@ -289,13 +311,28 @@
 
             var networkError =
                 new Error(
-                    "Не удалось получить статистику сервера."
+                    error &&
+                    error.name === "AbortError"
+                        ? "API серверов не ответил за 10 секунд."
+                        : "Не удалось подключиться к API серверов. Проверьте CORS и доступность blackrussia.online."
                 );
 
             networkError.kind =
-                "server_stats_network";
+                error &&
+                error.name === "AbortError"
+                    ? "server_stats_timeout"
+                    : "server_stats_network";
+
+            networkError.cause =
+                error;
 
             throw networkError;
+        } finally {
+            if (timeoutId) {
+                window.clearTimeout(
+                    timeoutId
+                );
+            }
         }
 
         var raw = "";
@@ -311,13 +348,46 @@
 
             var readError =
                 new Error(
-                    "Не удалось прочитать данные серверов."
+                    "Не удалось прочитать ответ API серверов."
                 );
 
             readError.kind =
                 "server_stats_response";
 
+            readError.status =
+                response.status;
+
             throw readError;
+        }
+
+        if (!response.ok) {
+            console.error(
+                "[BR AdminTools] API серверов вернул HTTP ошибку:",
+                {
+                    status:
+                        response.status,
+                    body:
+                        raw
+                }
+            );
+
+            var httpError =
+                new Error(
+                    "API серверов вернул HTTP " +
+                    response.status +
+                    "."
+                );
+
+            httpError.kind =
+                "server_stats_http";
+
+            httpError.status =
+                response.status;
+
+            httpError.body =
+                raw;
+
+            throw httpError;
         }
 
         var data = null;
@@ -335,31 +405,44 @@
 
             var parseError =
                 new Error(
-                    "API серверов вернул некорректные данные."
+                    "API серверов вернул некорректный JSON."
                 );
 
             parseError.kind =
                 "server_stats_parse";
 
+            parseError.body =
+                raw;
+
             throw parseError;
         }
 
-        if (!response.ok) {
-            var httpError =
+        if (
+            data === null ||
+            typeof data === "undefined"
+        ) {
+            var emptyError =
                 new Error(
-                    "API серверов вернул ошибку HTTP " +
-                    response.status +
-                    "."
+                    "API серверов вернул пустой ответ."
                 );
 
-            httpError.kind =
-                "server_stats_http";
+            emptyError.kind =
+                "server_stats_empty";
 
-            httpError.status =
-                response.status;
-
-            throw httpError;
+            throw emptyError;
         }
+
+        console.info(
+            "[BR AdminTools] API серверов получен:",
+            {
+                status:
+                    response.status,
+                url:
+                    GAMESERVERS_URL,
+                payload:
+                    data
+            }
+        );
 
         return data;
     }
