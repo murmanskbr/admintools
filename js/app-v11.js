@@ -238,6 +238,8 @@
             {
                 user:
                     state.user,
+                token:
+                    state.user.token,
                 expires:
                     state.expires
             }
@@ -600,11 +602,104 @@
                             "loginError"
                         );
 
-                    error.textContent =
-                        "Серверная авторизация подключается отдельно.";
+                    error.textContent = "";
 
                     error.className =
-                        "login-error login-error-server";
+                        "login-error";
+
+                    var submit =
+                        document.querySelector(
+                            ".login-submit"
+                        );
+
+                    if (submit) {
+                        submit.disabled = true;
+                        submit.textContent =
+                            "Проверка...";
+                    }
+
+                    window.BR_API
+                        .login(
+                            document
+                                .getElementById(
+                                    "login"
+                                )
+                                .value
+                                .trim(),
+                            password.value
+                        )
+                        .then(
+                            function (
+                                result
+                            ) {
+                                state.user = {
+                                    id:
+                                        result.admin.id,
+                                    login:
+                                        result.admin.login,
+                                    nickname:
+                                        result.admin.nickname,
+                                    position:
+                                        result.admin.position,
+                                    role:
+                                        result.admin.role,
+                                    token:
+                                        result.token
+                                };
+
+                                var expiresAt =
+                                    new Date(
+                                        result.expires_at
+                                    ).getTime();
+
+                                state.expires =
+                                    Number.isFinite(
+                                        expiresAt
+                                    )
+                                        ? expiresAt
+                                        : Date.now() +
+                                          SESSION_MS;
+
+                                state.page =
+                                    "dashboard";
+
+                                saveSession();
+
+                                addLog(
+                                    "login",
+                                    "Успешный вход через сервер"
+                                );
+
+                                startTimer();
+                                render();
+                            }
+                        )
+                        .catch(
+                            function (
+                                loginError
+                            ) {
+                                console.warn(
+                                    "[BR AdminTools] Ошибка авторизации:",
+                                    loginError
+                                );
+
+                                error.textContent =
+                                    loginError.message ||
+                                    "Ошибка сервера.";
+
+                                error.className =
+                                    loginError.kind ===
+                                    "credentials"
+                                        ? "login-error login-error-auth"
+                                        : "login-error login-error-server";
+
+                                if (submit) {
+                                    submit.disabled = false;
+                                    submit.textContent =
+                                        "Войти";
+                                }
+                            }
+                        );
                 }
             );
     }
