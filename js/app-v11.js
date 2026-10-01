@@ -3665,6 +3665,12 @@
                     state.auditLogs =
                         [];
 
+                    refreshAuditLogs.disabled =
+                        true;
+
+                    refreshAuditLogs.textContent =
+                        "Обновление...";
+
                     render();
                 };
         }
