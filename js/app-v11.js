@@ -1539,20 +1539,58 @@
         };
     }
 
-    function findMurmanskServer(payload) {
-        if (
-            !Array.isArray(payload)
-        ) {
-            return null;
+    function getServerList(payload) {
+        if (Array.isArray(payload)) {
+            return payload;
         }
+
+        if (
+            payload &&
+            typeof payload === "object"
+        ) {
+            var candidates = [
+                payload.servers,
+                payload.data,
+                payload.result,
+                payload.gameservers
+            ];
+
+            for (
+                var i = 0;
+                i < candidates.length;
+                i += 1
+            ) {
+                if (
+                    Array.isArray(
+                        candidates[i]
+                    )
+                ) {
+                    return candidates[i];
+                }
+            }
+
+            if (
+                payload.sym_id ||
+                payload.name
+            ) {
+                return [payload];
+            }
+        }
+
+        return [];
+    }
+
+    function findMurmanskServer(payload) {
+        var servers =
+            getServerList(payload);
 
         for (
             var i = 0;
-            i < payload.length;
+            i < servers.length;
             i += 1
         ) {
             var server =
-                payload[i];
+                servers[i];
 
             if (
                 !server ||
@@ -1561,21 +1599,23 @@
                 continue;
             }
 
-            if (
-                String(server.sym_id || "")
-                    .toLowerCase() ===
-                "server53"
-            ) {
-                return parseServerObject(
-                    server
-                );
-            }
+            var symId =
+                String(
+                    server.sym_id || ""
+                )
+                    .trim()
+                    .toLowerCase();
+
+            var name =
+                String(
+                    server.name || ""
+                )
+                    .trim()
+                    .toLowerCase();
 
             if (
-                String(server.name || "")
-                    .trim()
-                    .toLowerCase() ===
-                "murmansk"
+                symId === "server53" ||
+                name === "murmansk"
             ) {
                 return parseServerObject(
                     server
