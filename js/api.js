@@ -274,7 +274,8 @@
         login:
             function (
                 login,
-                password
+                password,
+                remember
             ) {
                 return request({
                     action:
@@ -290,8 +291,7 @@
                         getDeviceId(),
 
                     remember:
-                        true ===
-                        arguments[2]
+                        remember === true
                 });
             }
     };
