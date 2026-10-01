@@ -287,7 +287,11 @@
                         password,
 
                     device_id:
-                        getDeviceId()
+                        getDeviceId(),
+
+                    remember:
+                        true ===
+                        arguments[2]
                 });
             }
     };
