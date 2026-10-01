@@ -28,7 +28,8 @@
         user: null,
         expires: 0,
         remember: false,
-        page: "dashboard"
+        page: "dashboard",
+        auditLogs: []
     };
 
     var ADMINS = [
@@ -308,6 +309,31 @@
     }
 
     function addLog(action, details) {
+        var timestamp =
+            new Date().toISOString();
+
+        var nickname =
+            state.user
+                ? state.user.nickname
+                : "guest";
+
+        var logItem = {
+            time:
+                timestamp,
+
+            nickname:
+                nickname,
+
+            action:
+                action,
+
+            details:
+                details || "",
+
+            page:
+                state.page || ""
+        };
+
         var logs =
             getJSON(
                 "br_logs",
@@ -318,21 +344,9 @@
             logs = [];
         }
 
-        logs.unshift({
-            time:
-                new Date().toISOString(),
-
-            nickname:
-                state.user
-                    ? state.user.nickname
-                    : "guest",
-
-            action:
-                action,
-
-            details:
-                details || ""
-        });
+        logs.unshift(
+            logItem
+        );
 
         setJSON(
             "br_logs",
@@ -347,6 +361,91 @@
             action,
             details || ""
         );
+
+        var token =
+            state.user
+                ? state.user.token
+                : null;
+
+        if (
+            token &&
+            window.BR_API &&
+            typeof window.BR_API.auditLog ===
+                "function"
+        ) {
+            window.BR_API
+                .auditLog(
+                    token,
+                    action,
+                    details || "",
+                    state.page || ""
+                )
+                .then(
+                    function () {
+                        console.info(
+                            "[BR AdminTools] Действие записано в Supabase:",
+                            action
+                        );
+                    }
+                )
+                .catch(
+                    function (error) {
+                        console.warn(
+                            "[BR AdminTools] Не удалось записать действие в Supabase:",
+                            error
+                        );
+                    }
+                );
+        }
+    }
+
+    async function loadAuditLogs() {
+        if (
+            !state.user ||
+            state.user.role !==
+                "management"
+        ) {
+            return;
+        }
+
+        if (
+            !window.BR_API ||
+            typeof window.BR_API.auditLogs !==
+                "function"
+        ) {
+            return;
+        }
+
+        try {
+            var result =
+                await window.BR_API
+                    .auditLogs(
+                        state.user.token,
+                        200
+                    );
+
+            if (
+                result &&
+                Array.isArray(
+                    result.logs
+                )
+            ) {
+                state.auditLogs =
+                    result.logs;
+
+                if (
+                    state.page ===
+                    "logs"
+                ) {
+                    render();
+                }
+            }
+        } catch (error) {
+            console.warn(
+                "[BR AdminTools] Не удалось загрузить журнал из Supabase:",
+                error
+            );
+        }
     }
 
     function saveSession() {
@@ -2979,10 +3078,15 @@
 
     function logsPage() {
         var logs =
-            getJSON(
-                "br_logs",
-                []
-            );
+            Array.isArray(
+                state.auditLogs
+            ) &&
+            state.auditLogs.length
+                ? state.auditLogs
+                : getJSON(
+                    "br_logs",
+                    []
+                );
 
         if (!Array.isArray(logs)) {
             logs = [];
@@ -3327,6 +3431,11 @@
         if (serverRefresh) {
             serverRefresh.onclick =
                 function () {
+                    addLog(
+                        "server_stats_refresh",
+                        "Обновление статистики Мурманска"
+                    );
+
                     loadServerStats();
                 };
         }
@@ -3336,6 +3445,16 @@
             "dashboard"
         ) {
             loadServerStats();
+        }
+
+        if (
+            state.page ===
+            "logs" &&
+            state.user &&
+            state.user.role ===
+                "management"
+        ) {
+            loadAuditLogs();
         }
 
         var notificationForm =
