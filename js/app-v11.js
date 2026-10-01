@@ -3102,17 +3102,12 @@
         var logs =
             Array.isArray(
                 state.auditLogs
-            ) &&
-            state.auditLogs.length
+            )
                 ? state.auditLogs
-                : getJSON(
-                    "br_logs",
-                    []
-                );
+                : [];
 
-        if (!Array.isArray(logs)) {
-            logs = [];
-        }
+        var isLoaded =
+            state.auditLogsLoaded === true;
 
         var rows =
             logs.length
@@ -3154,6 +3149,13 @@
 
                                 '<td>' +
                                     esc(
+                                        item.page ||
+                                        ""
+                                    ) +
+                                '</td>' +
+
+                                '<td>' +
+                                    esc(
                                         item.details
                                     ) +
                                 '</td>' +
@@ -3162,15 +3164,25 @@
                         );
                     }
                 ).join("")
-                : '<tr><td colspan="4">Журнал пока пуст.</td></tr>';
+                : (
+                    isLoaded
+                        ? '<tr><td colspan="5">Журнал пока пуст.</td></tr>'
+                        : '<tr><td colspan="5">Загрузка журнала...</td></tr>'
+                );
 
         return (
             head(
                 "Журнал действий",
-                "История действий панели"
+                "Серверный журнал Supabase для руководства"
             ) +
 
             '<div class="box table-box">' +
+
+                '<div class="server-box-actions">' +
+                    '<button class="button button-secondary" id="refreshAuditLogs" type="button">' +
+                        'Обновить журнал' +
+                    '</button>' +
+                '</div>' +
 
                 '<table>' +
 
@@ -3179,6 +3191,7 @@
                             '<th>Время</th>' +
                             '<th>Никнейм</th>' +
                             '<th>Действие</th>' +
+                            '<th>Раздел</th>' +
                             '<th>Подробности</th>' +
                         '</tr>' +
                     '</thead>' +
@@ -3486,6 +3499,31 @@
             !state.auditLogsLoaded
         ) {
             loadAuditLogs();
+        }
+
+        var refreshAuditLogs =
+            document.getElementById(
+                "refreshAuditLogs"
+            );
+
+        if (
+            refreshAuditLogs
+        ) {
+            refreshAuditLogs.onclick =
+                function () {
+                    addLog(
+                        "audit_logs_refresh",
+                        "Обновление журнала действий"
+                    );
+
+                    state.auditLogsLoaded =
+                        false;
+
+                    state.auditLogs =
+                        [];
+
+                    render();
+                };
         }
 
         var notificationForm =
