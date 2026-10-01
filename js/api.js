@@ -261,6 +261,109 @@
         return data;
     }
 
+    var GAMESERVERS_URL =
+        "https://blackrussia.online/api/gameservers/";
+
+    async function fetchGameServers() {
+        var response;
+
+        try {
+            response =
+                await fetch(
+                    GAMESERVERS_URL,
+                    {
+                        method: "GET",
+                        mode: "cors",
+                        cache: "no-store",
+                        headers: {
+                            "Accept":
+                                "application/json"
+                        }
+                    }
+                );
+        } catch (error) {
+            console.error(
+                "[BR AdminTools] Ошибка API серверов:",
+                error
+            );
+
+            var networkError =
+                new Error(
+                    "Не удалось получить статистику сервера."
+                );
+
+            networkError.kind =
+                "server_stats_network";
+
+            throw networkError;
+        }
+
+        var raw = "";
+
+        try {
+            raw =
+                await response.text();
+        } catch (error) {
+            console.error(
+                "[BR AdminTools] Не удалось прочитать API серверов:",
+                error
+            );
+
+            var readError =
+                new Error(
+                    "Не удалось прочитать данные серверов."
+                );
+
+            readError.kind =
+                "server_stats_response";
+
+            throw readError;
+        }
+
+        var data = null;
+
+        try {
+            data =
+                raw
+                    ? JSON.parse(raw)
+                    : null;
+        } catch (error) {
+            console.error(
+                "[BR AdminTools] API серверов вернул не JSON:",
+                raw
+            );
+
+            var parseError =
+                new Error(
+                    "API серверов вернул некорректные данные."
+                );
+
+            parseError.kind =
+                "server_stats_parse";
+
+            throw parseError;
+        }
+
+        if (!response.ok) {
+            var httpError =
+                new Error(
+                    "API серверов вернул ошибку HTTP " +
+                    response.status +
+                    "."
+                );
+
+            httpError.kind =
+                "server_stats_http";
+
+            httpError.status =
+                response.status;
+
+            throw httpError;
+        }
+
+        return data;
+    }
+
     window.BR_API = {
         url:
             API_URL,
@@ -296,17 +399,12 @@
             },
 
         serverStats:
-            function (
-                token
-            ) {
-                return request(
-                    {
-                        action:
-                            "server_stats"
-                    },
-                    token
-                );
-            }
+            function () {
+                return fetchGameServers();
+            },
+
+        gameServersUrl:
+            GAMESERVERS_URL
     };
 
     console.info(
