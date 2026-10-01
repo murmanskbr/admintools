@@ -261,190 +261,18 @@
         return data;
     }
 
-    var GAMESERVERS_URL =
-        "https://blackrussia.online/api/gameservers/";
-
-    async function fetchGameServers() {
-        var controller =
-            typeof AbortController === "function"
-                ? new AbortController()
-                : null;
-
-        var timeoutId =
-            controller
-                ? window.setTimeout(
-                    function () {
-                        controller.abort();
-                    },
-                    10000
-                )
-                : null;
-
-        var response;
-
-        try {
-            response =
-                await fetch(
-                    GAMESERVERS_URL,
-                    {
-                        method: "GET",
-                        mode: "cors",
-                        credentials: "omit",
-                        cache: "no-store",
-                        redirect: "follow",
-                        referrerPolicy: "no-referrer",
-                        headers: {
-                            "Accept":
-                                "application/json"
-                        },
-                        signal:
-                            controller
-                                ? controller.signal
-                                : undefined
-                    }
-                );
-        } catch (error) {
-            console.error(
-                "[BR AdminTools] Ошибка API серверов:",
-                error
-            );
-
-            var networkError =
-                new Error(
-                    error &&
-                    error.name === "AbortError"
-                        ? "API серверов не ответил за 10 секунд."
-                        : "Не удалось подключиться к API серверов. Проверьте CORS и доступность blackrussia.online."
-                );
-
-            networkError.kind =
-                error &&
-                error.name === "AbortError"
-                    ? "server_stats_timeout"
-                    : "server_stats_network";
-
-            networkError.cause =
-                error;
-
-            throw networkError;
-        } finally {
-            if (timeoutId) {
-                window.clearTimeout(
-                    timeoutId
-                );
-            }
-        }
-
-        var raw = "";
-
-        try {
-            raw =
-                await response.text();
-        } catch (error) {
-            console.error(
-                "[BR AdminTools] Не удалось прочитать API серверов:",
-                error
-            );
-
-            var readError =
-                new Error(
-                    "Не удалось прочитать ответ API серверов."
-                );
-
-            readError.kind =
-                "server_stats_response";
-
-            readError.status =
-                response.status;
-
-            throw readError;
-        }
-
-        if (!response.ok) {
-            console.error(
-                "[BR AdminTools] API серверов вернул HTTP ошибку:",
-                {
-                    status:
-                        response.status,
-                    body:
-                        raw
-                }
-            );
-
-            var httpError =
-                new Error(
-                    "API серверов вернул HTTP " +
-                    response.status +
-                    "."
-                );
-
-            httpError.kind =
-                "server_stats_http";
-
-            httpError.status =
-                response.status;
-
-            httpError.body =
-                raw;
-
-            throw httpError;
-        }
-
-        var data = null;
-
-        try {
-            data =
-                raw
-                    ? JSON.parse(raw)
-                    : null;
-        } catch (error) {
-            console.error(
-                "[BR AdminTools] API серверов вернул не JSON:",
-                raw
-            );
-
-            var parseError =
-                new Error(
-                    "API серверов вернул некорректный JSON."
-                );
-
-            parseError.kind =
-                "server_stats_parse";
-
-            parseError.body =
-                raw;
-
-            throw parseError;
-        }
-
-        if (
-            data === null ||
-            typeof data === "undefined"
-        ) {
-            var emptyError =
-                new Error(
-                    "API серверов вернул пустой ответ."
-                );
-
-            emptyError.kind =
-                "server_stats_empty";
-
-            throw emptyError;
-        }
-
+    async function fetchGameServers(token) {
         console.info(
-            "[BR AdminTools] API серверов получен:",
-            {
-                status:
-                    response.status,
-                url:
-                    GAMESERVERS_URL,
-                payload:
-                    data
-            }
+            "[BR AdminTools] Запрос статистики Мурманска через Edge Function."
         );
 
-        return data;
+        return request(
+            {
+                action:
+                    "server_stats"
+            },
+            token
+        );
     }
 
     window.BR_API = {
@@ -482,12 +310,11 @@
             },
 
         serverStats:
-            function () {
-                return fetchGameServers();
-            },
-
-        gameServersUrl:
-            GAMESERVERS_URL
+            function (token) {
+                return fetchGameServers(
+                    token
+                );
+            }
     };
 
     console.info(
