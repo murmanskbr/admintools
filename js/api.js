@@ -293,6 +293,19 @@
                     remember:
                         remember === true
                 });
+            },
+
+        serverStats:
+            function (
+                token
+            ) {
+                return request(
+                    {
+                        action:
+                            "server_stats"
+                    },
+                    token
+                );
             }
     };
 
