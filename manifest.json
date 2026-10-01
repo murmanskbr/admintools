@@ -1,0 +1,12 @@
+{
+  "name": "Black Russia — Мурманск",
+  "short_name": "BR Admin",
+  "description": "Панель администрации Black Russia — Мурманск",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#080a0f",
+  "theme_color": "#080a0f",
+  "orientation": "any",
+  "lang": "ru",
+  "dir": "ltr"
+}
