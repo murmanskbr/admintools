@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Обновление панели</title></head>
+<body style="margin:0;background:#080a0f;color:#fff;font-family:Arial,sans-serif;display:grid;place-items:center;min-height:100vh"><div style="text-align:center"><h2>Обновление панели…</h2><p style="color:#8992a2">Кэш очищается автоматически.</p></div><script>
+(async function(){
+try{
+if("serviceWorker" in navigator){var rs=await navigator.serviceWorker.getRegistrations();for(var i=0;i<rs.length;i++)await rs[i].unregister();}
+if("caches" in window){var ks=await caches.keys();for(var j=0;j<ks.length;j++)await caches.delete(ks[j]);}
+}catch(e){}
+setTimeout(function(){location.replace("./?v=8");},300);
+})();
+</script></body>
+</html>
