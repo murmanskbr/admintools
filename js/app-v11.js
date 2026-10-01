@@ -3098,6 +3098,144 @@
         );
     }
 
+    function auditPageName(page) {
+        var names = {
+            dashboard: "Главная",
+            profile: "Профиль",
+            admins: "Администрация",
+            normatives: "Нормативы",
+            "normatives-all": "Все нормативы",
+            requests: "Мои обращения",
+            "requests-all": "Все обращения",
+            notifications: "Уведомления",
+            rules: "Регламент",
+            logs: "Журнал действий",
+            access: "Управление доступом"
+        };
+
+        return (
+            names[page] ||
+            page ||
+            "—"
+        );
+    }
+
+    function auditActionName(action) {
+        var names = {
+            login: "Вход в систему",
+            logout: "Выход из системы",
+            session_expired: "Сессия завершилась",
+            navigation: "Переход по разделу",
+            notification_created: "Создание уведомления",
+            notification_read: "Прочтение уведомления",
+            normative_created: "Подача норматива",
+            request_created: "Создание обращения",
+            access_granted: "Выдача доступа",
+            server_stats_refresh: "Обновление статистики сервера",
+            audit_logs_refresh: "Обновление журнала действий"
+        };
+
+        return (
+            names[action] ||
+            action ||
+            "Действие"
+        );
+    }
+
+    function auditDetails(item) {
+        var action =
+            String(
+                item.action ||
+                ""
+            );
+
+        if (
+            action === "navigation"
+        ) {
+            return (
+                "Перешёл в раздел «" +
+                auditPageName(
+                    item.details
+                ) +
+                "»"
+            );
+        }
+
+        if (
+            action === "notification_created"
+        ) {
+            return (
+                "Создал уведомление: «" +
+                String(
+                    item.details ||
+                    ""
+                ) +
+                "»"
+            );
+        }
+
+        if (
+            action === "notification_read"
+        ) {
+            return (
+                "Прочитал уведомление №" +
+                String(
+                    item.details ||
+                    ""
+                )
+            );
+        }
+
+        if (
+            action === "normative_created"
+        ) {
+            return (
+                "Подал норматив: " +
+                String(
+                    item.details ||
+                    ""
+                )
+            );
+        }
+
+        if (
+            action === "request_created"
+        ) {
+            return "Создал новое обращение";
+        }
+
+        if (
+            action === "access_granted"
+        ) {
+            return (
+                "Выдал доступ: " +
+                String(
+                    item.details ||
+                    ""
+                )
+            );
+        }
+
+        if (
+            action === "server_stats_refresh"
+        ) {
+            return "Обновил статистику Мурманска";
+        }
+
+        if (
+            action === "audit_logs_refresh"
+        ) {
+            return "Обновил журнал действий";
+        }
+
+        return (
+            String(
+                item.details ||
+                "Без дополнительных сведений"
+            )
+        );
+    }
+
     function logsPage() {
         var logs =
             Array.isArray(
@@ -3143,20 +3281,25 @@
 
                                 '<td>' +
                                     esc(
-                                        item.action
+                                        auditActionName(
+                                            item.action
+                                        )
                                     ) +
                                 '</td>' +
 
                                 '<td>' +
                                     esc(
-                                        item.page ||
-                                        ""
+                                        auditPageName(
+                                            item.page
+                                        )
                                     ) +
                                 '</td>' +
 
                                 '<td>' +
                                     esc(
-                                        item.details
+                                        auditDetails(
+                                            item
+                                        )
                                     ) +
                                 '</td>' +
 
