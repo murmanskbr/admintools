@@ -73,18 +73,19 @@ button{cursor:pointer}
 .remember-row>small{color:#687283;font-size:9px;line-height:1.35;text-align:right}
 .server-box{position:relative;margin-top:14px;padding:18px;border:1px solid var(--line);border-left:3px solid var(--server-color);border-radius:15px;background:var(--surface);overflow:hidden}
 .server-box::after{content:"";position:absolute;right:-70px;top:-70px;width:190px;height:190px;border-radius:50%;background:var(--server-color);opacity:.035;pointer-events:none}
-.server-box-head{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.server-box-head{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.server-box-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .server-box-head>div>small{display:block;margin-bottom:7px;color:#737d8e;font-size:9px;font-weight:800;letter-spacing:.08em}
 .server-box-head h2{margin:0;font-size:19px;letter-spacing:-.02em}
 .server-status{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface2);color:#aeb6c4;font-size:9px;font-weight:750;white-space:nowrap}
 .server-status i{width:8px;height:8px;display:block;flex:0 0 8px;border-radius:50%;background:var(--server-color);box-shadow:0 0 0 4px color-mix(in srgb,var(--server-color) 12%,transparent)}
-.server-stats-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.server-stats-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
 .server-stat{min-width:0;padding:14px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.018)}
 .server-stat small{display:block;margin-bottom:8px;color:#737d8e;font-size:8px;font-weight:800;letter-spacing:.08em}
 .server-stat strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:18px;line-height:1.25}
 .server-stat span{display:block;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:9px}
-@media(max-width:800px){.server-stats-grid{grid-template-columns:1fr 1fr}.server-stat:last-child{grid-column:1/-1}}
-@media(max-width:520px){.remember-row{align-items:flex-start;flex-direction:column}.remember-row>small{text-align:left}.server-box{padding:15px}.server-box-head{flex-direction:column}.server-status{align-self:flex-start}.server-stats-grid{grid-template-columns:1fr}.server-stat:last-child{grid-column:auto}}
+@media(max-width:1000px){.server-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.server-stat:last-child{grid-column:auto}}
+@media(max-width:800px){.server-box-head{align-items:flex-start}.server-box-actions{width:100%;justify-content:flex-start}.server-stats-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.remember-row{align-items:flex-start;flex-direction:column}.remember-row>small{text-align:left}.server-box{padding:15px}.server-box-head{flex-direction:column}.server-box-actions{justify-content:stretch}.server-box-actions .server-status{width:100%;justify-content:center}.server-box-actions .server-refresh{width:100%}.server-status{align-self:flex-start}.server-stats-grid{grid-template-columns:1fr}.server-stat:last-child{grid-column:auto}}
 .toast{position:fixed;left:50%;bottom:24px;z-index:1000;transform:translateX(-50%);padding:11px 15px;border:1px solid var(--line);border-radius:10px;background:var(--surface3);color:var(--text);font-size:11px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 @media(max-width:1150px){:root{--sidebar:240px}.content{padding:24px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:800px){.sidebar{left:0;transform:translateX(-105%);transition:transform .2s ease;box-shadow:0 20px 70px rgba(0,0,0,.4)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.mobile-menu{display:grid;place-items:center}.top{padding:10px 15px}.content{padding:20px 15px}.columns,.form-grid,.two-column-table{grid-template-columns:1fr}.form-full{grid-column:auto}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
