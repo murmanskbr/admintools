@@ -3,16 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#080a0f" id="themeColor">
+    <meta name="theme-color" content="#080a0f">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BR Admin">
     <title>Black Russia — Мурманск</title>
-    <link rel="stylesheet" href="css/styles.css?v=7">
+    <link rel="stylesheet" href="css/styles.css?v=8">
 </head>
 <body>
 <div id="app"></div>
-<script src="js/app.js?v=7"></script>
+<script>
+(function(){
+    if("serviceWorker" in navigator){
+        navigator.serviceWorker.getRegistrations().then(function(registrations){
+            registrations.forEach(function(registration){ registration.unregister(); });
+        });
+        if("caches" in window){
+            caches.keys().then(function(keys){
+                keys.forEach(function(key){
+                    if(key.indexOf("br-admin-") === 0) caches.delete(key);
+                });
+            });
+        }
+    }
+})();
+</script>
+<script src="js/app.js?v=8"></script>
 </body>
 </html>
