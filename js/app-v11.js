@@ -29,7 +29,9 @@
         expires: 0,
         remember: false,
         page: "dashboard",
-        auditLogs: []
+        auditLogs: [],
+        auditLogsLoaded: false,
+        auditLogsLoading: false
     };
 
     var ADMINS = [
@@ -409,12 +411,21 @@
         }
 
         if (
+            state.auditLogsLoading
+        ) {
+            return;
+        }
+
+        if (
             !window.BR_API ||
             typeof window.BR_API.auditLogs !==
                 "function"
         ) {
             return;
         }
+
+        state.auditLogsLoading =
+            true;
 
         try {
             var result =
@@ -432,19 +443,30 @@
             ) {
                 state.auditLogs =
                     result.logs;
-
-                if (
-                    state.page ===
-                    "logs"
-                ) {
-                    render();
-                }
             }
+
+            state.auditLogsLoaded =
+                true;
+
+            if (
+                state.page ===
+                "logs"
+            ) {
+                render();
+            }
+
         } catch (error) {
             console.warn(
                 "[BR AdminTools] Не удалось загрузить журнал из Supabase:",
                 error
             );
+
+            state.auditLogsLoaded =
+                true;
+
+        } finally {
+            state.auditLogsLoading =
+                false;
         }
     }
 
@@ -3376,6 +3398,14 @@
                             state.page =
                                 target;
 
+                            if (
+                                target ===
+                                "logs"
+                            ) {
+                                state.auditLogsLoaded =
+                                    false;
+                            }
+
                             closeMobileMenu();
 
                             addLog(
@@ -3452,7 +3482,8 @@
             "logs" &&
             state.user &&
             state.user.role ===
-                "management"
+                "management" &&
+            !state.auditLogsLoaded
         ) {
             loadAuditLogs();
         }
