@@ -125,25 +125,9 @@
     }
 
     function saveUsers(users) {
-        var extra = {};
-
-        Object.keys(users)
-            .forEach(
-                function (
-                    key
-                ) {
-                    if (
-                        !DEFAULT_USERS[key]
-                    ) {
-                        extra[key] =
-                            users[key];
-                    }
-                }
-            );
-
         setJSON(
             "br_users",
-            extra
+            users || {}
         );
     }
 
@@ -699,6 +683,61 @@
                         );
                 }
             );
+    }
+
+    function generatePassword(length) {
+        var size = length || 12;
+        var upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        var lower = "abcdefghijkmnopqrstuvwxyz";
+        var digits = "23456789";
+        var symbols = "!@#$%&*";
+        var all = upper + lower + digits + symbols;
+
+        function randomIndex(max) {
+            if (
+                window.crypto &&
+                crypto.getRandomValues
+            ) {
+                var array =
+                    new Uint32Array(1);
+
+                crypto.getRandomValues(array);
+
+                return array[0] % max;
+            }
+
+            return Math.floor(
+                Math.random() * max
+            );
+        }
+
+        var result = [
+            upper[randomIndex(upper.length)],
+            lower[randomIndex(lower.length)],
+            digits[randomIndex(digits.length)],
+            symbols[randomIndex(symbols.length)]
+        ];
+
+        while (result.length < size) {
+            result.push(
+                all[randomIndex(all.length)]
+            );
+        }
+
+        for (
+            var i = result.length - 1;
+            i > 0;
+            i -= 1
+        ) {
+            var j =
+                randomIndex(i + 1);
+
+            var tmp = result[i];
+            result[i] = result[j];
+            result[j] = tmp;
+        }
+
+        return result.join("");
     }
 
     function nav(
@@ -1979,50 +2018,46 @@
             getUsers();
 
         var rows =
-            Object.keys(
-                users
-            )
-            .map(
-                function (
-                    login
-                ) {
-                    var item =
-                        users[login];
+            Object.keys(users)
+                .map(
+                    function (login) {
+                        var item =
+                            users[login];
 
-                    return (
-                        '<tr>' +
+                        return (
+                            '<tr>' +
+                                '<td>' +
+                                    esc(
+                                        item.nickname ||
+                                        login
+                                    ) +
+                                '</td>' +
 
-                            '<td>' +
-                                esc(login) +
-                            '</td>' +
+                                '<td>' +
+                                    (
+                                        item.role ===
+                                        "management"
+                                            ? "Руководство"
+                                            : "Администратор"
+                                    ) +
+                                '</td>' +
 
-                            '<td>' +
-                                (
-                                    item.role ===
-                                    "management"
-                                        ? "Руководство"
-                                        : "Администратор"
-                                ) +
-                            '</td>' +
-
-                            '<td>' +
-                                esc(item.nickname) +
-                            '</td>' +
-
-                            '<td>' +
-                                esc(item.position) +
-                            '</td>' +
-
-                        '</tr>'
-                    );
-                }
-            )
-            .join("");
+                                '<td>' +
+                                    esc(
+                                        item.position ||
+                                        "—"
+                                    ) +
+                                '</td>' +
+                            '</tr>'
+                        );
+                    }
+                )
+                .join("");
 
         return (
             head(
                 "Выдать доступ",
-                "Управление аккаунтами"
+                "Создание учётной записи администратора"
             ) +
 
             '<div class="box">' +
@@ -2031,37 +2066,52 @@
 
                     '<div class="form-grid">' +
 
-                        '<div class="form-field">' +
-                            '<label>Логин</label>' +
-                            '<input id="accessLogin" class="form-input" required>' +
+                        '<div class="form-field form-full">' +
+                            '<label for="accessNickname">Никнейм</label>' +
+                            '<input id="accessNickname" class="form-input" autocomplete="off" spellcheck="false" required>' +
+                            '<div class="field-hint">Логин будет автоматически совпадать с никнеймом.</div>' +
+                        '</div>' +
+
+                        '<div class="form-field form-full">' +
+                            '<label for="accessPassword">Пароль</label>' +
+
+                            '<div class="input-action-wrap">' +
+
+                                '<input ' +
+                                    'id="accessPassword" ' +
+                                    'class="form-input" ' +
+                                    'type="text" ' +
+                                    'autocomplete="new-password" ' +
+                                    'required' +
+                                '>' +
+
+                                '<button ' +
+                                    'class="button button-secondary input-action-button" ' +
+                                    'id="generateAccessPassword" ' +
+                                    'type="button"' +
+                                '>' +
+                                    'Сгенерировать' +
+                                '</button>' +
+
+                            '</div>' +
+
+                            '<div class="field-hint">Пароль можно сгенерировать автоматически или указать вручную.</div>' +
                         '</div>' +
 
                         '<div class="form-field">' +
-                            '<label>Пароль</label>' +
-                            '<input id="accessPassword" class="form-input" required>' +
-                        '</div>' +
-
-                        '<div class="form-field">' +
-                            '<label>Никнейм</label>' +
-                            '<input id="accessNickname" class="form-input" required>' +
-                        '</div>' +
-
-                        '<div class="form-field">' +
-                            '<label>Роль</label>' +
+                            '<label for="accessRole">Роль</label>' +
                             '<select id="accessRole" class="form-select">' +
                                 '<option value="admin">Обычный администратор</option>' +
                                 '<option value="management">Руководство</option>' +
                             '</select>' +
                         '</div>' +
 
-                        '<div class="form-field form-full">' +
-                            '<label>Должность</label>' +
+                        '<div class="form-field">' +
+                            '<label for="accessPosition">Должность</label>' +
                             '<select id="accessPosition" class="form-select">' +
                                 POSITIONS
                                     .map(
-                                        function (
-                                            position
-                                        ) {
+                                        function (position) {
                                             return (
                                                 '<option>' +
                                                     esc(position) +
@@ -2075,29 +2125,33 @@
 
                     '</div>' +
 
-                    '<button class="button button-primary" type="submit">' +
-                        'Выдать доступ' +
-                    '</button>' +
+                    '<div class="form-actions">' +
+                        '<button class="button button-primary" type="submit">' +
+                            'Выдать доступ' +
+                        '</button>' +
+                    '</div>' +
 
                 '</form>' +
 
             '</div>' +
 
-            '<div class="box table-box" style="margin-top:16px">' +
+            '<div class="box table-box access-table-box">' +
 
                 '<table>' +
 
                     '<thead>' +
                         '<tr>' +
-                            '<th>Логин</th>' +
-                            '<th>Роль</th>' +
                             '<th>Никнейм</th>' +
+                            '<th>Роль</th>' +
                             '<th>Должность</th>' +
                         '</tr>' +
                     '</thead>' +
 
                     '<tbody>' +
-                        rows +
+                        (
+                            rows ||
+                            '<tr><td colspan="3" class="table-empty">Доступы пока не выданы.</td></tr>'
+                        ) +
                     '</tbody>' +
 
                 '</table>' +
@@ -2491,27 +2545,49 @@
                 "accessForm"
             );
 
+        var accessNickname =
+            document.getElementById(
+                "accessNickname"
+            );
+
+        var accessPassword =
+            document.getElementById(
+                "accessPassword"
+            );
+
+        var generatePasswordButton =
+            document.getElementById(
+                "generateAccessPassword"
+            );
+
+        if (
+            generatePasswordButton &&
+            accessPassword
+        ) {
+            generatePasswordButton.onclick =
+                function () {
+                    accessPassword.value =
+                        generatePassword(12);
+
+                    accessPassword.focus();
+                    accessPassword.select();
+                };
+        }
+
         if (accessForm) {
             accessForm.onsubmit =
-                function (
-                    event
-                ) {
+                function (event) {
                     event.preventDefault();
 
-                    var login =
-                        document.getElementById(
-                            "accessLogin"
-                        ).value.trim().toLowerCase();
+                    var nickname =
+                        accessNickname
+                            ? accessNickname.value.trim()
+                            : "";
 
                     var password =
-                        document.getElementById(
-                            "accessPassword"
-                        ).value;
-
-                    var nickname =
-                        document.getElementById(
-                            "accessNickname"
-                        ).value.trim();
+                        accessPassword
+                            ? accessPassword.value
+                            : "";
 
                     var role =
                         document.getElementById(
@@ -2524,17 +2600,23 @@
                         ).value;
 
                     if (
-                        !login ||
-                        !password ||
-                        !nickname
+                        !nickname ||
+                        !password
                     ) {
                         return;
                     }
+
+                    var login =
+                        nickname
+                            .toLowerCase();
 
                     var users =
                         getUsers();
 
                     users[login] = {
+                        login:
+                            nickname,
+
                         password:
                             password,
 
@@ -2554,9 +2636,7 @@
 
                     addLog(
                         "access_granted",
-                        login +
-                            " / " +
-                            nickname
+                        nickname
                     );
 
                     render();
