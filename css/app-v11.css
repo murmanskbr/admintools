@@ -61,6 +61,11 @@ button{cursor:pointer}
 .access-table-box{margin-top:16px}
 .access-table-box table{min-width:560px}
 @media(max-width:520px){.input-action-wrap{grid-template-columns:1fr}.input-action-button{width:100%}}
+
+.spaced-box{margin-top:16px}
+.compact-box{margin-bottom:15px}
+.small-button{min-height:34px;padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);color:var(--text);font-size:10px;font-weight:750}
+.small-button:hover{background:var(--surface3)}
 .toast{position:fixed;left:50%;bottom:24px;z-index:1000;transform:translateX(-50%);padding:11px 15px;border:1px solid var(--line);border-radius:10px;background:var(--surface3);color:var(--text);font-size:11px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 @media(max-width:1150px){:root{--sidebar:240px}.content{padding:24px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:800px){.sidebar{left:0;transform:translateX(-105%);transition:transform .2s ease;box-shadow:0 20px 70px rgba(0,0,0,.4)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.mobile-menu{display:grid;place-items:center}.top{padding:10px 15px}.content{padding:20px 15px}.columns,.form-grid,.two-column-table{grid-template-columns:1fr}.form-full{grid-column:auto}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
