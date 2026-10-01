@@ -1400,65 +1400,30 @@
             value.trim();
 
         if (
-            /^#[0-9a-fA-F]{3,8}$/.test(
+            /^[0-9a-fA-F]{6}$/.test(
+                input
+            )
+        ) {
+            return "#" + input;
+        }
+
+        if (
+            /^#[0-9a-fA-F]{6}$/.test(
                 input
             )
         ) {
             return input;
         }
 
-        var rgbMatch =
-            input.match(
-                /^rgba?\(([^)]+)\)$/i
-            );
-
-        if (!rgbMatch) {
-            return null;
-        }
-
-        var parts =
-            rgbMatch[1]
-                .split(",")
-                .map(
-                    function (part) {
-                        return Number(
-                            part.trim()
-                        );
-                    }
-                );
-
         if (
-            parts.length < 3 ||
-            parts.some(
-                function (part) {
-                    return !Number.isFinite(
-                        part
-                    );
-                }
+            /^#[0-9a-fA-F]{3}$/.test(
+                input
             )
         ) {
-            return null;
+            return input;
         }
 
-        return (
-            "#" +
-            parts
-                .slice(0, 3)
-                .map(
-                    function (part) {
-                        return Math.max(
-                            0,
-                            Math.min(
-                                255,
-                                Math.round(part)
-                            )
-                        )
-                        .toString(16)
-                        .padStart(2, "0");
-                    }
-                )
-                .join("")
-        );
+        return null;
     }
 
     function parseX2(value) {
@@ -1518,205 +1483,103 @@
     }
 
     function parseServerObject(server) {
-        var name =
-            getByKeys(
-                server,
-                [
-                    "name",
-                    "title",
-                    "server_name",
-                    "serverName",
-                    "label",
-                    "display_name",
-                    "displayName"
-                ]
-            );
-
-        var online =
-            toOnlineValue(
-                getByKeys(
-                    server,
-                    [
-                        "online",
-                        "players",
-                        "player_count",
-                        "players_count",
-                        "current_players",
-                        "currentPlayers",
-                        "online_players"
-                    ]
-                )
-            );
-
-        var maxPlayers =
-            toOnlineValue(
-                getByKeys(
-                    server,
-                    [
-                        "max_players",
-                        "maxPlayers",
-                        "slots",
-                        "max"
-                    ]
-                )
-            );
-
         var color =
             normalizeColor(
-                getByKeys(
-                    server,
-                    [
-                        "color",
-                        "colour",
-                        "server_color",
-                        "serverColor",
-                        "status_color",
-                        "statusColor"
-                    ]
-                )
-            );
-
-        var x2 =
-            parseX2(
-                getByKeys(
-                    server,
-                    [
-                        "x2",
-                        "is_x2",
-                        "isX2",
-                        "double_xp",
-                        "doubleXp",
-                        "multiplier",
-                        "rate",
-                        "exp_rate"
-                    ]
-                )
-            );
-
-        var status =
-            getByKeys(
-                server,
-                [
-                    "status",
-                    "state",
-                    "server_status",
-                    "serverStatus"
-                ]
+                server.color
             );
 
         return {
+            id:
+                server.id,
+
+            sym_id:
+                server.sym_id,
+
             name:
-                typeof name === "string"
-                    ? name
-                    : "Мурманск",
+                String(
+                    server.name ||
+                    "MURMANSK"
+                ),
+
+            url:
+                String(
+                    server.url ||
+                    "murmansk.blackrussia.online"
+                ),
 
             online:
-                online,
+                toOnlineValue(
+                    server.online
+                ),
 
             maxPlayers:
-                maxPlayers,
+                toOnlineValue(
+                    server.max_online
+                ),
 
             color:
-                color,
+                color ||
+                "#8d96a7",
 
             x2:
-                x2,
+                parseX2(
+                    server.x2
+                ),
 
             status:
-                typeof status === "string"
-                    ? status
-                    : null
+                server.online != null
+                    ? "Онлайн"
+                    : "Оффлайн",
+
+            publishStatus:
+                String(
+                    server.publish_status ||
+                    ""
+                )
         };
     }
 
     function findMurmanskServer(payload) {
-        var direct =
-            findServerByName(
-                payload
-            );
-
         if (
-            direct &&
-            direct.object
+            !Array.isArray(payload)
         ) {
-            var parsed =
-                parseServerObject(
-                    direct.object
-                );
-
-            if (
-                parsed.name
-                    .toLowerCase()
-                    .indexOf("мурманск") !== -1
-            ) {
-                return parsed;
-            }
-
-            var nested =
-                direct.object[
-                    direct.key
-                ];
-
-            if (
-                nested &&
-                typeof nested === "object"
-            ) {
-                var nestedParsed =
-                    parseServerObject(
-                        nested
-                    );
-
-                if (
-                    nestedParsed.name
-                        .toLowerCase()
-                        .indexOf("мурманск") !== -1
-                ) {
-                    return nestedParsed;
-                }
-            }
+            return null;
         }
-
-        var list =
-            Array.isArray(payload)
-                ? payload
-                : (
-                    payload &&
-                    Array.isArray(
-                        payload.servers
-                    )
-                        ? payload.servers
-                        : (
-                            payload &&
-                            Array.isArray(
-                                payload.data
-                            )
-                                ? payload.data
-                                : []
-                        )
-                  );
 
         for (
             var i = 0;
-            i < list.length;
+            i < payload.length;
             i += 1
         ) {
-            var parsedServer =
-                parseServerObject(
-                    list[i]
-                );
-
-            var haystack =
-                JSON.stringify(
-                    list[i]
-                )
-                    .toLowerCase();
+            var server =
+                payload[i];
 
             if (
-                haystack.indexOf(
-                    "мурманск"
-                ) !== -1
+                !server ||
+                typeof server !== "object"
             ) {
-                return parsedServer;
+                continue;
+            }
+
+            if (
+                String(server.sym_id || "")
+                    .toLowerCase() ===
+                "server53"
+            ) {
+                return parseServerObject(
+                    server
+                );
+            }
+
+            if (
+                String(server.name || "")
+                    .trim()
+                    .toLowerCase() ===
+                "murmansk"
+            ) {
+                return parseServerObject(
+                    server
+                );
             }
         }
 
