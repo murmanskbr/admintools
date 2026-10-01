@@ -18,21 +18,6 @@
         page: "dashboard"
     };
 
-    var DEFAULT_USERS = {
-        admin: {
-            password: "Admin2026!",
-            nickname: "Nikita_Zvezda",
-            position: "Руководство",
-            role: "management"
-        },
-        test: {
-            password: "Test2026!",
-            nickname: "Test_Admin",
-            position: "Модератор",
-            role: "admin"
-        }
-    };
-
     var ADMINS = [
         ["Nikita_Zvezda", "Руководство"],
         ["Test_Admin", "Модератор"],
@@ -136,11 +121,7 @@
             extra = {};
         }
 
-        return Object.assign(
-            {},
-            DEFAULT_USERS,
-            extra
-        );
+        return extra;
     }
 
     function saveUsers(users) {
@@ -560,9 +541,8 @@
                         '</button>' +
 
                         '<div class="demo">' +
-                            '<b>Тестовые данные</b>' +
-                            '<span>admin / Admin2026! — руководство</span>' +
-                            '<span>test / Test2026! — администратор</span>' +
+                            '<b>Статическая оболочка</b>' +
+                            '<span>Серверная авторизация подключается вне публичного frontend-репозитория.</span>' +
                         '</div>' +
 
                     '</form>' +
@@ -615,62 +595,16 @@
                 ) {
                     event.preventDefault();
 
-                    var login =
-                        document
-                            .getElementById(
-                                "login"
-                            )
-                            .value
-                            .trim()
-                            .toLowerCase();
-
-                    var account =
-                        getUsers()[
-                            login
-                        ];
-
                     var error =
                         document.getElementById(
                             "loginError"
                         );
 
-                    if (
-                        !account ||
-                        account.password !==
-                            password.value
-                    ) {
-                        error.textContent =
-                            "Неверный логин или пароль";
+                    error.textContent =
+                        "Серверная авторизация подключается отдельно.";
 
-                        console.warn(
-                            "[BR AdminTools] Неуспешная авторизация:",
-                            login
-                        );
-
-                        return;
-                    }
-
-                    state.user = {
-                        nickname:
-                            account.nickname,
-                        position:
-                            account.position,
-                        role:
-                            account.role
-                    };
-
-                    state.page =
-                        "dashboard";
-
-                    renewSession();
-
-                    addLog(
-                        "login",
-                        "Успешный вход"
-                    );
-
-                    startTimer();
-                    render();
+                    error.className =
+                        "login-error login-error-server";
                 }
             );
     }
