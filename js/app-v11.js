@@ -1226,9 +1226,780 @@
         );
     }
 
+    function findServerByName(value) {
+        if (!value) {
+            return null;
+        }
+
+        var queue = [
+            {
+                value: value,
+                parent: null,
+                key: ""
+            }
+        ];
+
+        while (queue.length) {
+            var item =
+                queue.shift();
+
+            if (
+                item.value &&
+                typeof item.value === "object"
+            ) {
+                var keys =
+                    Object.keys(
+                        item.value
+                    );
+
+                for (
+                    var i = 0;
+                    i < keys.length;
+                    i += 1
+                ) {
+                    var key =
+                        keys[i];
+
+                    var valueItem =
+                        item.value[key];
+
+                    if (
+                        typeof valueItem === "string" &&
+                        valueItem
+                            .toLowerCase()
+                            .indexOf("мурманск") !== -1
+                    ) {
+                        return {
+                            object:
+                                item.value,
+                            key:
+                                key,
+                            name:
+                                valueItem
+                        };
+                    }
+
+                    if (
+                        valueItem &&
+                        typeof valueItem === "object"
+                    ) {
+                        queue.push({
+                            value:
+                                valueItem,
+                            parent:
+                                item.value,
+                            key:
+                                key
+                        });
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    function getByKeys(object, keys) {
+        if (
+            !object ||
+            typeof object !== "object"
+        ) {
+            return undefined;
+        }
+
+        for (
+            var i = 0;
+            i < keys.length;
+            i += 1
+        ) {
+            var key =
+                keys[i];
+
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    object,
+                    key
+                )
+            ) {
+                return object[key];
+            }
+        }
+
+        return undefined;
+    }
+
+    function toOnlineValue(value) {
+        if (
+            typeof value === "number" &&
+            Number.isFinite(value)
+        ) {
+            return value;
+        }
+
+        if (
+            typeof value === "string" &&
+            value.trim() !== ""
+        ) {
+            var parsed =
+                Number(
+                    value.replace(
+                        ",",
+                        "."
+                    )
+                );
+
+            if (
+                Number.isFinite(parsed)
+            ) {
+                return parsed;
+            }
+
+            var match =
+                value.match(
+                    /\d+/
+                );
+
+            if (match) {
+                return Number(
+                    match[0]
+                );
+            }
+        }
+
+        if (
+            value &&
+            typeof value === "object"
+        ) {
+            return toOnlineValue(
+                getByKeys(
+                    value,
+                    [
+                        "online",
+                        "current",
+                        "count",
+                        "players",
+                        "current_players"
+                    ]
+                )
+            );
+        }
+
+        return null;
+    }
+
+    function normalizeColor(value) {
+        if (
+            typeof value !== "string"
+        ) {
+            return null;
+        }
+
+        var input =
+            value.trim();
+
+        if (
+            /^#[0-9a-fA-F]{3,8}$/.test(
+                input
+            )
+        ) {
+            return input;
+        }
+
+        var rgbMatch =
+            input.match(
+                /^rgba?\(([^)]+)\)$/i
+            );
+
+        if (!rgbMatch) {
+            return null;
+        }
+
+        var parts =
+            rgbMatch[1]
+                .split(",")
+                .map(
+                    function (part) {
+                        return Number(
+                            part.trim()
+                        );
+                    }
+                );
+
+        if (
+            parts.length < 3 ||
+            parts.some(
+                function (part) {
+                    return !Number.isFinite(
+                        part
+                    );
+                }
+            )
+        ) {
+            return null;
+        }
+
+        return (
+            "#" +
+            parts
+                .slice(0, 3)
+                .map(
+                    function (part) {
+                        return Math.max(
+                            0,
+                            Math.min(
+                                255,
+                                Math.round(part)
+                            )
+                        )
+                        .toString(16)
+                        .padStart(2, "0");
+                    }
+                )
+                .join("")
+        );
+    }
+
+    function parseX2(value) {
+        if (
+            typeof value === "boolean"
+        ) {
+            return value;
+        }
+
+        if (
+            typeof value === "number"
+        ) {
+            return value >= 2;
+        }
+
+        if (
+            typeof value === "string"
+        ) {
+            var normalized =
+                value
+                    .trim()
+                    .toLowerCase();
+
+            if (
+                normalized === "x2" ||
+                normalized === "2x" ||
+                normalized === "true" ||
+                normalized === "да" ||
+                normalized === "yes"
+            ) {
+                return true;
+            }
+
+            if (
+                normalized === "false" ||
+                normalized === "нет" ||
+                normalized === "no" ||
+                normalized === "x1" ||
+                normalized === "1x"
+            ) {
+                return false;
+            }
+
+            var numberMatch =
+                normalized.match(
+                    /(?:x|×)\s*(\d+(?:\.\d+)?)/
+                );
+
+            if (numberMatch) {
+                return Number(
+                    numberMatch[1]
+                ) >= 2;
+            }
+        }
+
+        return null;
+    }
+
+    function parseServerObject(server) {
+        var name =
+            getByKeys(
+                server,
+                [
+                    "name",
+                    "title",
+                    "server_name",
+                    "serverName",
+                    "label",
+                    "display_name",
+                    "displayName"
+                ]
+            );
+
+        var online =
+            toOnlineValue(
+                getByKeys(
+                    server,
+                    [
+                        "online",
+                        "players",
+                        "player_count",
+                        "players_count",
+                        "current_players",
+                        "currentPlayers",
+                        "online_players"
+                    ]
+                )
+            );
+
+        var maxPlayers =
+            toOnlineValue(
+                getByKeys(
+                    server,
+                    [
+                        "max_players",
+                        "maxPlayers",
+                        "slots",
+                        "max"
+                    ]
+                )
+            );
+
+        var color =
+            normalizeColor(
+                getByKeys(
+                    server,
+                    [
+                        "color",
+                        "colour",
+                        "server_color",
+                        "serverColor",
+                        "status_color",
+                        "statusColor"
+                    ]
+                )
+            );
+
+        var x2 =
+            parseX2(
+                getByKeys(
+                    server,
+                    [
+                        "x2",
+                        "is_x2",
+                        "isX2",
+                        "double_xp",
+                        "doubleXp",
+                        "multiplier",
+                        "rate",
+                        "exp_rate"
+                    ]
+                )
+            );
+
+        var status =
+            getByKeys(
+                server,
+                [
+                    "status",
+                    "state",
+                    "server_status",
+                    "serverStatus"
+                ]
+            );
+
+        return {
+            name:
+                typeof name === "string"
+                    ? name
+                    : "Мурманск",
+
+            online:
+                online,
+
+            maxPlayers:
+                maxPlayers,
+
+            color:
+                color,
+
+            x2:
+                x2,
+
+            status:
+                typeof status === "string"
+                    ? status
+                    : null
+        };
+    }
+
+    function findMurmanskServer(payload) {
+        var direct =
+            findServerByName(
+                payload
+            );
+
+        if (
+            direct &&
+            direct.object
+        ) {
+            var parsed =
+                parseServerObject(
+                    direct.object
+                );
+
+            if (
+                parsed.name
+                    .toLowerCase()
+                    .indexOf("мурманск") !== -1
+            ) {
+                return parsed;
+            }
+
+            var nested =
+                direct.object[
+                    direct.key
+                ];
+
+            if (
+                nested &&
+                typeof nested === "object"
+            ) {
+                var nestedParsed =
+                    parseServerObject(
+                        nested
+                    );
+
+                if (
+                    nestedParsed.name
+                        .toLowerCase()
+                        .indexOf("мурманск") !== -1
+                ) {
+                    return nestedParsed;
+                }
+            }
+        }
+
+        var list =
+            Array.isArray(payload)
+                ? payload
+                : (
+                    payload &&
+                    Array.isArray(
+                        payload.servers
+                    )
+                        ? payload.servers
+                        : (
+                            payload &&
+                            Array.isArray(
+                                payload.data
+                            )
+                                ? payload.data
+                                : []
+                        )
+                  );
+
+        for (
+            var i = 0;
+            i < list.length;
+            i += 1
+        ) {
+            var parsedServer =
+                parseServerObject(
+                    list[i]
+                );
+
+            var haystack =
+                JSON.stringify(
+                    list[i]
+                )
+                    .toLowerCase();
+
+            if (
+                haystack.indexOf(
+                    "мурманск"
+                ) !== -1
+            ) {
+                return parsedServer;
+            }
+        }
+
+        return null;
+    }
+
+    function applyServerInfo(data) {
+        SERVER_INFO.name =
+            data && data.name
+                ? data.name
+                : "Мурманск";
+
+        SERVER_INFO.online =
+            data
+                ? data.online
+                : null;
+
+        SERVER_INFO.status =
+            data && data.status
+                ? data.status
+                : (
+                    data &&
+                    data.online != null
+                        ? "Онлайн"
+                        : "Данные получены"
+                );
+
+        SERVER_INFO.color =
+            data && data.color
+                ? data.color
+                : (
+                    data &&
+                    data.online != null
+                        ? "#36d47d"
+                        : "#8d96a7"
+                );
+
+        SERVER_INFO.x2 =
+            data
+                ? data.x2
+                : null;
+
+        SERVER_INFO.maxPlayers =
+            data
+                ? data.maxPlayers
+                : null;
+
+        SERVER_INFO.updatedAt =
+            new Date()
+                .toISOString();
+    }
+
+    function updateServerStatsView() {
+        var onlineElement =
+            document.getElementById(
+                "serverOnline"
+            );
+
+        var x2Element =
+            document.getElementById(
+                "serverX2"
+            );
+
+        var statusElement =
+            document.getElementById(
+                "serverStatus"
+            );
+
+        var stateElement =
+            document.getElementById(
+                "serverState"
+            );
+
+        var updatedElement =
+            document.getElementById(
+                "serverUpdated"
+            );
+
+        var nameElement =
+            document.getElementById(
+                "serverName"
+            );
+
+        var shortNameElement =
+            document.getElementById(
+                "serverNameShort"
+            );
+
+        var dotElement =
+            document.getElementById(
+                "serverStatusDot"
+            );
+
+        var boxElement =
+            document.getElementById(
+                "serverBox"
+            );
+
+        var refreshButton =
+            document.getElementById(
+                "serverRefresh"
+            );
+
+        var onlineText =
+            SERVER_INFO.online == null
+                ? "—"
+                : String(
+                    SERVER_INFO.online
+                );
+
+        if (
+            SERVER_INFO.maxPlayers != null
+        ) {
+            onlineText +=
+                " / " +
+                String(
+                    SERVER_INFO.maxPlayers
+                );
+        }
+
+        if (onlineElement) {
+            onlineElement.textContent =
+                onlineText;
+        }
+
+        if (x2Element) {
+            x2Element.textContent =
+                SERVER_INFO.x2 === true
+                    ? "X2"
+                    : (
+                        SERVER_INFO.x2 === false
+                            ? "X1"
+                            : "—"
+                    );
+        }
+
+        if (statusElement) {
+            statusElement.textContent =
+                SERVER_INFO.status;
+        }
+
+        if (stateElement) {
+            stateElement.textContent =
+                SERVER_INFO.status;
+        }
+
+        if (nameElement) {
+            nameElement.textContent =
+                SERVER_INFO.name;
+        }
+
+        if (shortNameElement) {
+            shortNameElement.textContent =
+                SERVER_INFO.name;
+        }
+
+        if (updatedElement) {
+            updatedElement.textContent =
+                SERVER_INFO.updatedAt
+                    ? (
+                        "Обновлено " +
+                        new Date(
+                            SERVER_INFO.updatedAt
+                        ).toLocaleTimeString(
+                            "ru-RU",
+                            {
+                                hour: "2-digit",
+                                minute: "2-digit"
+                            }
+                        )
+                    )
+                    : "Данные ещё не получены";
+        }
+
+        if (dotElement) {
+            dotElement.style.background =
+                SERVER_INFO.color;
+
+            dotElement.style.boxShadow =
+                "0 0 0 4px " +
+                SERVER_INFO.color +
+                "22";
+        }
+
+        if (boxElement) {
+            boxElement.style.setProperty(
+                "--server-color",
+                SERVER_INFO.color
+            );
+        }
+
+        if (refreshButton) {
+            refreshButton.disabled =
+                false;
+
+            refreshButton.textContent =
+                "Обновить";
+        }
+    }
+
+    async function loadServerStats() {
+        var refreshButton =
+            document.getElementById(
+                "serverRefresh"
+            );
+
+        if (refreshButton) {
+            refreshButton.disabled =
+                true;
+
+            refreshButton.textContent =
+                "Обновление...";
+        }
+
+        try {
+            var payload =
+                await window.BR_API.serverStats();
+
+            var server =
+                findMurmanskServer(
+                    payload
+                );
+
+            if (!server) {
+                throw new Error(
+                    "Сервер «Мурманск» не найден в ответе API."
+                );
+            }
+
+            applyServerInfo(
+                server
+            );
+
+            console.info(
+                "[BR AdminTools] Статистика Мурманска обновлена:",
+                server
+            );
+
+            updateServerStatsView();
+
+        } catch (error) {
+            console.error(
+                "[BR AdminTools] Ошибка получения статистики Мурманска:",
+                error
+            );
+
+            SERVER_INFO.status =
+                error.message ||
+                "Ошибка API";
+
+            SERVER_INFO.color =
+                "#ff6979";
+
+            SERVER_INFO.updatedAt =
+                new Date()
+                    .toISOString();
+
+            updateServerStatsView();
+
+            var statusElement =
+                document.getElementById(
+                    "serverStatus"
+                );
+
+            if (statusElement) {
+                statusElement.textContent =
+                    "Ошибка API";
+            }
+
+            var stateElement =
+                document.getElementById(
+                    "serverState"
+                );
+
+            if (stateElement) {
+                stateElement.textContent =
+                    error.message ||
+                    "Ошибка API";
+            }
+        }
+    }
+
     function renderServerStats() {
         var color =
-            /^#[0-9a-fA-F]{6}$/.test(
+            /^#[0-9a-fA-F]{6,8}$/.test(
                 String(
                     SERVER_INFO.color || ""
                 )
@@ -1239,10 +2010,27 @@
         var online =
             SERVER_INFO.online == null
                 ? "—"
-                : esc(
-                    String(
-                        SERVER_INFO.online
-                    )
+                : String(
+                    SERVER_INFO.online
+                );
+
+        if (
+            SERVER_INFO.maxPlayers != null
+        ) {
+            online +=
+                " / " +
+                String(
+                    SERVER_INFO.maxPlayers
+                );
+        }
+
+        var x2 =
+            SERVER_INFO.x2 === true
+                ? "X2"
+                : (
+                    SERVER_INFO.x2 === false
+                        ? "X1"
+                        : "—"
                 );
 
         var status =
@@ -1269,7 +2057,7 @@
                 : "Данные ещё не получены";
 
         return (
-            '<div class="server-box" style="--server-color:' +
+            '<div class="server-box" id="serverBox" style="--server-color:' +
                 color +
             '">' +
 
@@ -1284,12 +2072,23 @@
                         '</h2>' +
                     '</div>' +
 
-                    '<span class="server-status">' +
-                        '<i id="serverStatusDot"></i>' +
-                        '<span id="serverStatus">' +
-                            esc(status) +
+                    '<div class="server-box-actions">' +
+                        '<span class="server-status">' +
+                            '<i id="serverStatusDot"></i>' +
+                            '<span id="serverStatus">' +
+                                esc(status) +
+                            '</span>' +
                         '</span>' +
-                    '</span>' +
+
+                        '<button ' +
+                            'class="button button-secondary server-refresh" ' +
+                            'id="serverRefresh" ' +
+                            'type="button"' +
+                        '>' +
+                            'Обновить' +
+                        '</button>' +
+
+                    '</div>' +
 
                 '</div>' +
 
@@ -1298,9 +2097,17 @@
                     '<div class="server-stat">' +
                         '<small>ОНЛАЙН</small>' +
                         '<strong id="serverOnline">' +
-                            online +
+                            esc(online) +
                         '</strong>' +
                         '<span>игроков онлайн</span>' +
+                    '</div>' +
+
+                    '<div class="server-stat">' +
+                        '<small>X2</small>' +
+                        '<strong id="serverX2">' +
+                            x2 +
+                        '</strong>' +
+                        '<span>режим опыта</span>' +
                     '</div>' +
 
                     '<div class="server-stat">' +
@@ -1310,7 +2117,7 @@
                                 SERVER_INFO.name
                             ) +
                         '</strong>' +
-                        '<span>Мурманск</span>' +
+                        '<span>Black Russia</span>' +
                     '</div>' +
 
                     '<div class="server-stat">' +
@@ -2592,6 +3399,25 @@
                         );
                     }
                 };
+        }
+
+        var serverRefresh =
+            document.getElementById(
+                "serverRefresh"
+            );
+
+        if (serverRefresh) {
+            serverRefresh.onclick =
+                function () {
+                    loadServerStats();
+                };
+        }
+
+        if (
+            state.page ===
+            "dashboard"
+        ) {
+            loadServerStats();
         }
 
         var notificationForm =
