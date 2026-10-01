@@ -314,6 +314,50 @@
                 return fetchGameServers(
                     token
                 );
+            },
+
+        auditLog:
+            function (
+                token,
+                action,
+                details,
+                page
+            ) {
+                return request(
+                    {
+                        action:
+                            "audit_log",
+
+                        event_action:
+                            action,
+
+                        details:
+                            details || "",
+
+                        page:
+                            page || ""
+                    },
+                    token
+                );
+            },
+
+        auditLogs:
+            function (
+                token,
+                limit
+            ) {
+                return request(
+                    {
+                        action:
+                            "audit_logs",
+
+                        limit:
+                            Number(
+                                limit || 200
+                            )
+                    },
+                    token
+                );
             }
     };
 
