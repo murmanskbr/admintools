@@ -9,12 +9,23 @@
     }
 
     var SESSION_MS = 180000;
+    var REMEMBER_COOKIE = "br_session";
+    var REMEMBER_DAYS = 30;
     var timer = null;
     var lastActivity = 0;
+
+    var SERVER_INFO = {
+        name: "Мурманск",
+        online: null,
+        status: "Ожидание API",
+        color: "#8d96a7",
+        updatedAt: null
+    };
 
     var state = {
         user: null,
         expires: 0,
+        remember: false,
         page: "dashboard"
     };
 
@@ -104,6 +115,130 @@
                 error
             );
         }
+    }
+
+    function getCookie(name) {
+        var prefix =
+            name + "=";
+
+        var cookies =
+            document.cookie
+                ? document.cookie.split(";")
+                : [];
+
+        for (
+            var i = 0;
+            i < cookies.length;
+            i += 1
+        ) {
+            var item =
+                cookies[i].trim();
+
+            if (
+                item.indexOf(prefix) === 0
+            ) {
+                return decodeURIComponent(
+                    item.slice(
+                        prefix.length
+                    )
+                );
+            }
+        }
+
+        return null;
+    }
+
+    function setCookie(
+        name,
+        value,
+        maxAge
+    ) {
+        document.cookie =
+            name +
+            "=" +
+            encodeURIComponent(
+                value
+            ) +
+            "; Max-Age=" +
+            String(
+                maxAge
+            ) +
+            "; Path=/; Secure; SameSite=Lax";
+    }
+
+    function removeCookie(name) {
+        document.cookie =
+            name +
+            "=; Max-Age=0; Path=/; Secure; SameSite=Lax";
+    }
+
+    function getSessionPayload() {
+        var cookieValue =
+            getCookie(
+                REMEMBER_COOKIE
+            );
+
+        if (cookieValue) {
+            try {
+                return JSON.parse(
+                    cookieValue
+                );
+            } catch (error) {
+                console.warn(
+                    "[BR AdminTools] Некорректная cookie-сессия",
+                    error
+                );
+
+                removeCookie(
+                    REMEMBER_COOKIE
+                );
+            }
+        }
+
+        try {
+            var sessionValue =
+                sessionStorage.getItem(
+                    "br_session"
+                );
+
+            if (sessionValue) {
+                return JSON.parse(
+                    sessionValue
+                );
+            }
+        } catch (error) {
+            console.warn(
+                "[BR AdminTools] Ошибка чтения sessionStorage:",
+                error
+            );
+        }
+
+        // Совместимость со старой версией frontend.
+        return getJSON(
+            "br_session",
+            null
+        );
+    }
+
+    function clearSessionStorage() {
+        removeStorage(
+            "br_session"
+        );
+
+        try {
+            sessionStorage.removeItem(
+                "br_session"
+            );
+        } catch (error) {
+            console.warn(
+                "[BR AdminTools] Session storage cleanup error:",
+                error
+            );
+        }
+
+        removeCookie(
+            REMEMBER_COOKIE
+        );
     }
 
     function getUsers() {
@@ -217,39 +352,106 @@
             return;
         }
 
-        setJSON(
-            "br_session",
-            {
-                user:
-                    state.user,
-                token:
-                    state.user.token,
-                expires:
-                    state.expires
-            }
+        var session = {
+            user:
+                state.user,
+
+            token:
+                state.user.token,
+
+            expires:
+                state.expires,
+
+            remember:
+                state.remember === true
+        };
+
+        removeStorage(
+            "br_session"
         );
+
+        try {
+            sessionStorage.removeItem(
+                "br_session"
+            );
+        } catch (error) {
+            console.warn(
+                "[BR AdminTools] Session storage cleanup error:",
+                error
+            );
+        }
+
+        if (state.remember) {
+            setCookie(
+                REMEMBER_COOKIE,
+                JSON.stringify(session),
+                REMEMBER_DAYS *
+                    24 *
+                    60 *
+                    60
+            );
+
+            return;
+        }
+
+        try {
+            sessionStorage.setItem(
+                "br_session",
+                JSON.stringify(session)
+            );
+        } catch (error) {
+            console.error(
+                "[BR AdminTools] Session storage write error:",
+                error
+            );
+        }
     }
 
     function restoreSession() {
         var session =
-            getJSON(
-                "br_session",
-                null
-            );
+            getSessionPayload();
 
         if (
             !session ||
-            !session.user ||
+            !session.user
+        ) {
+            clearSessionStorage();
+
+            return false;
+        }
+
+        if (
+            session.remember === true &&
+            getCookie(
+                REMEMBER_COOKIE
+            )
+        ) {
+            state.remember = true;
+            state.user =
+                session.user;
+
+            state.expires =
+                Date.now() +
+                SESSION_MS;
+
+            startTimer();
+            saveSession();
+
+            return true;
+        }
+
+        if (
             !session.expires ||
             session.expires <=
                 Date.now()
         ) {
-            removeStorage(
-                "br_session"
-            );
+            clearSessionStorage();
 
             return false;
         }
+
+        state.remember =
+            session.remember === true;
 
         state.user =
             session.user;
@@ -383,11 +585,10 @@
 
         state.user = null;
         state.expires = 0;
+        state.remember = false;
         state.page = "dashboard";
 
-        removeStorage(
-            "br_session"
-        );
+        clearSessionStorage();
 
         if (timer) {
             clearInterval(
@@ -517,6 +718,18 @@
 
                         '</div>' +
 
+                        '<div class="remember-row">' +
+                            '<label class="remember-label">' +
+                                '<input ' +
+                                    'id="rememberMe" ' +
+                                    'type="checkbox" ' +
+                                    'class="remember-checkbox"' +
+                                '>' +
+                                '<span>Запомнить меня</span>' +
+                            '</label>' +
+                            '<small>Сохранять вход на этом устройстве</small>' +
+                        '</div>' +
+
                         '<div id="loginError" class="login-error"></div>' +
 
                         '<button ' +
@@ -582,6 +795,16 @@
                         document.getElementById(
                             "loginError"
                         );
+
+                    var rememberMe =
+                        document.getElementById(
+                            "rememberMe"
+                        );
+
+                    state.remember =
+                        rememberMe
+                            ? rememberMe.checked
+                            : false;
 
                     error.textContent = "";
 
@@ -1002,6 +1225,109 @@
         );
     }
 
+    function renderServerStats() {
+        var color =
+            /^#[0-9a-fA-F]{6}$/.test(
+                String(
+                    SERVER_INFO.color || ""
+                )
+            )
+                ? SERVER_INFO.color
+                : "#8d96a7";
+
+        var online =
+            SERVER_INFO.online == null
+                ? "—"
+                : esc(
+                    String(
+                        SERVER_INFO.online
+                    )
+                );
+
+        var status =
+            SERVER_INFO.status ||
+            "Ожидание API";
+
+        var updatedAt =
+            SERVER_INFO.updatedAt;
+
+        var timeText =
+            updatedAt
+                ? (
+                    "Обновлено " +
+                    new Date(
+                        updatedAt
+                    ).toLocaleTimeString(
+                        "ru-RU",
+                        {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        }
+                    )
+                )
+                : "Данные ещё не получены";
+
+        return (
+            '<div class="server-box" style="--server-color:' +
+                color +
+            '">' +
+
+                '<div class="server-box-head">' +
+
+                    '<div>' +
+                        '<small>СТАТИСТИКА СЕРВЕРА</small>' +
+                        '<h2 id="serverName">' +
+                            esc(
+                                SERVER_INFO.name
+                            ) +
+                        '</h2>' +
+                    '</div>' +
+
+                    '<span class="server-status">' +
+                        '<i id="serverStatusDot"></i>' +
+                        '<span id="serverStatus">' +
+                            esc(status) +
+                        '</span>' +
+                    '</span>' +
+
+                '</div>' +
+
+                '<div class="server-stats-grid">' +
+
+                    '<div class="server-stat">' +
+                        '<small>ОНЛАЙН</small>' +
+                        '<strong id="serverOnline">' +
+                            online +
+                        '</strong>' +
+                        '<span>игроков онлайн</span>' +
+                    '</div>' +
+
+                    '<div class="server-stat">' +
+                        '<small>СЕРВЕР</small>' +
+                        '<strong id="serverNameShort">' +
+                            esc(
+                                SERVER_INFO.name
+                            ) +
+                        '</strong>' +
+                        '<span>Мурманск</span>' +
+                    '</div>' +
+
+                    '<div class="server-stat">' +
+                        '<small>СОСТОЯНИЕ</small>' +
+                        '<strong id="serverState">' +
+                            esc(status) +
+                        '</strong>' +
+                        '<span id="serverUpdated">' +
+                            esc(timeText) +
+                        '</span>' +
+                    '</div>' +
+
+                '</div>' +
+
+            '</div>'
+        );
+    }
+
     function dashboardPage() {
         var management =
             state.user.role ===
@@ -1067,6 +1393,8 @@
                 '</div>' +
 
             '</div>' +
+
+            renderServerStats() +
 
             '<div class="columns">' +
 
@@ -2732,6 +3060,171 @@
             }
         }
     }
+
+    window.BR_SERVER_STATS = {
+        get:
+            function () {
+                return JSON.parse(
+                    JSON.stringify(
+                        SERVER_INFO
+                    )
+                );
+            },
+
+        update:
+            function (data) {
+                if (
+                    !data ||
+                    typeof data !== "object"
+                ) {
+                    return;
+                }
+
+                if (
+                    data.name !== undefined
+                ) {
+                    SERVER_INFO.name =
+                        String(
+                            data.name
+                        );
+                }
+
+                if (
+                    data.online !== undefined
+                ) {
+                    SERVER_INFO.online =
+                        data.online == null
+                            ? null
+                            : Number(
+                                data.online
+                            );
+                }
+
+                if (
+                    data.status !== undefined
+                ) {
+                    SERVER_INFO.status =
+                        String(
+                            data.status
+                        );
+                }
+
+                if (
+                    data.color !== undefined &&
+                    /^#[0-9a-fA-F]{6}$/.test(
+                        String(
+                            data.color
+                        )
+                    )
+                ) {
+                    SERVER_INFO.color =
+                        String(
+                            data.color
+                        );
+                }
+
+                if (
+                    data.updatedAt !== undefined
+                ) {
+                    SERVER_INFO.updatedAt =
+                        data.updatedAt;
+                } else {
+                    SERVER_INFO.updatedAt =
+                        new Date().toISOString();
+                }
+
+                var nameElement =
+                    document.getElementById(
+                        "serverName"
+                    );
+
+                var shortNameElement =
+                    document.getElementById(
+                        "serverNameShort"
+                    );
+
+                var onlineElement =
+                    document.getElementById(
+                        "serverOnline"
+                    );
+
+                var statusElement =
+                    document.getElementById(
+                        "serverStatus"
+                    );
+
+                var stateElement =
+                    document.getElementById(
+                        "serverState"
+                    );
+
+                var updatedElement =
+                    document.getElementById(
+                        "serverUpdated"
+                    );
+
+                var dotElement =
+                    document.getElementById(
+                        "serverStatusDot"
+                    );
+
+                if (nameElement) {
+                    nameElement.textContent =
+                        SERVER_INFO.name;
+                }
+
+                if (shortNameElement) {
+                    shortNameElement.textContent =
+                        SERVER_INFO.name;
+                }
+
+                if (onlineElement) {
+                    onlineElement.textContent =
+                        SERVER_INFO.online == null
+                            ? "—"
+                            : String(
+                                SERVER_INFO.online
+                            );
+                }
+
+                if (statusElement) {
+                    statusElement.textContent =
+                        SERVER_INFO.status;
+                }
+
+                if (stateElement) {
+                    stateElement.textContent =
+                        SERVER_INFO.status;
+                }
+
+                if (updatedElement) {
+                    updatedElement.textContent =
+                        SERVER_INFO.updatedAt
+                            ? (
+                                "Обновлено " +
+                                new Date(
+                                    SERVER_INFO.updatedAt
+                                ).toLocaleTimeString(
+                                    "ru-RU",
+                                    {
+                                        hour: "2-digit",
+                                        minute: "2-digit"
+                                    }
+                                )
+                            )
+                            : "Данные ещё не получены";
+                }
+
+                if (dotElement) {
+                    dotElement.style.background =
+                        SERVER_INFO.color;
+                    dotElement.style.boxShadow =
+                        "0 0 0 4px " +
+                        SERVER_INFO.color +
+                        "22";
+                }
+            }
+    };
 
     window.BR_ADMIN_DEBUG = {
         state:
