@@ -19,6 +19,8 @@
         online: null,
         status: "Ожидание API",
         color: "#8d96a7",
+        x2: null,
+        maxPlayers: null,
         updatedAt: null
     };
 
