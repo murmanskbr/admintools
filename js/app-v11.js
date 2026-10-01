@@ -1570,6 +1570,15 @@
             }
 
             if (
+                payload.server &&
+                typeof payload.server === "object"
+            ) {
+                return [
+                    payload.server
+                ];
+            }
+
+            if (
                 payload.sym_id ||
                 payload.name
             ) {
