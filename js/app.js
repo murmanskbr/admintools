@@ -4,8 +4,7 @@
     var app = document.getElementById("app");
     var SESSION_MS = 180000;
     var timer = null;
-    var expires = 0;
-    var state = { user: null, page: "dashboard" };
+    var state = { user: null, expires: 0, page: "dashboard" };
 
     var USERS = {
         admin: { password: "Admin2026!", nickname: "Nikita_Zvezda", position: "Руководство", role: "management" },
@@ -13,282 +12,180 @@
     };
 
     var ADMINS = [
-        { nickname: "Nikita_Zvezda", position: "Руководство" },
-        { nickname: "Test_Admin", position: "Модератор" },
-        { nickname: "Alex_Murmansk", position: "Старший модератор" },
-        { nickname: "Max_Admin", position: "Администратор" },
-        { nickname: "Rus_Leader", position: "Следящий" }
+        ["Nikita_Zvezda", "Руководство"],
+        ["Test_Admin", "Модератор"],
+        ["Alex_Murmansk", "Старший модератор"],
+        ["Max_Admin", "Администратор"],
+        ["Rus_Leader", "Следящий"]
     ];
 
-    var POSITIONS = ["Младший модератор", "Модератор", "Старший модератор", "Администратор", "Старший администратор", "Следящий", "Старший следящий", "Следящий за силовыми организациями", "Старший следящий за силовыми организациями"];
-
-    function esc(value) {
-        return String(value == null ? "" : value)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/\"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+    function esc(v) {
+        return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
     }
 
-    function getStorage(key, fallback) {
+    function storage(key, value) {
         try {
-            var value = localStorage.getItem(key);
-            return value === null ? fallback : value;
-        } catch (e) {
-            return fallback;
-        }
-    }
-
-    function setStorage(key, value) {
-        try {
-            localStorage.setItem(key, value);
+            if (value === undefined) return localStorage.getItem(key);
+            if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value);
         } catch (e) {}
     }
 
-    function getNormatives() {
-        try {
-            var value = JSON.parse(getStorage("br_normatives", "[]"));
-            return Array.isArray(value) ? value : [];
-        } catch (e) {
-            return [];
-        }
-    }
-
-    function showToast(text) {
-        var old = document.querySelector(".toast");
-        if (old) old.remove();
-        var toast = document.createElement("div");
-        toast.className = "toast";
-        toast.textContent = text;
-        document.body.appendChild(toast);
-        setTimeout(function () {
-            if (toast.parentNode) toast.remove();
-        }, 2200);
-    }
-
     function saveSession() {
-        setStorage("br_session", JSON.stringify({ user: state.user, expires: expires }));
+        storage("br_session", JSON.stringify({ user: state.user, expires: state.expires }));
     }
 
-    function resetSession() {
+    function loadSession() {
+        try {
+            var data = JSON.parse(storage("br_session") || "null");
+            if (!data || !data.user || data.expires <= Date.now()) return false;
+            state.user = data.user;
+            state.expires = data.expires;
+            startTimer();
+            return true;
+        } catch (e) { return false; }
+    }
+
+    function renewSession() {
         if (!state.user) return;
-        expires = Date.now() + SESSION_MS;
+        state.expires = Date.now() + SESSION_MS;
         saveSession();
         updateTimer();
-    }
-
-    function updateTimer() {
-        if (!state.user) return;
-        var seconds = Math.max(0, Math.ceil((expires - Date.now()) / 1000));
-        var minutes = Math.floor(seconds / 60);
-        var rest = String(seconds % 60).padStart(2, "0");
-        var timerElement = document.getElementById("sessionTimer");
-        var cardElement = document.getElementById("sessionCard");
-        if (timerElement) timerElement.textContent = "Сессия: " + minutes + ":" + rest;
-        if (cardElement) cardElement.textContent = minutes + ":" + rest;
     }
 
     function startTimer() {
         if (timer) clearInterval(timer);
         timer = setInterval(function () {
             if (!state.user) return;
-            if (Date.now() >= expires) {
-                logout();
-                return;
-            }
+            if (Date.now() >= state.expires) return logout();
             updateTimer();
         }, 1000);
         updateTimer();
     }
 
+    function updateTimer() {
+        if (!state.user) return;
+        var seconds = Math.max(0, Math.ceil((state.expires - Date.now()) / 1000));
+        var text = Math.floor(seconds / 60) + ":" + String(seconds % 60).padStart(2, "0");
+        var top = document.getElementById("sessionTimer");
+        var card = document.getElementById("sessionCard");
+        if (top) top.textContent = "Сессия " + text;
+        if (card) card.textContent = text;
+    }
+
     function logout() {
         state.user = null;
+        state.expires = 0;
         state.page = "dashboard";
-        expires = 0;
-        setStorage("br_session", "");
+        storage("br_session", null);
         if (timer) clearInterval(timer);
         timer = null;
         render();
     }
 
+    ["click", "keydown", "touchstart", "pointerdown", "scroll"].forEach(function (name) {
+        document.addEventListener(name, function () { if (state.user) renewSession(); }, { passive: true });
+    });
+
     function login(loginValue, passwordValue) {
-        var loginKey = String(loginValue || "").trim().toLowerCase();
-        var account = USERS[loginKey];
+        var key = String(loginValue || "").trim().toLowerCase();
+        var account = USERS[key];
         if (!account || account.password !== String(passwordValue || "")) return false;
-        state.user = {
-            nickname: account.nickname,
-            position: account.position,
-            role: account.role
-        };
+        state.user = { nickname: account.nickname, position: account.position, role: account.role };
         state.page = "dashboard";
-        expires = Date.now() + SESSION_MS;
-        saveSession();
+        renewSession();
         startTimer();
         render();
         return true;
     }
 
-    function restoreSession() {
-        try {
-            var saved = JSON.parse(getStorage("br_session", ""));
-            if (!saved || !saved.user || !saved.expires || saved.expires <= Date.now()) return false;
-            state.user = saved.user;
-            expires = saved.expires;
-            startTimer();
-            return true;
-        } catch (e) {
-            return false;
-        }
+    function eye(hidden) {
+        return hidden ? '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.2A10.8 10.8 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-3.1 3.7M6.2 6.2C3.8 8.3 2.5 12 2.5 12s3.5 6 9.5 6c1.5 0 2.8-.4 4-1"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.8"/></svg>';
     }
-
-    function activity() {
-        if (state.user) resetSession();
-    }
-
-    ["click", "keydown", "touchstart", "pointerdown", "scroll"].forEach(function (eventName) {
-        document.addEventListener(eventName, activity, { passive: true });
-    });
-
-    var eyeOpen = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.8"></circle></svg>';
-    var eyeClosed = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 5.2A10.7 10.7 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-3.1 3.7M6.2 6.2C3.8 8.2 2.5 12 2.5 12s3.5 6 9.5 6c1.5 0 2.8-.4 4-1"></path><path d="M9.9 9.9a2.8 2.8 0 0 0 4.2 4.2"></path></svg>';
 
     function renderLogin() {
-        app.innerHTML = '<div class="login-page"><div class="login-card"><div class="login-brand"><div class="logo">BR</div><div class="brand-text"><strong>BLACK RUSSIA</strong><span>Мурманск • Admin Panel</span></div></div><h1>Авторизация</h1><p>Войдите в панель администрации сервера.</p><form class="login-form" id="loginForm"><div class="field"><label>Логин</label><input id="login" autocomplete="username" required></div><div class="field"><label>Пароль</label><div class="password-box"><input id="password" type="password" autocomplete="current-password" required><button type="button" id="passwordToggle" class="password-eye" aria-label="Показать пароль" title="Показать пароль">' + eyeOpen + '</button></div></div><div id="loginError" class="error"></div><button class="button button-primary" type="submit">Войти</button><div class="demo-credentials"><strong>Тестовые данные</strong><span>admin / Admin2026!</span><span>test / Test2026!</span></div></form></div></div>';
-
+        app.innerHTML = '<main class="login-page"><section class="login-card"><div class="login-brand"><div class="login-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div><h1>Авторизация</h1><p>Войдите в панель администрации сервера.</p><form id="loginForm"><label>Логин</label><input id="login" autocomplete="username" required><label>Пароль</label><div class="password-wrap"><input id="password" type="password" autocomplete="current-password" required><button id="eye" type="button" aria-label="Показать пароль">' + eye(false) + '</button></div><div id="loginError" class="login-error"></div><button class="login-submit" type="submit">Войти</button><div class="demo"><b>Тестовые данные</b><span>admin / Admin2026!</span><span>test / Test2026!</span></div></form></section></main>';
         var password = document.getElementById("password");
-        var toggle = document.getElementById("passwordToggle");
-        var form = document.getElementById("loginForm");
-
-        toggle.addEventListener("click", function () {
+        var eyeButton = document.getElementById("eye");
+        eyeButton.onclick = function () {
             var visible = password.type === "text";
             password.type = visible ? "password" : "text";
-            toggle.innerHTML = visible ? eyeOpen : eyeClosed;
-            toggle.setAttribute("aria-label", visible ? "Показать пароль" : "Скрыть пароль");
-        });
-
-        form.addEventListener("submit", function (event) {
-            event.preventDefault();
-            var success = login(document.getElementById("login").value, password.value);
-            if (!success) {
-                document.getElementById("loginError").textContent = "Неверный логин или пароль";
-            }
-        });
+            eyeButton.innerHTML = eye(!visible);
+            eyeButton.setAttribute("aria-label", visible ? "Показать пароль" : "Скрыть пароль");
+        };
+        document.getElementById("loginForm").onsubmit = function (e) {
+            e.preventDefault();
+            if (!login(document.getElementById("login").value, password.value)) document.getElementById("loginError").textContent = "Неверный логин или пароль";
+        };
     }
 
-    function navButton(page, icon, text) {
-        return '<button class="nav-button' + (state.page === page ? " active" : "") + '" data-page="' + page + '"><span class="nav-icon">' + icon + '</span><span>' + text + '</span></button>';
+    function nav(page, icon, text) {
+        return '<button class="side-link ' + (state.page === page ? 'active' : '') + '" data-page="' + page + '"><span>' + icon + '</span>' + text + '</button>';
     }
 
-    function renderSidebar() {
+    function layout(body) {
         var management = state.user.role === "management";
-        return '<aside class="sidebar"><div class="brand"><div class="logo">BR</div><div class="brand-text"><strong>BLACK RUSSIA</strong><span>Мурманск • Admin Panel</span></div></div><nav class="nav"><div class="nav-section">ПАНЕЛЬ</div>' + navButton("dashboard", "⌂", "Главная") + navButton("profile", "◉", "Мой профиль") + (management ? navButton("admins", "♟", "Состав администрации") : navButton("normatives", "↑", "Нормативы")) + (management ? navButton("normatives-all", "▣", "Нормативы") : "") + '</nav><div class="sidebar-bottom"><div class="profile"><div class="avatar">' + esc(state.user.nickname.substring(0, 2).toUpperCase()) + '</div><div class="profile-text"><strong>' + esc(state.user.nickname) + '</strong><span>' + esc(state.user.position) + '</span></div></div><button class="button button-danger" id="logoutButton" style="width:100%;margin-top:8px">Выйти</button></div></aside>';
+        return '<div class="panel"><aside class="sidebar"><div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div><div class="section-title">ПАНЕЛЬ</div>' + nav("dashboard", "⌂", "Главная") + nav("profile", "◉", "Мой профиль") + (management ? nav("admins", "♟", "Состав администрации") : nav("normatives", "↑", "Нормативы")) + (management ? nav("normatives-all", "▣", "Нормативы") : "") + '<div class="sidebar-bottom"><div class="user-mini"><div class="avatar">' + esc(state.user.nickname.slice(0,2).toUpperCase()) + '</div><div><b>' + esc(state.user.nickname) + '</b><small>' + esc(state.user.position) + '</small></div></div><button id="logout" class="logout">Выйти</button></div></aside><main class="main"><header class="top"><button id="mobileMenu" class="mobile-menu">☰</button><span>АДМИНИСТРАЦИЯ • МУРМАНСК</span><span id="sessionTimer">Сессия 3:00</span></header><section class="content">' + body + '</section><div class="watermark">' + esc(state.user.nickname) + '</div></main></div>';
     }
 
-    function renderTopbar() {
-        return '<header class="topbar"><div class="topbar-left"><button class="button button-icon mobile-menu-button" id="menuButton">☰</button><span class="topbar-title">АДМИНИСТРАЦИЯ • МУРМАНСК</span></div><div class="topbar-right"><span id="sessionTimer" class="topbar-title"></span></div></header>';
-    }
-
-    function pageHead(title, subtitle) {
-        return '<div class="page-head"><div class="page-head-main"><h1>' + esc(title) + '</h1><p>' + esc(subtitle) + '</p></div></div>';
-    }
-
-    function watermark() {
-        return '<div class="watermark" aria-hidden="true">' + esc(state.user.nickname) + '</div>';
-    }
+    function head(title, subtitle) { return '<div class="head"><h1>' + esc(title) + '</h1><p>' + esc(subtitle) + '</p></div>'; }
 
     function dashboard() {
-        return pageHead("Добро пожаловать", "Личный кабинет администрации Black Russia • Мурманск") + '<div class="grid stats-grid"><div class="stat-card"><span class="stat-label">НИКНЕЙМ</span><strong class="stat-value">' + esc(state.user.nickname) + '</strong></div><div class="stat-card"><span class="stat-label">ДОЛЖНОСТЬ</span><strong class="stat-value">' + esc(state.user.position) + '</strong></div><div class="stat-card"><span class="stat-label">СТАТИСТИКА</span><strong class="stat-value">Временно отключена</strong></div><div class="stat-card"><span class="stat-label">СЕССИЯ</span><strong class="stat-value" id="sessionCard">3:00</strong></div></div><div class="grid split-grid"><div class="card"><div class="card-head"><h2>Доступ</h2><span>' + (state.user.role === "management" ? "Руководство" : "Администратор") + '</span></div><div class="notice">Статистика временно отключена. Сейчас используются только никнейм и должность.</div></div><div class="card"><div class="card-head"><h2>Безопасность</h2><span>Сессия</span></div><p style="color:var(--muted);font-size:11px;line-height:1.6;margin:0">Таймер автоматически продлевается при активности. При отсутствии активности в течение 3 минут произойдёт выход.</p></div></div>';
+        return head("Добро пожаловать", "Личный кабинет администрации Black Russia • Мурманск") + '<div class="cards"><div class="card"><small>НИКНЕЙМ</small><b>' + esc(state.user.nickname) + '</b></div><div class="card"><small>ДОЛЖНОСТЬ</small><b>' + esc(state.user.position) + '</b></div><div class="card"><small>СТАТИСТИКА</small><b>Временно отключена</b></div><div class="card"><small>СЕССИЯ</small><b id="sessionCard">3:00</b></div></div><div class="columns"><div class="box"><h2>Доступ</h2><p>Уровень доступа: <b>' + (state.user.role === "management" ? "Руководство" : "Администратор") + '</b></p><p>Сейчас используются никнейм и должность. Модуль статистики временно отключён.</p></div><div class="box"><h2>Безопасность</h2><p>Сессия длится 3 минуты и автоматически продлевается при активности.</p></div></div>';
     }
 
-    function profile() {
-        return pageHead("Мой профиль", "Данные текущего администратора") + '<div class="card"><div class="form-grid"><div class="field"><label>Никнейм</label><input value="' + esc(state.user.nickname) + '" readonly></div><div class="field"><label>Должность</label><input value="' + esc(state.user.position) + '" readonly></div></div></div>';
+    function profile() { return head("Мой профиль", "Данные текущего администратора") + '<div class="box form-box"><label>Никнейм<input value="' + esc(state.user.nickname) + '" readonly></label><label>Должность<input value="' + esc(state.user.position) + '" readonly></label></div>'; }
+
+    function admins() {
+        return head("Состав администрации", "Публичный список никнеймов и должностей") + '<div class="box table-box"><table><thead><tr><th>Никнейм</th><th>Должность</th></tr></thead><tbody>' + ADMINS.map(function (a) { return '<tr><td>' + esc(a[0]) + '</td><td>' + esc(a[1]) + '</td></tr>'; }).join('') + '</tbody></table></div>';
     }
 
     function normatives() {
-        var history = getNormatives().filter(function (item) { return item.nickname === state.user.nickname; });
-        var rows = history.length ? history.map(function (item) { return '<tr><td>' + esc(item.date) + '</td><td>' + esc(item.position) + '</td><td>' + esc(item.file) + '</td><td>' + esc(item.comment || "—") + '</td></tr>'; }).join("") : '<tr><td colspan="4">Нормативы пока не отправлялись.</td></tr>';
-        return pageHead("Нормативы", "Отправка файла с датой, должностью и комментарием") + '<div class="card"><form id="normativeForm"><div class="form-grid"><div class="field field-full"><label>Файл</label><div class="file-box"><input id="normativeFile" type="file" required><div id="fileInfo" class="file-info">Файл не выбран</div></div></div><div class="field"><label>Дата</label><input id="normativeDate" type="date" required></div><div class="field"><label>Должность</label><select id="normativePosition">' + POSITIONS.map(function (position) { return '<option>' + esc(position) + '</option>'; }).join("") + '</select></div><div class="field field-full"><label>Комментарий</label><textarea id="normativeComment" placeholder="Комментарий к нормативу"></textarea></div></div><div style="margin-top:15px"><button class="button button-primary" type="submit">Сохранить норматив</button></div></form></div><div class="card" style="margin-top:15px"><div class="card-head"><h2>Мои нормативы</h2><span>локально</span></div><div class="table-wrapper"><table><thead><tr><th>Дата</th><th>Должность</th><th>Файл</th><th>Комментарий</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+        var list = [];
+        try { list = JSON.parse(storage("br_normatives") || "[]"); } catch (e) { list = []; }
+        if (!Array.isArray(list)) list = [];
+        list = list.filter(function (x) { return x.nickname === state.user.nickname; });
+        return head("Нормативы", "Локальная отправка нормативов") + '<div class="box"><form id="normForm"><label>Файл<input id="file" type="file" required></label><label>Дата<input id="date" type="date" required></label><label>Комментарий<textarea id="comment"></textarea></label><button class="primary">Сохранить норматив</button></form></div><div class="box table-box" style="margin-top:16px"><h2>Мои нормативы</h2><table><thead><tr><th>Дата</th><th>Файл</th><th>Комментарий</th></tr></thead><tbody>' + (list.length ? list.map(function (x) { return '<tr><td>' + esc(x.date) + '</td><td>' + esc(x.file) + '</td><td>' + esc(x.comment || '—') + '</td></tr>'; }).join('') : '<tr><td colspan="3">Нормативов пока нет.</td></tr>') + '</tbody></table></div>';
     }
 
-    function admins() {
-        return pageHead("Состав администрации", "Публичный список никнеймов и должностей") + '<div class="card"><div class="table-wrapper"><table><thead><tr><th>Никнейм</th><th>Должность</th></tr></thead><tbody>' + ADMINS.map(function (admin) { return '<tr><td>' + esc(admin.nickname) + '</td><td>' + esc(admin.position) + '</td></tr>'; }).join("") + '</tbody></table></div></div>';
-    }
+    function allNormatives() { return head("Нормативы администрации", "Локальный журнал отправленных нормативов") + '<div class="box"><p>Раздел руководства. Данные сохраняются локально в браузере.</p></div>'; }
 
-    function normativeAll() {
-        var list = getNormatives();
-        var rows = list.length ? list.map(function (item) { return '<tr><td>' + esc(item.nickname) + '</td><td>' + esc(item.date) + '</td><td>' + esc(item.position) + '</td><td>' + esc(item.file) + '</td><td>' + esc(item.comment || "—") + '</td></tr>'; }).join("") : '<tr><td colspan="5">Отправленных нормативов нет.</td></tr>';
-        return pageHead("Нормативы администрации", "Локальный журнал отправленных нормативов") + '<div class="card"><div class="table-wrapper"><table><thead><tr><th>Никнейм</th><th>Дата</th><th>Должность</th><th>Файл</th><th>Комментарий</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
-    }
-
-    function content() {
+    function page() {
         if (state.page === "profile") return profile();
-        if (state.page === "normatives") return normatives();
         if (state.page === "admins") return admins();
-        if (state.page === "normatives-all") return normativeAll();
+        if (state.page === "normatives") return normatives();
+        if (state.page === "normatives-all") return allNormatives();
         return dashboard();
     }
 
     function bind() {
-        document.querySelectorAll("[data-page]").forEach(function (button) {
-            button.addEventListener("click", function () {
-                state.page = button.getAttribute("data-page");
-                render();
-            });
-        });
-
-        var logoutButton = document.getElementById("logoutButton");
-        if (logoutButton) logoutButton.addEventListener("click", logout);
-
-        var menuButton = document.getElementById("menuButton");
-        if (menuButton) menuButton.addEventListener("click", function () {
-            var sidebar = document.querySelector(".sidebar");
-            if (sidebar) sidebar.classList.toggle("mobile-open");
-        });
-
-        var form = document.getElementById("normativeForm");
-        if (!form) return;
-
-        var fileInput = document.getElementById("normativeFile");
-        fileInput.addEventListener("change", function () {
-            var file = fileInput.files[0];
-            document.getElementById("fileInfo").textContent = file ? file.name : "Файл не выбран";
-        });
-
-        form.addEventListener("submit", function (event) {
-            event.preventDefault();
-            var file = fileInput.files[0];
-            if (!file) return;
-            var list = getNormatives();
-            list.unshift({
-                nickname: state.user.nickname,
-                date: document.getElementById("normativeDate").value,
-                position: document.getElementById("normativePosition").value,
-                file: file.name,
-                comment: document.getElementById("normativeComment").value.trim()
-            });
-            setStorage("br_normatives", JSON.stringify(list.slice(0, 50)));
-            showToast("Норматив сохранён локально");
+        document.querySelectorAll("[data-page]").forEach(function (button) { button.onclick = function () { state.page = button.getAttribute("data-page"); render(); }; });
+        var logoutButton = document.getElementById("logout");
+        if (logoutButton) logoutButton.onclick = logout;
+        var mobile = document.getElementById("mobileMenu");
+        if (mobile) mobile.onclick = function () { document.querySelector(".sidebar").classList.toggle("open"); };
+        var form = document.getElementById("normForm");
+        if (form) form.onsubmit = function (e) {
+            e.preventDefault();
+            var data = [];
+            try { data = JSON.parse(storage("br_normatives") || "[]"); } catch (x) { data = []; }
+            if (!Array.isArray(data)) data = [];
+            var file = document.getElementById("file").files[0];
+            data.unshift({ nickname: state.user.nickname, date: document.getElementById("date").value, file: file ? file.name : "", comment: document.getElementById("comment").value });
+            storage("br_normatives", JSON.stringify(data));
             render();
-        });
+        };
+    }
+
+    function styles() {
+        return '<style>:root{--bg:#080a0f;--panel:#10131a;--line:#252a35;--muted:#8992a2;--text:#fff;--red:#ff3048}*{box-sizing:border-box}body{margin:0;background:var(--bg)}.login-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg);color:#fff;font-family:Arial,sans-serif}.login-card{width:min(100%,390px);padding:30px;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:0 25px 70px #0008}.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:34px}.login-logo,.brand-logo{width:40px;height:40px;border-radius:11px;background:var(--red);display:grid;place-items:center;font-weight:800}.login-brand b,.brand b{display:block;font-size:13px}.login-brand small,.brand small{display:block;color:var(--muted);font-size:9px;margin-top:3px}.login-card h1{font-size:25px;margin:0 0 7px}.login-card>p{font-size:11px;color:var(--muted);margin:0 0 25px}.login-card label{display:block;font-size:10px;color:#9aa3b3;margin:0 0 7px}.login-card input{width:100%;height:44px;box-sizing:border-box;border:1px solid #2a303d;border-radius:9px;background:#151922;color:#fff;padding:0 13px;outline:none;margin-bottom:17px}.password-wrap{position:relative}.password-wrap input{padding-right:48px}.password-wrap button{position:absolute;right:4px;top:0;width:40px;height:44px;border:0;background:transparent;color:#8992a2;cursor:pointer}.password-wrap svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.login-submit{width:100%;height:44px;border:0;border-radius:9px;background:var(--red);color:#fff;font-weight:700;cursor:pointer}.login-error{min-height:17px;color:#ff596b;font-size:10px}.demo{margin-top:18px;padding:12px;border-radius:9px;background:#151922;color:#8992a2;font-size:10px;line-height:1.7}.demo b,.demo span{display:block}.demo b{color:#fff}.panel{min-height:100vh;background:var(--bg);color:var(--text);font-family:Arial,sans-serif;display:flex}.sidebar{width:245px;min-height:100vh;background:#0d1016;border-right:1px solid var(--line);padding:22px;display:flex;flex-direction:column;flex-shrink:0}.brand{display:flex;align-items:center;gap:10px;margin-bottom:35px}.section-title{color:#697181;font-size:9px;margin-bottom:9px}.side-link{width:100%;height:40px;margin-bottom:5px;border:0;border-radius:8px;background:transparent;color:#9da5b4;text-align:left;padding:0 12px;cursor:pointer;font-size:11px}.side-link span{display:inline-block;width:24px}.side-link:hover,.side-link.active{background:#181c25;color:#fff}.side-link.active{box-shadow:inset 2px 0 var(--red)}.sidebar-bottom{margin-top:auto}.user-mini{display:flex;align-items:center;gap:9px;padding:10px 0}.avatar{width:34px;height:34px;border-radius:50%;background:#202532;display:grid;place-items:center;font-size:10px;font-weight:700}.user-mini b,.user-mini small{display:block}.user-mini b{font-size:10px}.user-mini small{font-size:8px;color:var(--muted);margin-top:3px}.logout{width:100%;height:38px;border:1px solid #3a2026;border-radius:8px;background:#171117;color:#ff6476;cursor:pointer}.main{position:relative;flex:1;min-width:0}.top{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:15px;padding:0 30px;color:#8992a2;font-size:10px}.top span:last-child{margin-left:auto}.mobile-menu{display:none}.content{padding:34px;max-width:1200px;margin:auto}.head{margin-bottom:25px}.head h1{font-size:28px;margin:0 0 6px}.head p{color:var(--muted);font-size:11px;margin:0}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card,.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}.card small{display:block;color:#737d8e;font-size:9px;margin-bottom:10px}.card b{font-size:14px}.columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.box h2{font-size:14px;margin:0 0 12px}.box p{font-size:11px;color:var(--muted);line-height:1.6}.form-box{max-width:700px;display:grid;grid-template-columns:1fr 1fr;gap:16px}.box label{display:block;color:#9aa3b3;font-size:10px}.box input,.box textarea{width:100%;margin-top:7px;background:#151922;border:1px solid #2a303d;border-radius:8px;color:#fff;padding:11px;outline:0}.box textarea{min-height:100px}.primary{margin-top:16px;background:var(--red);color:#fff;border:0;border-radius:8px;padding:12px 18px;cursor:pointer}.table-box{overflow:auto}.table-box table{width:100%;border-collapse:collapse;font-size:10px}.table-box th,.table-box td{text-align:left;padding:12px;border-bottom:1px solid var(--line)}.table-box th{color:#737d8e}.watermark{position:fixed;right:18px;bottom:12px;color:#fff2;font-size:10px;pointer-events:none}@media(max-width:800px){.sidebar{position:fixed;z-index:10;left:-260px;transition:.2s}.sidebar.open{left:0}.mobile-menu{display:block;background:none;border:0;color:#fff;font-size:20px}.top{padding:0 16px}.content{padding:22px 16px}.cards{grid-template-columns:1fr 1fr}.columns{grid-template-columns:1fr}.form-box{grid-template-columns:1fr}}@media(max-width:480px){.cards{grid-template-columns:1fr}.head h1{font-size:23px}.top{font-size:8px}}</style>';
     }
 
     function render() {
-        if (!state.user) {
-            renderLogin();
-            return;
-        }
-
-        app.innerHTML = '<div class="app">' + renderSidebar() + '<main class="main">' + renderTopbar() + '<section class="content">' + content() + '</section></main>' + watermark() + '</div>';
+        if (!state.user) { app.innerHTML = styles(); renderLogin(); return; }
+        app.innerHTML = styles() + layout(page());
         bind();
         updateTimer();
     }
 
-    window.addEventListener("error", function (event) {
-        if (!state.user) return;
-        app.innerHTML = '<div class="login-page"><div class="login-card"><h1>Ошибка панели</h1><p>Произошла ошибка при загрузке панели. Обновите страницу.</p><button class="button button-primary" onclick="location.reload()">Обновить</button></div></div>';
-        console.error(event.error || event.message);
-    });
-
-    if (!restoreSession()) render();
+    if (!loadSession()) render();
 })();
