@@ -551,7 +551,7 @@
 
         adminsGoogleList:
             function (token) {
-                return request(
+                return requestStatistics(
                     {
                         action:
                             "admins_google_list"
