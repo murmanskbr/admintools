@@ -98,6 +98,67 @@
     }).join("");
   }
 
+  function columnLetter(index) {
+    var number = Number(index) + 1;
+    var result = "";
+    while (number > 0) {
+      var remainder = (number - 1) % 26;
+      result = String.fromCharCode(65 + remainder) + result;
+      number = Math.floor((number - 1) / 26);
+    }
+    return result;
+  }
+
+  function googleRowPayload(result) {
+    var source = result && (result.admin || result.statistics || result.values || result.row || result);
+    if (result && Array.isArray(result.statistics) && result.statistics.length && result.statistics[0] && result.statistics[0].values) {
+      source = result.statistics[0].values;
+    }
+    source = source || {};
+    var headers = Array.isArray(source.headers) ? source.headers.slice() : [];
+    var raw = Array.isArray(source.raw_row) ? source.raw_row.slice() : [];
+    var rowNumber = Number(result && result.row_number ? result.row_number : source.row_number);
+    if (!Number.isFinite(rowNumber)) rowNumber = 0;
+    var count = Math.max(headers.length, raw.length);
+    if (!headers.length && raw.length) {
+      headers = raw.map(function (_, index) { return "Колонка " + columnLetter(index); });
+    }
+    while (headers.length < count) headers.push("Колонка " + columnLetter(headers.length));
+    while (raw.length < count) raw.push("");
+    return {headers:headers,raw:raw,rowNumber:rowNumber,count:count,firstColumn:count?columnLetter(0):"",lastColumn:count?columnLetter(count-1):""};
+  }
+
+  function googleRowTable(result, caption) {
+    var data = googleRowPayload(result);
+    if (!data.count) return '<div class="box"><div class="empty">В Google-таблице нет данных этой строки.</div></div>';
+    var rangeText = data.rowNumber ? "Строка " + data.rowNumber + " • диапазон " + data.firstColumn + data.rowNumber + ":" + data.lastColumn + data.rowNumber : "Полная строка Google Sheets";
+    var rows = data.headers.map(function (header, index) {
+      return '<tr><td><b>' + E(columnLetter(index)) + '</b></td><td>' + E(header || "Без названия") + '</td><td>' + E(data.raw[index] == null || data.raw[index] === "" ? "—" : data.raw[index]) + '</td></tr>';
+    }).join("");
+    return '<div class="page-toolbar"><div><small>GOOGLE APPS SCRIPT</small><b>' + E(caption || "Полные данные строки") + '</b></div><span class="muted">' + E(rangeText) + '</span></div>' +
+      '<div class="box table-box"><table class="google-row-table"><thead><tr><th>Колонка</th><th>Заголовок</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  function googleStatisticsColumns(statistics) {
+    for (var i = 0; i < statistics.length; i += 1) {
+      var values = statistics[i] && statistics[i].values;
+      if (values && Array.isArray(values.headers) && values.headers.length) return values.headers.slice();
+    }
+    return [];
+  }
+
+  function googleStatisticsRaw(item, count) {
+    var values = item && item.values ? item.values : {};
+    var raw = Array.isArray(values.raw_row) ? values.raw_row.slice() : [];
+    while (raw.length < count) raw.push("");
+    return raw;
+  }
+
+  function isGoogleNicknameHeader(header) {
+    var value = String(header == null ? "" : header).trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
+    return ["никнейм","ник","nickname","nick","логин","login"].indexOf(value) !== -1;
+  }
+
   function dashboard(user) {
     return {
       title: user.role === "management" ? "Панель руководства" : "Главная",
@@ -180,13 +241,28 @@
   function profile(user) {
     return {
       title: "Мой профиль",
-      subtitle: "Данные текущего аккаунта",
+      subtitle: "Полные данные из реестра администрации Google Sheets",
       render: function () {
-        return '<div class="box"><div class="form-grid">' +
-          '<div class="form-field"><label>Никнейм</label><input class="profile-input" readonly value="' + E(user.nickname) + '"></div>' +
-          '<div class="form-field"><label>Должность</label><input class="profile-input" readonly value="' + E(user.position || "—") + '"></div>' +
-          '<div class="form-field"><label>Роль</label><input class="profile-input" readonly value="' + E(user.role === "management" ? "Руководство" : "Администратор") + '"></div>' +
-        '</div></div>';
+        return '<div id="profileRoot"><div class="box"><div class="empty">Поиск администратора в Google Sheets...</div></div></div>';
+      },
+      load: async function (user) {
+        var root = document.getElementById("profileRoot");
+        if (!root) return;
+        try {
+          var result = await window.BR_API.getStatisticsAdmin(user.token, user.nickname);
+          root.innerHTML =
+            '<div class="box"><div class="form-grid">' +
+              '<div class="form-field"><label>Никнейм аккаунта</label><input class="profile-input" readonly value="' + E(user.nickname) + '"></div>' +
+              '<div class="form-field"><label>Роль панели</label><input class="profile-input" readonly value="' + E(user.role === "management" ? "Руководство" : "Администратор") + '"></div>' +
+            '</div></div>' +
+            googleRowTable(result, "Профиль " + user.nickname);
+        } catch (error) {
+          if (error.code === "STATISTICS_NOT_FOUND") {
+            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в реестре Google Sheets. Данные профиля из таблицы не найдены.</div></div>';
+            return;
+          }
+          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить профиль из Google Sheets.") + '</div></div>';
+        }
       }
     };
   }
@@ -196,11 +272,15 @@
     async function load() {
       var root = document.getElementById("adminsRoot");
       if (!root || !currentUser || !currentUser.token) return;
-      root.innerHTML = '<div class="box"><div class="empty">Загрузка состава администрации из Google Sheets...</div></div>';
+      root.innerHTML = '<div class="box"><div class="empty">Загрузка состава администрации через Google Apps Script...</div></div>';
       try {
         var result = await window.BR_API.adminsGoogleList(currentUser.token);
+        var statistics = Array.isArray(result.statistics) ? result.statistics : [];
         var headers = Array.isArray(result.headers) ? result.headers : [];
         var rows = Array.isArray(result.rows) ? result.rows : [];
+        var rowNumbers = Array.isArray(result.row_numbers) ? result.row_numbers : [];
+        if (!headers.length && statistics.length && statistics[0] && statistics[0].values) headers = Array.isArray(statistics[0].values.headers) ? statistics[0].values.headers : [];
+        if (!rows.length && statistics.length) rows = statistics.map(function (item) { return item && item.values && Array.isArray(item.values.raw_row) ? item.values.raw_row : []; });
         if (!headers.length) {
           root.innerHTML = '<div class="box"><div class="empty">В первом листе не найдены столбцы.</div></div>';
           return;
@@ -208,11 +288,14 @@
         var updated = document.getElementById("adminsUpdated");
         if (updated) updated.textContent = "Обновлено: " + new Date().toLocaleString("ru-RU", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"});
         var headerCells = headers.map(function (header) { return '<th>' + E(russianAdminHeader(header)) + '</th>'; }).join("");
-        var bodyRows = rows.map(function (row) {
-          return '<tr>' + headers.map(function (_, index) { return '<td>' + E(row && row[index] != null && row[index] !== "" ? row[index] : "—") + '</td>'; }).join("") + '</tr>';
+        var bodyRows = rows.map(function (row, rowIndex) {
+          var rowNumber = Number(rowNumbers[rowIndex] || (statistics[rowIndex] && (statistics[rowIndex].row_number || (statistics[rowIndex].values && statistics[rowIndex].values.row_number))) || 0);
+          return '<tr><td><b>' + E(rowNumber || "—") + '</b></td>' + headers.map(function (_, index) {
+            return '<td>' + E(row && row[index] != null && row[index] !== "" ? row[index] : "—") + '</td>';
+          }).join("") + '</tr>';
         }).join("");
-        if (!bodyRows) bodyRows = '<tr><td colspan="' + headers.length + '" class="table-empty">В таблице нет данных.</td></tr>';
-        root.innerHTML = '<div class="box table-box"><div class="stats-table-head"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div><span class="muted">Первый лист Google Sheets</span></div><table id="adminsTable"><thead><tr>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
+        if (!bodyRows) bodyRows = '<tr><td colspan="' + (headers.length + 1) + '" class="table-empty">В таблице нет данных.</td></tr>';
+        root.innerHTML = '<div class="box table-box"><div class="stats-table-head"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div><span class="muted">Источник: Google Apps Script • Google Sheets</span></div><table id="adminsTable"><thead><tr><th>Строка</th>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
         var search = document.getElementById("adminsSearch");
         if (search) search.oninput = function () {
           var query = search.value.trim().toLowerCase();
@@ -224,9 +307,9 @@
     }
     return {
       title: "Состав администрации",
-      subtitle: "Полный состав из первого листа Google Sheets",
+      subtitle: "Полный состав из Google Apps Script",
       render: function () {
-        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице"><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span>Источник: Google Sheets • первый лист</span><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
+        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице"><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span>Источник: Google Apps Script • Google Sheets</span><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
       },
       bind: function () {
         var refresh = document.getElementById("adminsRefresh");
@@ -242,19 +325,24 @@
   function myStatistics() {
     return {
       title: "Моя статистика",
-      subtitle: "Актуальные данные администратора",
+      subtitle: "Полная строка администратора из Google Apps Script",
       render: function () {
-        return '<div id="statsRoot"><div class="box"><div class="empty">Загрузка статистики...</div></div></div>';
+        return '<div id="statsRoot"><div class="box"><div class="empty">Поиск администратора в Google Sheets...</div></div></div>';
       },
       load: async function (user) {
         var root = document.getElementById("statsRoot");
+        if (!root) return;
         try {
           var result = await window.BR_API.myStatistics(user.token);
-          var values = result.statistics && result.statistics.values || {};
-          root.innerHTML = '<div class="cards">' + statCards(values) + '</div>' +
-            '<div class="box spaced-box"><p>Данные загружены автоматически из Google Sheets.</p></div>';
+          root.innerHTML =
+            '<div class="box"><div class="stats-table-head"><div><small>ЛИЧНАЯ СТАТИСТИКА</small><b>' + E(user.nickname) + '</b></div><span class="muted">Найдена строка администратора</span></div></div>' +
+            googleRowTable(result, "Статистика " + user.nickname);
         } catch (error) {
-          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить статистику.") + '</div></div>';
+          if (error.code === "STATISTICS_NOT_FOUND") {
+            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в реестре Google Sheets. Личная статистика не найдена.</div></div>';
+            return;
+          }
+          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить личную статистику.") + '</div></div>';
         }
       }
     };
@@ -366,64 +454,45 @@
     function renderTable(user) {
       var root = document.getElementById("allStatsRoot");
       if (!root) return;
-
       var norms = normMap();
+      var googleHeaders = googleStatisticsColumns(lastData);
+      var googleCount = googleHeaders.length;
 
       var rows = lastData.map(function (item) {
         var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
         if (!nickname || isStatsColumnHeader(item)) return "";
-
         if (isStatsSectionRow(item)) {
-          return '<tr class="stats-section-row"><td colspan="8"><b>' + E(nickname) + '</b></td></tr>';
+          return '<tr class="stats-section-row"><td colspan="' + (googleCount + 2) + '"><b>' + E(nickname) + '</b></td></tr>';
         }
-
         var norm = norms[nickname.toLowerCase()] || {};
         var status = norm.status || "not_submitted";
-
-        return '<tr>' +
-          '<td><b>' + E(nickname) + '</b></td>' +
-          '<td>' + E(displayValue(valueOf(item, "position") || norm.position)) + '</td>' +
-          '<td>' + E(displayValue(valueOf(item, "levels"))) + '</td>' +
-          '<td>' + E(displayValue(valueOf(item, "activity_points"))) + '</td>' +
-          '<td>' + E(displayValue(valueOf(item, "points"))) + '</td>' +
-          '<td>' + E(displayValue(valueOf(item, "last_promotion"))) + '</td>' +
-          '<td class="stats-norm-cell">' +
-            '<span>' + normativeStatus(status) + '</span>' +
-            '<div class="stats-norm-actions">' +
-              '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
-              '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
-              '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
-              '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
-            '</div>' +
-          '</td>' +
-          '<td class="admin-actions-cell">' +
-            '<div class="admin-menu-wrap">' +
-              '<button class="admin-menu-trigger" type="button" data-admin-menu="' + E(nickname) + '" title="Действия" aria-label="Действия">⋮</button>' +
-              '<div class="admin-row-menu" data-admin-row-menu="' + E(nickname) + '">' +
-                '<button type="button" data-edit-admin="' + E(nickname) + '">Изменить</button>' +
-              '</div>' +
-            '</div>' +
-          '</td>' +
-        '</tr>';
+        var raw = googleStatisticsRaw(item, googleCount);
+        var valuesCells = googleHeaders.map(function (header, index) {
+          var value = displayValue(raw[index]);
+          return '<td>' + (isGoogleNicknameHeader(header) ? '<b>' + E(value) + '</b>' : E(value)) + '</td>';
+        }).join("");
+        return '<tr>' + valuesCells +
+          '<td class="stats-norm-cell"><span>' + normativeStatus(status) + '</span><div class="stats-norm-actions">' +
+            '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
+            '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
+            '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
+            '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
+          '</div></td>' +
+          '<td class="admin-actions-cell"><div class="admin-menu-wrap"><button class="admin-menu-trigger" type="button" data-admin-menu="' + E(nickname) + '" title="Действия" aria-label="Действия">⋮</button><div class="admin-row-menu" data-admin-row-menu="' + E(nickname) + '"><button type="button" data-edit-admin="' + E(nickname) + '">Изменить</button></div></div></td></tr>';
       }).filter(Boolean).join("");
 
-      if (!rows) {
-        rows = '<tr><td colspan="8" class="table-empty">Данных администрации нет.</td></tr>';
-      }
+      var realRows = lastData.filter(function (item) {
+        var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
+        return nickname && !isStatsColumnHeader(item) && !isStatsSectionRow(item);
+      }).length;
 
+      if (!rows) rows = '<tr><td colspan="' + (googleCount + 2) + '" class="table-empty">Данных администрации нет.</td></tr>';
+
+      var headerCells = googleHeaders.map(function (header) { return '<th>' + E(russianAdminHeader(header)) + '</th>'; }).join("");
       root.innerHTML =
-        '<div class="box table-box">' +
-          '<div class="stats-table-head">' +
-            '<div><small>ИНТЕРАКТИВНАЯ СТАТИСТИКА</small><b>' + E(String(lastData.length)) + ' сотрудников</b></div>' +
-            '<span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span>' +
-          '</div>' +
-          '<table id="allStatsTable">' +
-            '<thead><tr>' +
-              '<th>Никнейм</th><th>Должность</th><th>Уровни</th><th>Активность</th><th>Баллы</th><th>Последнее повышение</th><th>Норматив</th><th>Действия</th>' +
-            '</tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-          '</table>' +
-        '</div>' +
+        '<div class="box table-box"><div class="stats-table-head"><div><small>ПОЛНАЯ СТАТИСТИКА ИЗ GOOGLE APPS SCRIPT</small><b>' + E(String(realRows)) + ' сотрудников</b></div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
+        '<div class="admins-source-row"><span>Все столбцы строки Google Sheets</span><span>Источник: Google Apps Script</span></div>' +
+        '<table id="allStatsTable"><thead><tr>' + headerCells + '<th>Норматив</th><th>Действия</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
         '<div id="adminEditModal"></div>';
 
       document.querySelectorAll("[data-stat-norm]").forEach(function (button) {
@@ -431,21 +500,10 @@
           var nickname = button.dataset.nickname || "";
           var status = button.dataset.statNorm || "";
           var label = STATUS_LABELS[status] || status;
-
-          if (!confirm("Выставить «" + label + "» для " + nickname + " за " + formatDateOnly(selectedDate) + "?")) {
-            return;
-          }
-
+          if (!confirm("Выставить «" + label + "» для " + nickname + " за " + formatDateOnly(selectedDate) + "?")) return;
           button.disabled = true;
-
           try {
-            await window.BR_API.normativeMark(
-              user.token,
-              nickname,
-              selectedDate,
-              status,
-              ""
-            );
+            await window.BR_API.normativeMark(user.token, nickname, selectedDate, status, "");
             await load(user);
           } catch (error) {
             alert(error.message || "Не удалось сохранить норматив.");
@@ -459,9 +517,7 @@
           event.stopPropagation();
           var nickname = button.dataset.adminMenu || "";
           document.querySelectorAll(".admin-row-menu.open").forEach(function (menu) {
-            if (menu.getAttribute("data-admin-row-menu") !== nickname) {
-              menu.classList.remove("open");
-            }
+            if (menu.getAttribute("data-admin-row-menu") !== nickname) menu.classList.remove("open");
           });
           var menu = document.querySelector('[data-admin-row-menu="' + CSS.escape(nickname) + '"]');
           if (menu) menu.classList.toggle("open");
