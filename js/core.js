@@ -173,6 +173,8 @@
   function applyTheme(theme) {
     var value = String(theme || "dark").toLowerCase() === "light" ? "light" : "dark";
     document.documentElement.classList.toggle("theme-light", value === "light");
+    var themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute("content", value === "light" ? "#ffffff" : "#080a0f");
     try { localStorage.setItem("br_theme", value); } catch (_) {}
     return value;
   }
