@@ -51,10 +51,10 @@ button{cursor:pointer}
 .two-column-table{display:grid;grid-template-columns:1fr 1fr;gap:14px}.muted{color:var(--muted)}.empty{padding:28px;text-align:center;color:var(--muted);font-size:11px}
 
 .watermark{position:fixed;inset:64px 0 0 var(--sidebar);z-index:15;display:grid;place-items:center;overflow:hidden;pointer-events:none;user-select:none;opacity:1}
-.watermark-mark{display:flex;align-items:center;gap:22px;padding:28px 42px;border:1px solid rgba(255,255,255,.075);border-radius:26px;background:rgba(8,10,15,.025);transform:rotate(-18deg) scale(1.08);white-space:nowrap;box-shadow:0 0 90px rgba(255,255,255,.025)}
-.watermark-mark strong{font-size:clamp(64px,9vw,128px);line-height:1;font-weight:950;letter-spacing:-.07em;color:rgba(255,255,255,.09);text-shadow:0 0 22px rgba(255,255,255,.035)}
-.watermark-mark span{font-size:clamp(42px,6.5vw,88px);line-height:1;font-weight:900;letter-spacing:-.04em;color:rgba(255,255,255,.11);text-shadow:0 0 20px rgba(255,255,255,.03)}
-.watermark-mark small{font-size:clamp(10px,1.15vw,14px);font-weight:850;letter-spacing:.2em;color:rgba(255,255,255,.075)}
+.watermark-mark{display:flex;align-items:center;gap:26px;padding:32px 48px;border:1px solid rgba(255,255,255,.11);border-radius:28px;background:rgba(8,10,15,.03);transform:rotate(-18deg) scale(1.15);white-space:nowrap;box-shadow:0 0 110px rgba(255,255,255,.04)}
+.watermark-mark strong{font-size:clamp(76px,10.5vw,160px);line-height:1;font-weight:950;letter-spacing:-.075em;color:rgba(255,255,255,.145);text-shadow:0 0 28px rgba(255,255,255,.06)}
+.watermark-mark span{font-size:clamp(50px,7.5vw,108px);line-height:1;font-weight:900;letter-spacing:-.045em;color:rgba(255,255,255,.17);text-shadow:0 0 26px rgba(255,255,255,.05)}
+.watermark-mark small{font-size:clamp(11px,1.3vw,16px);font-weight:850;letter-spacing:.21em;color:rgba(255,255,255,.11)}
 
 .form-field{display:grid;gap:7px;min-width:0}
 .form-field>label{margin:0;color:#9aa3b3;font-size:10px;font-weight:750;line-height:1.2}
@@ -202,11 +202,11 @@ button{cursor:pointer}
 .stats-section-row b{display:block}
 
 /* Typography refresh */
-body{font-size:13px}
-.side-link{min-height:44px}
-.table-box th,.table-box td{line-height:1.45}
-.button{font-size:12px}
-.small-button{font-size:11px}
-.form-input,.form-select,.form-textarea{font-size:13px}
+body{font-size:14px}
+.side-link{min-height:45px;font-size:13px}
+.table-box th,.table-box td{line-height:1.5;font-size:13px}
+.button{font-size:13px}
+.small-button{font-size:12px}
+.form-input,.form-select,.form-textarea{font-size:14px}
 
-@media(max-width:520px){.watermark-mark{padding:20px 28px;gap:14px;transform:rotate(-18deg) scale(1.02)}}
+@media(max-width:520px){.watermark-mark{padding:22px 30px;gap:16px;transform:rotate(-18deg) scale(1.06)}}
