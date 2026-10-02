@@ -31,7 +31,13 @@
         page: "dashboard",
         auditLogs: [],
         auditLogsLoaded: false,
-        auditLogsLoading: false
+        auditLogsLoading: false,
+        statistics: null,
+        statisticsLoading: false,
+        statisticsLoaded: false,
+        normatives: [],
+        normativesLoading: false,
+        normativesLoaded: false
     };
 
     var ADMINS = [
@@ -1134,6 +1140,12 @@
                 "admins",
                 "♟",
                 "Состав администрации"
+            ) +
+
+            nav(
+                "statistics-all",
+                "▥",
+                "Общая статистика"
             ) +
 
             nav(
@@ -2388,75 +2400,511 @@
         );
     }
 
-    function getNormatives() {
-        var data =
-            getJSON(
-                "br_normatives",
-                []
-            );
+    function formatStatisticsValue(value) {
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
+            return "—";
+        }
 
-        return Array.isArray(data)
-            ? data
-            : [];
+        return String(value);
     }
 
-    function normativeFormPage() {
-        var list =
-            getNormatives()
-                .filter(
-                    function (
-                        item
+    function statisticsCards(values) {
+        var fields = [
+            ["Возраст", "age"],
+            ["Доступ с ПК", "pc_access"],
+            ["Должность", "position"],
+            ["Уровни", "levels"],
+            ["Баллы активности", "activity_points"],
+            ["Неактивы", "inactives"],
+            ["Страйки", "strikes"],
+            ["Предупреждения", "warnings"],
+            ["Баллы", "points"],
+            ["Последнее повышение", "last_promotion"]
+        ];
+
+        return fields
+            .map(
+                function (pair) {
+                    return (
+                        '<div class="card">' +
+                            '<small>' +
+                                esc(pair[0]) +
+                            '</small>' +
+                            '<b>' +
+                                esc(
+                                    formatStatisticsValue(
+                                        values[pair[1]]
+                                    )
+                                ) +
+                            '</b>' +
+                        '</div>'
+                    );
+                }
+            )
+            .join("");
+    }
+
+    function loadMyStatistics() {
+        if (
+            state.statisticsLoading ||
+            state.statisticsLoaded ||
+            !state.user ||
+            !window.BR_API ||
+            typeof window.BR_API.myStatistics !==
+                "function"
+        ) {
+            return;
+        }
+
+        state.statisticsLoading = true;
+
+        window.BR_API
+            .myStatistics(
+                state.user.token
+            )
+            .then(
+                function (result) {
+                    state.statistics =
+                        result.statistics || null;
+
+                    state.statisticsLoaded =
+                        true;
+
+                    if (
+                        state.page ===
+                        "statistics"
                     ) {
-                        return (
-                            item.nickname ===
-                            state.user.nickname
+                        render();
+                    }
+                }
+            )
+            .catch(
+                function (error) {
+                    console.error(
+                        "[BR AdminTools] Ошибка загрузки статистики:",
+                        error
+                    );
+
+                    state.statisticsLoaded =
+                        true;
+
+                    if (
+                        state.page ===
+                        "statistics"
+                    ) {
+                        render();
+                    }
+                }
+            )
+            .finally(
+                function () {
+                    state.statisticsLoading =
+                        false;
+                }
+            );
+    }
+
+    function statisticsPage() {
+        if (
+            !state.statisticsLoaded
+        ) {
+            loadMyStatistics();
+
+            return (
+                head(
+                    "Моя статистика",
+                    "Загрузка данных из общей таблицы"
+                ) +
+                '<div class="box">' +
+                    '<div class="empty">Загрузка статистики...</div>' +
+                '</div>'
+            );
+        }
+
+        if (
+            !state.statistics
+        ) {
+            return (
+                head(
+                    "Моя статистика",
+                    "Данные администратора"
+                ) +
+                '<div class="box">' +
+                    '<div class="empty">' +
+                        'Статистика для вашего аккаунта не найдена.' +
+                    '</div>' +
+                    '<button class="button button-secondary" id="refreshStatistics" type="button">' +
+                        'Повторить' +
+                    '</button>' +
+                '</div>'
+            );
+        }
+
+        var values =
+            state.statistics.values || {};
+
+        var rowNumber =
+            state.statistics.row_number;
+
+        return (
+            head(
+                "Моя статистика",
+                "Актуальные данные администратора из Google Sheets"
+            ) +
+
+            '<div class="cards">' +
+                statisticsCards(values) +
+            '</div>' +
+
+            '<div class="box spaced-box">' +
+                '<div class="card-head">' +
+                    '<div>' +
+                        '<h2>Источник данных</h2>' +
+                        '<span>Строка №' +
+                            esc(rowNumber) +
+                        '</span>' +
+                    '</div>' +
+                    '<button class="button button-secondary" id="refreshStatistics" type="button">' +
+                        'Обновить' +
+                    '</button>' +
+                '</div>' +
+                '<p>' +
+                    'Данные считываются напрямую из подключённой таблицы. В кабинете используется никнейм текущего аккаунта.' +
+                '</p>' +
+            '</div>'
+        );
+    }
+
+    function allStatisticsPage() {
+        if (
+            !state.statisticsLoaded &&
+            !state.statisticsLoading
+        ) {
+            state.statisticsLoading = true;
+
+            window.BR_API
+                .allStatistics(
+                    state.user.token
+                )
+                .then(
+                    function (result) {
+                        state.statistics =
+                            result.statistics || [];
+
+                        state.statisticsLoaded =
+                            true;
+
+                        state.statisticsLoading =
+                            false;
+
+                        if (
+                            state.page ===
+                            "statistics-all"
+                        ) {
+                            render();
+                        }
+                    }
+                )
+                .catch(
+                    function (error) {
+                        console.error(
+                            "[BR AdminTools] Ошибка общей статистики:",
+                            error
                         );
+
+                        state.statistics =
+                            [];
+
+                        state.statisticsLoaded =
+                            true;
+
+                        state.statisticsLoading =
+                            false;
+
+                        if (
+                            state.page ===
+                            "statistics-all"
+                        ) {
+                            render();
+                        }
                     }
                 );
+        }
+
+        var list =
+            Array.isArray(
+                state.statistics
+            )
+                ? state.statistics
+                : [];
 
         var rows =
             list.length
                 ? list
                     .map(
-                        function (
-                            item
-                        ) {
+                        function (item) {
+                            var values =
+                                item.values || {};
+
                             return (
                                 '<tr>' +
                                     '<td>' +
-                                        esc(item.date) +
+                                        esc(
+                                            values.nickname ||
+                                            "—"
+                                        ) +
                                     '</td>' +
                                     '<td>' +
-                                        esc(item.position) +
+                                        esc(
+                                            values.position ||
+                                            "—"
+                                        ) +
                                     '</td>' +
                                     '<td>' +
-                                        esc(item.file) +
+                                        esc(
+                                            values.levels ||
+                                            "—"
+                                        ) +
                                     '</td>' +
                                     '<td>' +
-                                        esc(item.comment || "—") +
+                                        esc(
+                                            values.activity_points ||
+                                            "—"
+                                        ) +
+                                    '</td>' +
+                                    '<td>' +
+                                        esc(
+                                            values.points ||
+                                            "—"
+                                        ) +
+                                    '</td>' +
+                                    '<td>' +
+                                        esc(
+                                            values.last_promotion ||
+                                            "—"
+                                        ) +
                                     '</td>' +
                                 '</tr>'
                             );
                         }
                     )
                     .join("")
-                : '<tr><td colspan="4">Нормативов пока нет.</td></tr>';
+                : (
+                    state.statisticsLoading
+                        ? '<tr><td colspan="6">Загрузка...</td></tr>'
+                        : '<tr><td colspan="6">Данных нет.</td></tr>'
+                );
+
+        return (
+            head(
+                "Общая статистика",
+                "Сводные данные администрации из Google Sheets"
+            ) +
+
+            '<div class="box table-box">' +
+                '<div class="card-head">' +
+                    '<div>' +
+                        '<h2>Состав</h2>' +
+                        '<span>Обновляется из общей таблицы</span>' +
+                    '</div>' +
+                    '<button class="button button-secondary" id="refreshStatistics" type="button">' +
+                        'Обновить' +
+                    '</button>' +
+                '</div>' +
+                '<table>' +
+                    '<thead>' +
+                        '<tr>' +
+                            '<th>Никнейм</th>' +
+                            '<th>Должность</th>' +
+                            '<th>Уровни</th>' +
+                            '<th>Активность</th>' +
+                            '<th>Баллы</th>' +
+                            '<th>Последнее повышение</th>' +
+                        '</tr>' +
+                    '</thead>' +
+                    '<tbody>' +
+                        rows +
+                    '</tbody>' +
+                '</table>' +
+            '</div>'
+        );
+    }
+
+    function getNormatives() {
+        return Array.isArray(
+            state.normatives
+        )
+            ? state.normatives
+            : [];
+    }
+
+    function loadNormatives(all) {
+        if (
+            state.normativesLoading
+        ) {
+            return;
+        }
+
+        state.normativesLoading = true;
+
+        window.BR_API
+            .normativesList(
+                state.user.token,
+                all ? "all" : "mine"
+            )
+            .then(
+                function (result) {
+                    state.normatives =
+                        Array.isArray(
+                            result.normatives
+                        )
+                            ? result.normatives
+                            : [];
+
+                    state.normativesLoaded =
+                        true;
+
+                    if (
+                        state.page ===
+                            (
+                                all
+                                    ? "normatives-all"
+                                    : "normatives"
+                            )
+                    ) {
+                        render();
+                    }
+                }
+            )
+            .catch(
+                function (error) {
+                    console.error(
+                        "[BR AdminTools] Ошибка загрузки нормативов:",
+                        error
+                    );
+
+                    state.normatives =
+                        [];
+
+                    state.normativesLoaded =
+                        true;
+
+                    if (
+                        state.page ===
+                            (
+                                all
+                                    ? "normatives-all"
+                                    : "normatives"
+                            )
+                    ) {
+                        render();
+                    }
+                }
+            )
+            .finally(
+                function () {
+                    state.normativesLoading =
+                        false;
+                }
+            );
+    }
+
+    function normativeRow(item, all) {
+        return (
+            '<tr>' +
+                (
+                    all
+                        ? (
+                            '<td>' +
+                                esc(
+                                    item.nickname
+                                ) +
+                            '</td>'
+                        )
+                        : ""
+                ) +
+                '<td>' +
+                    esc(
+                        item.submission_date
+                    ) +
+                '</td>' +
+                '<td>' +
+                    esc(
+                        item.position ||
+                        "—"
+                    ) +
+                '</td>' +
+                '<td>' +
+                    esc(
+                        item.original_filename
+                    ) +
+                '</td>' +
+                '<td>' +
+                    esc(
+                        item.comment ||
+                        "—"
+                    ) +
+                '</td>' +
+                '<td>' +
+                    '<button class="small-button" data-normative-url="' +
+                        esc(
+                            item.id
+                        ) +
+                    '" type="button">' +
+                        'Открыть' +
+                    '</button>' +
+                '</td>' +
+            '</tr>'
+        );
+    }
+
+    function normativeFormPage() {
+        if (
+            !state.normativesLoaded
+        ) {
+            loadNormatives(
+                false
+            );
+        }
+
+        var list =
+            getNormatives();
+
+        var rows =
+            list.length
+                ? list
+                    .map(
+                        function (item) {
+                            return normativeRow(
+                                item,
+                                false
+                            );
+                        }
+                    )
+                    .join("")
+                : (
+                    state.normativesLoading
+                        ? '<tr><td colspan="6">Загрузка...</td></tr>'
+                        : '<tr><td colspan="6">Нормативов пока нет.</td></tr>'
+                );
 
         return (
             head(
                 "Нормативы",
-                "Отправка норматива"
+                "Загрузка фото норматива"
             ) +
 
             '<div class="box">' +
-
                 '<form id="normForm">' +
-
                     '<div class="form-grid">' +
-
                         '<div class="form-field form-full">' +
                             '<label>Файл</label>' +
-                            '<input id="file" class="form-input" type="file" required>' +
+                            '<input id="file" class="form-input" type="file" accept="image/gif,image/png,image/jpeg,.gif,.png,.jpg,.jpeg" required>' +
+                            '<div class="field-hint">GIF, PNG, JPEG. Максимальный размер — 10 МБ.</div>' +
                         '</div>' +
 
                         '<div class="form-field">' +
@@ -2466,76 +2914,75 @@
 
                         '<div class="form-field">' +
                             '<label>Должность</label>' +
-
                             '<select id="normPosition" class="form-select">' +
                                 POSITIONS
                                     .map(
-                                        function (
-                                            position
-                                        ) {
+                                        function (position) {
                                             return (
                                                 '<option ' +
-                                                (
-                                                    position ===
-                                                    state.user.position
-                                                        ? "selected"
-                                                        : ""
-                                                ) +
+                                                    (
+                                                        position ===
+                                                        state.user.position
+                                                            ? "selected"
+                                                            : ""
+                                                    ) +
                                                 '>' +
-                                                esc(position) +
+                                                    esc(position) +
                                                 '</option>'
                                             );
                                         }
                                     )
                                     .join("") +
                             '</select>' +
-
                         '</div>' +
 
                         '<div class="form-field form-full">' +
                             '<label>Комментарий</label>' +
                             '<textarea id="comment" class="form-textarea"></textarea>' +
                         '</div>' +
-
                     '</div>' +
 
                     '<button class="button button-primary" type="submit">' +
                         'Сохранить норматив' +
                     '</button>' +
-
                 '</form>' +
-
             '</div>' +
 
             '<div class="box table-box spaced-box">' +
-
                 '<div class="card-head">' +
-                    '<h2>Мои нормативы</h2>' +
-                    '<span>локально</span>' +
+                    '<div>' +
+                        '<h2>Мои нормативы</h2>' +
+                        '<span>Хранятся на сервере</span>' +
+                    '</div>' +
                 '</div>' +
 
                 '<table>' +
-
                     '<thead>' +
                         '<tr>' +
                             '<th>Дата</th>' +
                             '<th>Должность</th>' +
                             '<th>Файл</th>' +
                             '<th>Комментарий</th>' +
+                            '<th></th>' +
                         '</tr>' +
                     '</thead>' +
-
                     '<tbody>' +
                         rows +
                     '</tbody>' +
-
                 '</table>' +
-
             '</div>'
         );
     }
 
     function normativeAllPage() {
+        if (
+            !state.normativesLoaded
+        ) {
+            loadNormatives(
+                true
+            );
+        }
+
         var list =
             getNormatives();
 
@@ -2543,49 +2990,38 @@
             list.length
                 ? list
                     .map(
-                        function (
-                            item
-                        ) {
-                            return (
-                                '<tr>' +
-                                    '<td>' +
-                                        esc(item.nickname) +
-                                    '</td>' +
-                                    '<td>' +
-                                        esc(item.date) +
-                                    '</td>' +
-                                    '<td>' +
-                                        esc(item.position) +
-                                    '</td>' +
-                                    '<td>' +
-                                        esc(item.file) +
-                                    '</td>' +
-                                    '<td>' +
-                                        esc(item.comment || "—") +
-                                    '</td>' +
-                                '</tr>'
+                        function (item) {
+                            return normativeRow(
+                                item,
+                                true
                             );
                         }
                     )
                     .join("")
-                : '<tr><td colspan="5">Нормативов нет.</td></tr>';
+                : (
+                    state.normativesLoading
+                        ? '<tr><td colspan="7">Загрузка...</td></tr>'
+                        : '<tr><td colspan="7">Нормативов нет.</td></tr>'
+                );
 
         return (
             head(
                 "Нормативы администрации",
-                "Обзор нормативов"
+                "Общий архив нормативов"
             ) +
 
-            '<div class="box">' +
-                '<div class="notice">' +
-                    'Временная версия хранит записи локально. В следующей версии этот раздел будет общим для всех устройств.' +
+            '<div class="box table-box">' +
+                '<div class="card-head">' +
+                    '<div>' +
+                        '<h2>Архив</h2>' +
+                        '<span>Фото хранятся в защищённом хранилище</span>' +
+                    '</div>' +
+                    '<button class="button button-secondary" id="refreshNormatives" type="button">' +
+                        'Обновить' +
+                    '</button>' +
                 '</div>' +
-            '</div>' +
-
-            '<div class="box table-box spaced-box">' +
 
                 '<table>' +
-
                     '<thead>' +
                         '<tr>' +
                             '<th>Никнейм</th>' +
@@ -2593,15 +3029,13 @@
                             '<th>Должность</th>' +
                             '<th>Файл</th>' +
                             '<th>Комментарий</th>' +
+                            '<th></th>' +
                         '</tr>' +
                     '</thead>' +
-
                     '<tbody>' +
                         rows +
                     '</tbody>' +
-
                 '</table>' +
-
             '</div>'
         );
     }
@@ -3503,6 +3937,12 @@
             case "profile":
                 return profilePage();
 
+            case "statistics":
+                return statisticsPage();
+
+            case "statistics-all":
+                return allStatisticsPage();
+
             case "admins":
                 return adminsPage();
 
@@ -3814,6 +4254,112 @@
                 }
             );
 
+        var statisticsRefresh =
+            document.getElementById(
+                "refreshStatistics"
+            );
+
+        if (statisticsRefresh) {
+            statisticsRefresh.onclick =
+                function () {
+                    state.statistics =
+                        null;
+
+                    state.statisticsLoaded =
+                        false;
+
+                    state.statisticsLoading =
+                        false;
+
+                    render();
+                };
+        }
+
+        var refreshNormatives =
+            document.getElementById(
+                "refreshNormatives"
+            );
+
+        if (refreshNormatives) {
+            refreshNormatives.onclick =
+                function () {
+                    state.normatives =
+                        [];
+
+                    state.normativesLoaded =
+                        false;
+
+                    state.normativesLoading =
+                        false;
+
+                    render();
+                };
+        }
+
+        document
+            .querySelectorAll(
+                "[data-normative-url]"
+            )
+            .forEach(
+                function (button) {
+                    button.onclick =
+                        async function () {
+                            var id =
+                                Number(
+                                    button.getAttribute(
+                                        "data-normative-url"
+                                    )
+                                );
+
+                            if (!id) {
+                                return;
+                            }
+
+                            button.disabled =
+                                true;
+
+                            button.textContent =
+                                "Открытие...";
+
+                            try {
+                                var result =
+                                    await window.BR_API
+                                        .normativeUrl(
+                                            state.user.token,
+                                            id
+                                        );
+
+                                if (
+                                    result &&
+                                    result.url
+                                ) {
+                                    window.open(
+                                        result.url,
+                                        "_blank",
+                                        "noopener,noreferrer"
+                                    );
+                                }
+                            } catch (error) {
+                                console.error(
+                                    "[BR AdminTools] Ошибка открытия норматива:",
+                                    error
+                                );
+
+                                alert(
+                                    error.message ||
+                                    "Не удалось открыть файл."
+                                );
+                            } finally {
+                                button.disabled =
+                                    false;
+
+                                button.textContent =
+                                    "Открыть";
+                            }
+                        };
+                }
+            );
+
         var normForm =
             document.getElementById(
                 "normForm"
@@ -3821,66 +4367,97 @@
 
         if (normForm) {
             normForm.onsubmit =
-                function (
+                async function (
                     event
                 ) {
                     event.preventDefault();
 
-                    var file =
+                    var fileInput =
                         document.getElementById(
                             "file"
-                        ).files[0];
+                        );
+
+                    var file =
+                        fileInput &&
+                        fileInput.files
+                            ? fileInput.files[0]
+                            : null;
 
                     var date =
                         document.getElementById(
                             "date"
                         ).value;
 
-                    if (!file || !date) {
+                    var position =
+                        document.getElementById(
+                            "normPosition"
+                        ).value;
+
+                    var comment =
+                        document.getElementById(
+                            "comment"
+                        ).value.trim();
+
+                    if (
+                        !file ||
+                        !date
+                    ) {
                         return;
                     }
 
-                    var list =
-                        getNormatives();
+                    var button =
+                        normForm.querySelector(
+                            "button[type=submit]"
+                        );
 
-                    list.unshift({
-                        nickname:
-                            state.user.nickname,
+                    if (button) {
+                        button.disabled =
+                            true;
 
-                        date:
-                            date,
+                        button.textContent =
+                            "Загрузка...";
+                    }
 
-                        position:
-                            document.getElementById(
-                                "normPosition"
-                            ).value,
+                    try {
+                        await window.BR_API
+                            .normativeUpload(
+                                state.user.token,
+                                file,
+                                date,
+                                position,
+                                comment
+                            );
 
-                        file:
-                            file.name,
+                        state.normatives =
+                            [];
 
-                        comment:
-                            document.getElementById(
-                                "comment"
-                            ).value,
+                        state.normativesLoaded =
+                            false;
 
-                        createdAt:
-                            new Date().toISOString()
-                    });
+                        state.normativesLoading =
+                            false;
 
-                    setJSON(
-                        "br_normatives",
-                        list.slice(
-                            0,
-                            200
-                        )
-                    );
+                        render();
 
-                    addLog(
-                        "normative_created",
-                        file.name
-                    );
+                    } catch (error) {
+                        console.error(
+                            "[BR AdminTools] Ошибка загрузки норматива:",
+                            error
+                        );
 
-                    render();
+                        alert(
+                            error.message ||
+                            "Не удалось сохранить норматив."
+                        );
+
+                        if (button) {
+                            button.disabled =
+                                false;
+
+                            button.textContent =
+                                "Сохранить норматив";
+                        }
+                    }
                 };
         }
 
