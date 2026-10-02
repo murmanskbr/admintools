@@ -193,6 +193,11 @@
 
   function link(page) {
     var item = NAV[page];
+    if (!item) {
+      console.warn("[BR AdminTools] Пропущен неизвестный пункт меню:", page);
+      return "";
+    }
+
     var current = location.pathname.split("/").pop();
     var active = current === item[0].replace("pages/", "") ? " active" : "";
     return '<a class="side-link' + active + '" href="../' + item[0] + '">' +
@@ -240,6 +245,23 @@
     var session = getSession();
 
     if (!root) return;
+
+    // При обычном обновлении любой внутренней страницы возвращаем
+    // пользователя на index.html. Сам index при обновлении остаётся index.
+    var pagePath = document.body && document.body.getAttribute("data-page");
+    var isReload = false;
+
+    try {
+      var navEntry = performance.getEntriesByType("navigation")[0];
+      isReload = !!navEntry && navEntry.type === "reload";
+    } catch (_) {
+      isReload = false;
+    }
+
+    if (isReload && pagePath) {
+      location.replace("../index.html");
+      return;
+    }
     if (!session) {
       goToLogin();
       return;
