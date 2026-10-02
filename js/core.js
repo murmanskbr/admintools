@@ -17,7 +17,7 @@
     statistics: ["pages/statistics.html", "▥", "Моя статистика"],
     access: ["pages/access.html", "⚿", "Выдать доступ"],
     "statistics-all": ["pages/statistics-all.html", "▥", "Статистика администрации"],
-    "normatives-all": ["pages/normatives-all.html", "↑", "Нормативы администрации"],
+    "normatives-all": ["pages/normatives-all.html", "↑", "Проставка нормативов"],
     "requests-all": ["pages/requests-all.html", "✦", "Обращения администрации"],
     logs: ["pages/logs.html", "◷", "Журнал действий"],
     rules: ["pages/rules.html", "☷", "Регламент"]

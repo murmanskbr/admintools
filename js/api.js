@@ -808,7 +808,7 @@
                 token,
                 date
             ) {
-                return request(
+                return requestStatistics(
                     {
                         action:
                             "normatives_daily",
@@ -871,7 +871,7 @@
         normativeMark:
             function (
                 token,
-                adminId,
+                nickname,
                 date,
                 status,
                 reviewComment
@@ -879,7 +879,7 @@
                 return requestStatistics(
                     {
                         action: "normative_mark",
-                        admin_id: Number(adminId || 0),
+                        nickname: nickname || "",
                         date: date || "",
                         status: status,
                         review_comment: reviewComment || ""

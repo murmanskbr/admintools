@@ -736,15 +736,17 @@
 
         var rows = list.map(function (item) {
           var action = '<div class="normative-row-actions">' +
-            '<button class="small-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id) + '">' + (item.submission_id ? "Проверить" : "Открыть") + '</button>' +
-            '<button class="normative-icon-button normative-mark-norm" data-quick-mark="norm" data-admin-id="' + E(item.admin_id) + '" title="Норма">✓</button>' +
-            '<button class="normative-icon-button normative-mark-rework" data-quick-mark="rework" data-admin-id="' + E(item.admin_id) + '" title="Перенорма">↻</button>' +
-            '<button class="normative-icon-button normative-mark-no-norm" data-quick-mark="no_norm" data-admin-id="' + E(item.admin_id) + '" title="Нет нормы">✕</button>' +
-            '<button class="normative-icon-button normative-mark-inactive" data-quick-mark="inactive" data-admin-id="' + E(item.admin_id) + '" title="Неактив">—</button>' +
+            (item.submission_id
+              ? '<button class="small-button" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Проверить</button>'
+              : '<span class="muted">Нет файла</span>') +
+            '<button class="normative-icon-button normative-mark-norm" data-quick-mark="norm" data-admin-nickname="' + E(item.nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
+            '<button class="normative-icon-button normative-mark-rework" data-quick-mark="rework" data-admin-nickname="' + E(item.nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
+            '<button class="normative-icon-button normative-mark-no-norm" data-quick-mark="no_norm" data-admin-nickname="' + E(item.nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
+            '<button class="normative-icon-button normative-mark-inactive" data-quick-mark="inactive" data-admin-nickname="' + E(item.nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
           '</div>';
 
           return '<tr>' +
-            '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id) + '">' + E(item.nickname) + '</button></td>' +
+            '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + E(item.nickname) + '</button></td>' +
             '<td>' + E(item.position || "—") + '</td>' +
             '<td>' + E(formatDateOnly(selectedDate)) + '</td>' +
             '<td>' + E(item.created_at ? formatDateTime(item.created_at) : "—") + '</td>' +
@@ -772,8 +774,8 @@
           E(formatDateOnly(selectedDate)) +
           '</b></div><span class="muted">' + E(String(list.length)) + ' администраторов</span></div>' +
           statusButtons +
-          '<table id="normativeJournalTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Дата</th><th>Время отправки</th><th>Статус</th><th>Файлы</th><th>Решение</th><th>Действия</th></tr></thead><tbody>' +
-          (rows || '<tr><td colspan="8" class="table-empty">Активных администраторов нет.</td></tr>') +
+          '<table id="normativeJournalTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Дата</th><th>Время</th><th>Статус</th><th>Файлы</th><th>Решение</th><th>Действия</th></tr></thead><tbody>' +
+          (rows || '<tr><td colspan="8" class="table-empty">Администраторов в реестре нет.</td></tr>') +
           '</tbody></table></div>';
 
         var activeFilter = "all";
@@ -822,6 +824,7 @@
               token: user.token,
               submissionId: Number(button.dataset.openAdminNorm || 0),
               adminId: Number(button.dataset.adminId || 0),
+              nickname: button.dataset.adminNickname || "",
               date: selectedDate,
               management: true
             });
@@ -834,11 +837,11 @@
             var labels = {norm:"Норма",rework:"Перенорма",no_norm:"Нет нормы",inactive:"Неактив"};
             var row = button.closest("tr");
             var n = row && row.querySelector(".link-button");
-            var nickname = n ? n.textContent.trim() : button.dataset.adminId;
+            var nickname = n ? n.textContent.trim() : button.dataset.adminNickname;
             if (!confirm("Выставить «" + (labels[status] || status) + "» для " + nickname + " за " + formatDateOnly(selectedDate) + "?")) return;
             button.disabled = true;
             try {
-              await window.BR_API.normativeMark(user.token, Number(button.dataset.adminId), selectedDate, status, "");
+              await window.BR_API.normativeMark(user.token, nickname, selectedDate, status, "");
               await loadDaily();
             } catch (e) {
               alert(e.message || "Не удалось сохранить результат.");
@@ -908,7 +911,7 @@
               try {
                 await window.BR_API.normativeMark(
                   options.token,
-                  options.adminId,
+                  options.nickname || (s && s.nickname) || "",
                   options.date,
                   button.dataset.review,
                   comment
@@ -985,7 +988,7 @@
           var result = await window.BR_API.auditLogs(user.token, 200);
           var list = Array.isArray(result.logs) ? result.logs : [];
           var rows = list.length ? list.map(function (x) {
-            return '<tr><td>' + E(x.time) + '</td><td>' + E(x.nickname) + '</td><td>' +
+            return '<tr><td>' + E(formatDateTime(x.created_at || x.time)) + '</td><td>' + E(x.nickname) + '</td><td>' +
               E(x.action) + '</td><td>' + E(x.page) + '</td><td>' + E(x.details) + '</td></tr>';
           }).join("") : '<tr><td colspan="5">Журнал пуст.</td></tr>';
           root.innerHTML = '<div class="box table-box"><table><thead><tr><th>Время</th><th>Никнейм</th><th>Действие</th><th>Раздел</th><th>Подробности</th></tr></thead><tbody>' +
