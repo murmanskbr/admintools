@@ -20,7 +20,8 @@
     "normatives-all": ["pages/normatives-all.html", "↑", "Проставка нормативов"],
     "requests-all": ["pages/requests-all.html", "✦", "Обращения администрации"],
     logs: ["pages/logs.html", "◷", "Журнал действий"],
-    rules: ["pages/rules.html", "☷", "Регламент"]
+    rules: ["pages/rules.html", "☷", "Регламент"],
+    settings: ["pages/settings.html", "⚙", "Настройки"]
   };
 
   function esc(value) {
@@ -169,6 +170,22 @@
     goToLogin();
   }
 
+  function applyTheme(theme) {
+    var value = String(theme || "dark").toLowerCase() === "light" ? "light" : "dark";
+    document.documentElement.classList.toggle("theme-light", value === "light");
+    try { localStorage.setItem("br_theme", value); } catch (_) {}
+    return value;
+  }
+
+  function updateSessionUser(patch) {
+    var session = getSession();
+    if (!session || !session.user) return null;
+
+    session.user = Object.assign({}, session.user, patch || {});
+    persistSession(session);
+    return session.user;
+  }
+
   function management(user) {
     return !!user && user.role === "management";
   }
@@ -186,9 +203,11 @@
       ? '<div class="section-title">УПРАВЛЕНИЕ</div>' +
         link("access") + link("admins") + link("statistics-all") +
         link("notifications") + link("normatives-all") + link("requests-all") +
-        '<div class="section-title">КОНТРОЛЬ</div>' + link("logs") + link("rules")
+        '<div class="section-title">КОНТРОЛЬ</div>' + link("logs") + link("rules") +
+        '<div class="section-title">СИСТЕМА</div>' + link("settings")
       : link("notifications") + link("normatives") + link("requests") +
-        link("admins") + link("statistics") + link("rules");
+        link("admins") + link("statistics") + link("rules") +
+        '<div class="section-title">СИСТЕМА</div>' + link("settings");
 
     return '<div class="panel">' +
       '<aside class="sidebar" id="sidebar">' +
@@ -224,6 +243,8 @@
       goToLogin();
       return;
     }
+
+    applyTheme(session.user.theme || "dark");
 
     // API requests also report an expired server-side session. Redirect
     // immediately instead of waiting for the local countdown.
@@ -294,6 +315,8 @@
     clearSession: clearStorage,
     logout: logout,
     isManagement: management,
+    applyTheme: applyTheme,
+    updateSessionUser: updateSessionUser,
     init: init
   };
 })();
