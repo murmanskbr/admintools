@@ -54,7 +54,16 @@
         var expires = new Date(result.expires_at).getTime();
         if (!Number.isFinite(expires)) expires = Date.now() + 86400000;
 
-        window.BRApp.saveSession(user, expires, document.getElementById("rememberMe").checked);
+        var lastActivityAt = result.session && result.session.last_activity_at
+          ? new Date(result.session.last_activity_at).getTime()
+          : Date.now();
+
+        window.BRApp.saveSession(
+          user,
+          expires,
+          document.getElementById("rememberMe").checked,
+          lastActivityAt
+        );
         location.href = "pages/dashboard.html";
       } catch (e) {
         error.textContent = e && e.message ? e.message : "Ошибка сервера.";
