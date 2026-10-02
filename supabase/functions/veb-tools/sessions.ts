@@ -69,7 +69,14 @@ export async function authenticate(request: Request): Promise<AuthContext> {
     const requestDeviceId =
         request.headers.get("x-device-id")?.trim() || null;
 
-    if (session.device_id && session.device_id !== requestDeviceId) {
+    const requestDeviceHash = requestDeviceId
+        ? await sha256(requestDeviceId)
+        : null;
+
+    if (
+        session.device_id &&
+        session.device_id !== requestDeviceHash
+    ) {
         throw new Error("DEVICE_MISMATCH");
     }
 
@@ -91,7 +98,10 @@ export async function authenticate(request: Request): Promise<AuthContext> {
         throw new Error("INACTIVE");
     }
 
-    if (admin.device_id && admin.device_id !== requestDeviceId) {
+    if (
+        admin.device_id &&
+        admin.device_id !== requestDeviceHash
+    ) {
         throw new Error("DEVICE_MISMATCH");
     }
 
