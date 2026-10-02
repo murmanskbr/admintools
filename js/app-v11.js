@@ -8,7 +8,7 @@
         return;
     }
 
-    var SESSION_MS = 180000;
+    var SESSION_MS = 86400000;
     var ACTIVITY_SYNC_MS = 60000;
     var REMEMBER_COOKIE = "br_session";
     var REMEMBER_DAYS = 30;
@@ -567,8 +567,14 @@
                 session.user;
 
             state.expires =
-                Date.now() +
-                SESSION_MS;
+                Number(
+                    session.expires
+                ) > Date.now()
+                    ? Number(
+                        session.expires
+                    )
+                    : Date.now() +
+                      SESSION_MS;
 
             startTimer();
             saveSession();
@@ -605,9 +611,14 @@
             return;
         }
 
-        state.expires =
-            Date.now() +
-            SESSION_MS;
+        if (
+            !state.expires ||
+            state.expires <= Date.now()
+        ) {
+            state.expires =
+                Date.now() +
+                SESSION_MS;
+        }
 
         saveSession();
 
