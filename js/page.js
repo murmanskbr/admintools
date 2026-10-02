@@ -1021,15 +1021,9 @@
         var list = Array.isArray(result.administrators) ? result.administrators : [];
 
         var rows = list.map(function (item) {
-          var action = '<div class="normative-row-actions">' +
-            (item.submission_id
-              ? '<button class="small-button" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Проверить</button>'
-              : '<span class="muted">Нет файла</span>') +
-            '<button class="normative-icon-button normative-mark-norm" data-quick-mark="norm" data-admin-nickname="' + E(item.nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
-            '<button class="normative-icon-button normative-mark-rework" data-quick-mark="rework" data-admin-nickname="' + E(item.nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
-            '<button class="normative-icon-button normative-mark-no-norm" data-quick-mark="no_norm" data-admin-nickname="' + E(item.nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
-            '<button class="normative-icon-button normative-mark-inactive" data-quick-mark="inactive" data-admin-nickname="' + E(item.nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
-          '</div>';
+          var action = item.submission_id
+            ? '<button class="small-button" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Проверить</button>'
+            : '<span class="muted">Нет файла</span>';
 
           return '<tr>' +
             '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + E(item.nickname) + '</button></td>' +
@@ -1117,25 +1111,7 @@
           };
         });
 
-        document.querySelectorAll("[data-quick-mark]").forEach(function (button) {
-          button.onclick = async function () {
-            var status = button.getAttribute("data-quick-mark") || "";
-            var labels = {norm:"Норма",rework:"Перенорма",no_norm:"Нет нормы",inactive:"Неактив"};
-            var row = button.closest("tr");
-            var n = row && row.querySelector(".link-button");
-            var nickname = n ? n.textContent.trim() : button.dataset.adminNickname;
-            if (!confirm("Выставить «" + (labels[status] || status) + "» для " + nickname + " за " + formatDateOnly(selectedDate) + "?")) return;
-            button.disabled = true;
-            try {
-              await window.BR_API.normativeMark(user.token, nickname, selectedDate, status, "");
-              await loadDaily();
-            } catch (e) {
-              alert(e.message || "Не удалось сохранить результат.");
-              button.disabled = false;
-            }
-          };
-        });
-      }).catch(function (error) {
+
         root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить нормативы.") + '</div></div>';
       });
     }
