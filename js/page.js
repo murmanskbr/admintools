@@ -392,7 +392,9 @@
   function dateIso(offset) {
     var date = new Date();
     date.setDate(date.getDate() + (offset || 0));
-    return date.toISOString().slice(0, 10);
+    return date.getFullYear() + "-" +
+      String(date.getMonth() + 1).padStart(2, "0") + "-" +
+      String(date.getDate()).padStart(2, "0");
   }
 
   function normativeStatus(status) {
@@ -472,7 +474,7 @@
               form.reset();
               document.getElementById("normDate").value = dateIso(0);
               if (preview) preview.innerHTML = "";
-              if (window.__BR_NORM_LOAD) await window.__BR_NORM_LOAD();
+              location.reload();
             } catch (e) {
               alert(e.message || "Не удалось отправить норматив.");
             } finally {
@@ -486,7 +488,6 @@
         load: async function () {
           var root = document.getElementById("normRoot");
           if (!root) return;
-          window.__BR_NORM_LOAD = arguments.callee;
           try {
             var result = await window.BR_API.normativesMine(user.token);
             var list = Array.isArray(result.normatives) ? result.normatives : [];
@@ -626,8 +627,10 @@
           ? '<div class="review-panel">' +
               '<textarea id="reviewComment" class="form-textarea" placeholder="Комментарий проверки"></textarea>' +
               '<div class="review-actions">' +
-                '<button class="button button-secondary" data-review="rework">Перенорма</button>' +
-                '<button class="button button-primary" data-review="norm">Норма</button>' +
+                (s
+                  ? '<button class="button button-secondary" data-review="rework">Перенорма</button>' +
+                    '<button class="button button-primary" data-review="norm">Норма</button>'
+                  : '') +
                 '<button class="button button-danger" data-review="no_norm">Нет нормы</button>' +
               '</div>' +
             '</div>'
