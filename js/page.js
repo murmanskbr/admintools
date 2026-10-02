@@ -177,7 +177,7 @@
     };
   }
 
-  function admins() {
+  function admins(user) {
     async function load() {
       var root = document.getElementById("adminsRoot");
       if (!root) return;
