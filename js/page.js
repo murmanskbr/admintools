@@ -1427,6 +1427,13 @@
         }
 
         if (themeForm) {
+          themeForm.querySelectorAll('input[name="theme"]').forEach(function (input) {
+            input.onchange = function () {
+              syncTheme(input.value);
+              showStatus("Предпросмотр темы применён. Нажмите «Сохранить тему», чтобы сохранить выбор.", true);
+            };
+          });
+
           themeForm.onsubmit = async function (event) {
             event.preventDefault();
 
