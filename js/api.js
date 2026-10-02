@@ -573,6 +573,17 @@
                 );
             },
 
+        me:
+            function (token) {
+                return request(
+                    {
+                        action:
+                            "me"
+                    },
+                    token
+                );
+            },
+
         myStatistics:
             function (token) {
                 return requestStatistics(
