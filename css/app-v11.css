@@ -75,6 +75,12 @@ button{cursor:pointer}
 
 
 
+
+.normative-filters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:12px;padding-top:2px}
+.filter-button{min-height:34px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);color:#aeb6c4;font-size:9px;font-weight:750}
+.filter-button:hover,.filter-button.active{background:var(--surface3);color:#fff;border-color:#394150}
+.normative-search{width:190px;min-height:34px;margin-left:auto}
+
 .normative-toolbar{align-items:center}
 .date-controls{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
 .date-control{width:150px;min-height:38px;margin:0}
