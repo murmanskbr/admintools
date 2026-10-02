@@ -1210,6 +1210,12 @@
             ) +
 
             nav(
+                "statistics",
+                "▥",
+                "Моя статистика"
+            ) +
+
+            nav(
                 "rules",
                 "☷",
                 "Регламент"
@@ -3615,6 +3621,8 @@
             request_created: "Создание обращения",
             access_granted: "Выдача доступа",
             server_stats_refresh: "Обновление статистики сервера",
+            statistics_refresh: "Обновление моей статистики",
+            normative_open: "Открытие норматива",
             audit_logs_refresh: "Обновление журнала действий"
         };
 
@@ -4311,6 +4319,11 @@
         if (statisticsRefresh) {
             statisticsRefresh.onclick =
                 function () {
+                    addLog(
+                        "statistics_refresh",
+                        "Обновление статистики"
+                    );
+
                     if (
                         state.page ===
                         "statistics-all"
@@ -4422,6 +4435,11 @@
                                 "Открытие...";
 
                             try {
+                                addLog(
+                                    "normative_open",
+                                    String(id)
+                                );
+
                                 var result =
                                     await window.BR_API
                                         .normativeUrl(
