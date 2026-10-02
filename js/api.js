@@ -721,6 +721,64 @@
                 );
             },
 
+        notificationsList:
+            function (token) {
+                return request(
+                    {
+                        action: "notifications_list"
+                    },
+                    token
+                );
+            },
+
+        notificationCreate:
+            function (
+                token,
+                title,
+                body,
+                targetRole,
+                expiresAt
+            ) {
+                return request(
+                    {
+                        action: "notification_create",
+                        title: title,
+                        body: body,
+                        target_role: targetRole || "all",
+                        expires_at: expiresAt || ""
+                    },
+                    token
+                );
+            },
+
+        notificationRead:
+            function (
+                token,
+                notificationId
+            ) {
+                return request(
+                    {
+                        action: "notification_read",
+                        notification_id: Number(notificationId)
+                    },
+                    token
+                );
+            },
+
+        notificationDelete:
+            function (
+                token,
+                notificationId
+            ) {
+                return request(
+                    {
+                        action: "notification_delete",
+                        notification_id: Number(notificationId)
+                    },
+                    token
+                );
+            },
+
         normativesMine:
             function (
                 token
