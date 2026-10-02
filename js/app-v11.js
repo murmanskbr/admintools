@@ -3591,6 +3591,8 @@
         var names = {
             dashboard: "Главная",
             profile: "Профиль",
+            statistics: "Моя статистика",
+            "statistics-all": "Общая статистика",
             admins: "Администрация",
             normatives: "Нормативы",
             "normatives-all": "Все нормативы",
