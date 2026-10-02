@@ -274,50 +274,193 @@
   }
 
   function notifications(user) {
+    function targetLabel(value) {
+      return {
+        all: "Вся администрация",
+        admin: "Администраторы",
+        management: "Руководство"
+      }[value] || value || "—";
+    }
+
     return {
       title: "Уведомления",
-      subtitle: "Новости и сообщения администрации",
+      subtitle: "Новости, объявления и сообщения администрации",
       render: function () {
-        var list = localList("br_notifications").filter(function (item) {
-          return !item.expiresAt || item.expiresAt > Date.now();
-        });
+        var create = user.role === "management"
+          ? '<div class="page-toolbar">' +
+              '<div><small>УПРАВЛЕНИЕ</small><b>Центр уведомлений</b></div>' +
+              '<button class="button button-primary" id="openNotificationForm" type="button">＋ Создать уведомление</button>' +
+            '</div>' +
+            '<div id="notificationCreateRoot" class="box compact-box notification-create-root" hidden>' +
+              '<form id="notificationForm">' +
+                '<div class="form-grid">' +
+                  '<div class="form-field"><label>Заголовок</label><input id="nTitle" class="form-input" maxlength="120" required placeholder="Например: Изменение регламента"></div>' +
+                  '<div class="form-field"><label>Получатели</label><select id="nTarget" class="form-select"><option value="all">Вся администрация</option><option value="admin">Только администраторы</option><option value="management">Только руководство</option></select></div>' +
+                  '<div class="form-field"><label>Показывать до (необязательно)</label><input id="nExpires" class="form-input" type="datetime-local"></div>' +
+                  '<div class="form-field form-full"><label>Текст уведомления</label><textarea id="nText" class="form-textarea" maxlength="5000" required placeholder="Текст сообщения для администрации"></textarea></div>' +
+                '</div>' +
+                '<div class="form-actions">' +
+                  '<button class="button button-primary" type="submit">Опубликовать</button>' +
+                  '<button class="button button-secondary" id="cancelNotification" type="button">Отмена</button>' +
+                '</div>' +
+              '</form>' +
+            '</div>'
+          : '';
 
-        var create = "";
-        if (user.role === "management") {
-          create = '<div class="box compact-box"><form id="notificationForm"><div class="form-grid">' +
-            '<div class="form-field"><label>Заголовок</label><input id="nTitle" class="form-input" required></div>' +
-            '<div class="form-field"><label>Получатели</label><select id="nTarget" class="form-select"><option value="all">Вся администрация</option><option value="admin">Администраторы</option><option value="management">Руководство</option></select></div>' +
-            '<div class="form-field form-full"><label>Текст</label><textarea id="nText" class="form-textarea" required></textarea></div>' +
-            '</div><button class="button button-primary" type="submit">Опубликовать</button></form></div>';
+        return create +
+          '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>';
+      },
+      bind: function () {
+        var open = document.getElementById("openNotificationForm");
+        var root = document.getElementById("notificationCreateRoot");
+        var cancel = document.getElementById("cancelNotification");
+        var form = document.getElementById("notificationForm");
+
+        if (open && root) {
+          open.onclick = function () {
+            root.hidden = false;
+            open.hidden = true;
+            var title = document.getElementById("nTitle");
+            if (title) title.focus();
+          };
+        }
+
+        if (cancel && root && open) {
+          cancel.onclick = function () {
+            root.hidden = true;
+            open.hidden = false;
+          };
+        }
+
+        if (!form) return;
+
+        form.onsubmit = async function (event) {
+          event.preventDefault();
+
+          var title = document.getElementById("nTitle").value.trim();
+          var text = document.getElementById("nText").value.trim();
+          var target = document.getElementById("nTarget").value;
+          var expiresInput = document.getElementById("nExpires").value;
+          var submit = form.querySelector("button[type=submit]");
+
+          if (!title || !text) return;
+
+          var expiresAt = "";
+          if (expiresInput) {
+            var expiration = new Date(expiresInput);
+            if (!Number.isFinite(expiration.getTime())) {
+              alert("Некорректная дата окончания уведомления.");
+              return;
+            }
+            expiresAt = expiration.toISOString();
+          }
+
+          if (submit) {
+            submit.disabled = true;
+            submit.textContent = "Публикация…";
+          }
+
+          try {
+            await window.BR_API.notificationCreate(
+              user.token,
+              title,
+              text,
+              target,
+              expiresAt
+            );
+            form.reset();
+            if (root && open) {
+              root.hidden = true;
+              open.hidden = false;
+            }
+            await loadNotifications();
+          } catch (e) {
+            alert(e.message || "Не удалось опубликовать уведомление.");
+          } finally {
+            if (submit) {
+              submit.disabled = false;
+              submit.textContent = "Опубликовать";
+            }
+          }
+        };
+      },
+      load: async function () {
+        await loadNotifications();
+      }
+    };
+
+    async function loadNotifications() {
+      var root = document.getElementById("notificationsRoot");
+      if (!root) return;
+
+      try {
+        var result = await window.BR_API.notificationsList(user.token);
+        var list = Array.isArray(result.notifications) ? result.notifications : [];
+        var unread = list.filter(function (item) { return !item.is_read; }).length;
+
+        if (!list.length) {
+          root.innerHTML = '<div class="box"><div class="empty">Новых уведомлений нет.</div></div>';
+          return;
         }
 
         var cards = list.map(function (item) {
-          return '<article class="notification"><div class="notification-title">' + E(item.title || "Уведомление") +
-            '</div><div class="notification-meta">' + E(item.createdAt || "") + '</div><div class="notification-text">' +
-            E(item.text || "") + '</div></article>';
+          var cls = item.is_read ? "notification" : "notification unread";
+          var readButton = item.is_read
+            ? '<span class="badge badge-blue">Прочитано</span>'
+            : '<button class="small-button" data-read-notification="' + E(item.id) + '">Прочитать</button>';
+
+          var deleteButton = user.role === "management"
+            ? '<button class="small-button notification-delete" data-delete-notification="' + E(item.id) + '">Удалить</button>'
+            : '';
+
+          return '<article class="' + cls + '">' +
+            '<div class="notification-top">' +
+              '<div><div class="notification-title">' + E(item.title) + '</div>' +
+              '<div class="notification-meta">' + E(formatDateTime(item.created_at)) + ' • ' + E(targetLabel(item.target_role)) + '</div></div>' +
+              '<div class="notification-actions">' + readButton + deleteButton + '</div>' +
+            '</div>' +
+            '<div class="notification-text">' + E(item.body) + '</div>' +
+            (item.expires_at ? '<div class="notification-meta notification-expiry">До ' + E(formatDateTime(item.expires_at)) + '</div>' : '') +
+          '</article>';
         }).join("");
 
-        return create + '<div class="notification-list">' +
-          (cards || '<div class="empty">Новых уведомлений нет.</div>') + '</div>';
-      },
-      bind: function () {
-        var form = document.getElementById("notificationForm");
-        if (!form) return;
-        form.onsubmit = function (event) {
-          event.preventDefault();
-          var list = localList("br_notifications");
-          list.unshift({
-            id: "n-" + Date.now(),
-            title: document.getElementById("nTitle").value.trim(),
-            text: document.getElementById("nText").value.trim(),
-            target: document.getElementById("nTarget").value,
-            createdAt: new Date().toLocaleString("ru-RU")
-          });
-          save("br_notifications", list.slice(0, 200));
-          location.reload();
-        };
+        root.innerHTML =
+          '<div class="notification-summary">' +
+            '<div><small>ЦЕНТР УВЕДОМЛЕНИЙ</small><b>' + E(String(list.length)) + ' сообщений</b></div>' +
+            '<span>' + E(String(unread)) + ' непрочитанных</span>' +
+          '</div>' +
+          '<div class="notification-list">' + cards + '</div>';
+
+        document.querySelectorAll("[data-read-notification]").forEach(function (button) {
+          button.onclick = async function () {
+            button.disabled = true;
+            try {
+              await window.BR_API.notificationRead(user.token, Number(button.dataset.readNotification));
+              await loadNotifications();
+            } catch (e) {
+              alert(e.message || "Не удалось отметить уведомление.");
+              button.disabled = false;
+            }
+          };
+        });
+
+        document.querySelectorAll("[data-delete-notification]").forEach(function (button) {
+          button.onclick = async function () {
+            if (!confirm("Удалить это уведомление?")) return;
+            button.disabled = true;
+            try {
+              await window.BR_API.notificationDelete(user.token, Number(button.dataset.deleteNotification));
+              await loadNotifications();
+            } catch (e) {
+              alert(e.message || "Не удалось удалить уведомление.");
+              button.disabled = false;
+            }
+          };
+        });
+      } catch (error) {
+        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить уведомления.") + '</div></div>';
       }
-    };
+    }
   }
 
   function requests(user) {
