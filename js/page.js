@@ -1381,6 +1381,32 @@
       root.textContent = message;
     }
 
+    function setGoogleUrlView(editing) {
+      var googleUrlInput = document.getElementById("googleWebAppUrl");
+      var googleUrlButton = document.getElementById("googleUrlSettingsSubmit");
+
+      lastSettings.googleUrlEditing = !!editing;
+      if (!googleUrlInput || !googleUrlButton) return;
+
+      if (!lastSettings.googleUrlLoaded) {
+        googleUrlInput.disabled = true;
+        googleUrlInput.classList.add("settings-google-url-locked");
+        googleUrlButton.type = "button";
+        googleUrlButton.disabled = true;
+        googleUrlButton.textContent = "Загрузка…";
+        return;
+      }
+
+      var hasSavedUrl = !!String(lastSettings.web_app_url || "").trim();
+      var locked = hasSavedUrl && !lastSettings.googleUrlEditing;
+
+      googleUrlInput.disabled = locked;
+      googleUrlInput.classList.toggle("settings-google-url-locked", locked);
+      googleUrlButton.type = locked ? "button" : "submit";
+      googleUrlButton.disabled = false;
+      googleUrlButton.textContent = locked ? "Заменить URL" : "Сохранить URL";
+    }
+
     return {
       title: "Настройки",
       subtitle: "Безопасность, внешний вид и системные параметры аккаунта",
@@ -1465,29 +1491,6 @@
         if (googleForm) {
           var googleUrlInput = document.getElementById("googleWebAppUrl");
           var googleUrlButton = document.getElementById("googleUrlSettingsSubmit");
-
-          function setGoogleUrlView(editing) {
-            lastSettings.googleUrlEditing = !!editing;
-            if (!googleUrlInput || !googleUrlButton) return;
-
-            if (!lastSettings.googleUrlLoaded) {
-              googleUrlInput.disabled = true;
-              googleUrlInput.classList.add("settings-google-url-locked");
-              googleUrlButton.type = "button";
-              googleUrlButton.disabled = true;
-              googleUrlButton.textContent = "Загрузка…";
-              return;
-            }
-
-            var hasSavedUrl = !!String(lastSettings.web_app_url || "").trim();
-            var locked = hasSavedUrl && !lastSettings.googleUrlEditing;
-
-            googleUrlInput.disabled = locked;
-            googleUrlInput.classList.toggle("settings-google-url-locked", locked);
-            googleUrlButton.type = locked ? "button" : "submit";
-            googleUrlButton.disabled = false;
-            googleUrlButton.textContent = locked ? "Заменить URL" : "Сохранить URL";
-          }
 
           googleUrlButton.onclick = function () {
             if (googleUrlInput.disabled && lastSettings.googleUrlLoaded) {
