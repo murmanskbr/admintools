@@ -2,7 +2,7 @@
     "use strict";
 
     var API_URL =
-        "https://sszzxumaxchriusshfsn.supabase.co/functions/v1/veb-tools";
+        "https://frwajpwzurzokkvhntdl.supabase.co/functions/v1/veb-tools";
 
     function getDeviceId() {
         var key = "br_device_id";
