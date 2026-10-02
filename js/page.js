@@ -178,16 +178,80 @@
   }
 
   function admins() {
+    async function load() {
+      var root = document.getElementById("adminsRoot");
+      if (!root) return;
+
+      root.innerHTML = '<div class="box"><div class="empty">Загрузка состава администрации из Google Sheets...</div></div>';
+
+      try {
+        var result = await window.BR_API.adminsGoogleList(user.token);
+        var headers = Array.isArray(result.headers) ? result.headers : [];
+        var rows = Array.isArray(result.rows) ? result.rows : [];
+
+        if (!headers.length) {
+          root.innerHTML = '<div class="box"><div class="empty">В первом листе не найдены столбцы.</div></div>';
+          return;
+        }
+
+        var headerCells = headers.map(function (header) {
+          return '<th>' + E(header || "—") + '</th>';
+        }).join("");
+
+        var bodyRows = rows.map(function (row) {
+          return '<tr>' + headers.map(function (_, index) {
+            return '<td>' + E(row && row[index] != null && row[index] !== "" ? row[index] : "—") + '</td>';
+          }).join("") + '</tr>';
+        }).join("");
+
+        if (!bodyRows) {
+          bodyRows = '<tr><td colspan="' + headers.length + '" class="table-empty">В таблице нет данных.</td></tr>';
+        }
+
+        root.innerHTML =
+          '<div class="box table-box">' +
+            '<div class="stats-table-head">' +
+              '<div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div>' +
+              '<div class="admins-actions">' +
+                '<input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице">' +
+                '<button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="admins-source">Источник: Google Sheets • первый лист</div>' +
+            '<table id="adminsTable"><thead><tr>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table>' +
+          '</div>';
+
+        var search = document.getElementById("adminsSearch");
+        var refresh = document.getElementById("adminsRefresh");
+
+        if (search) {
+          search.oninput = function () {
+            var query = search.value.trim().toLowerCase();
+            document.querySelectorAll("#adminsTable tbody tr").forEach(function (tr) {
+              if (!tr.querySelector("td")) return;
+              tr.style.display = !query || tr.textContent.toLowerCase().indexOf(query) !== -1 ? "" : "none";
+            });
+          };
+        }
+
+        if (refresh) {
+          refresh.onclick = load;
+        }
+      } catch (error) {
+        root.innerHTML =
+          '<div class="box"><div class="empty">' +
+            E(error.message || "Не удалось загрузить состав администрации.") +
+          '</div></div>';
+      }
+    }
+
     return {
       title: "Состав администрации",
-      subtitle: "Список никнеймов и должностей",
+      subtitle: "Актуальные данные из Google Sheets",
       render: function () {
-        return '<div class="box table-box"><table><thead><tr><th>Никнейм</th><th>Должность</th></tr></thead><tbody>' +
-          ADMINS.map(function (x) {
-            return '<tr><td>' + E(x[0]) + '</td><td>' + E(x[1]) + '</td></tr>';
-          }).join("") +
-        '</tbody></table></div>';
-      }
+        return '<div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
+      },
+      load: load
     };
   }
 
