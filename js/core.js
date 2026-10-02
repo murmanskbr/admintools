@@ -13,7 +13,6 @@
     notifications: ["pages/notifications.html", "!", "Уведомления"],
     normatives: ["pages/normatives.html", "↑", "Нормативы"],
     requests: ["pages/requests.html", "✦", "Мои обращения"],
-    admins: ["pages/admins.html", "♟", "Состав администрации"],
     statistics: ["pages/statistics.html", "▥", "Моя статистика"],
     access: ["pages/access.html", "⚿", "Выдать доступ"],
     "statistics-all": ["pages/statistics-all.html", "▥", "Статистика администрации"],
