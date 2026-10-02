@@ -549,6 +549,27 @@
                 );
             },
 
+        settingsGet:
+            function (token) {
+                return request(
+                    {
+                        action: "settings_get"
+                    },
+                    token
+                );
+            },
+
+        settingsUpdate:
+            function (token, payload) {
+                return request(
+                    {
+                        action: "settings_update",
+                        ...payload
+                    },
+                    token
+                );
+            },
+
         adminsGoogleList:
             function (token) {
                 return requestStatistics(
