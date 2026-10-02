@@ -1214,12 +1214,6 @@
             ) +
 
             nav(
-                "statistics-all",
-                "▥",
-                "Общая статистика"
-            ) +
-
-            nav(
                 "notifications",
                 "!",
                 "Уведомления"
@@ -1274,12 +1268,6 @@
                 "admins",
                 "♟",
                 "Состав администрации"
-            ) +
-
-            nav(
-                "statistics",
-                "▥",
-                "Моя статистика"
             ) +
 
             nav(
@@ -4149,8 +4137,18 @@
                                     "data-page"
                                 );
 
-                            state.page =
-                                target;
+                            if (
+                                [
+                                    "statistics",
+                                    "statistics-all"
+                                ].indexOf(target) !== -1
+                            ) {
+                                state.page =
+                                    "dashboard";
+                            } else {
+                                state.page =
+                                    target;
+                            }
 
                             if (
                                 target ===
@@ -4873,6 +4871,18 @@
                 );
 
                 return;
+            }
+
+            if (
+                [
+                    "statistics",
+                    "statistics-all"
+                ].indexOf(
+                    state.page
+                ) !== -1
+            ) {
+                state.page =
+                    "dashboard";
             }
 
             if (
