@@ -2835,88 +2835,6 @@
     function normativeRow(item, all) {
         return (
             '<tr>' +
-                (
-                    all
-                        ? (
-                            '<td>' +
-                                esc(
-                                    item.nickname
-                                ) +
-                            '</td>'
-                        )
-                        : ""
-                ) +
-                '<td>' +
-                    esc(
-                        item.submission_date
-                    ) +
-                '</td>' +
-                '<td>' +
-                    esc(
-                        item.position ||
-                        "—"
-                    ) +
-                '</td>' +
-                '<td>' +
-                    esc(
-                        item.original_filename
-                    ) +
-                '</td>' +
-                '<td>' +
-                    esc(
-                        item.comment ||
-                        "—"
-                    ) +
-                '</td>' +
-                '<td>' +
-                    '<button class="small-button" data-normative-url="' +
-                        esc(
-                            item.id
-                        ) +
-                    '" type="button">' +
-                        'Открыть' +
-                    '</button>' +
-                '</td>' +
-            '</tr>'
-        );
-    }
-
-    function getNormativeFilter() {
-        var value =
-            getJSON(
-                "br_normative_filter",
-                ""
-            );
-
-        return String(
-            value || ""
-        );
-    }
-
-    function filteredNormatives(list) {
-        var filter =
-            getNormativeFilter();
-
-        if (!filter) {
-            return list;
-        }
-
-        return list.filter(
-            function (item) {
-                return (
-                    String(
-                        item.submission_date ||
-                        ""
-                    ) ===
-                    filter
-                );
-            }
-        );
-    }
-
-    function normativeRow(item, all) {
-        return (
-            '<tr>' +
                 '<td>' +
                     '#' +
                     esc(item.id) +
@@ -2997,8 +2915,8 @@
                     .join("")
                 : (
                     state.normativesLoading
-                        ? '<tr><td colspan="7">Загрузка...</td></tr>'
-                        : '<tr><td colspan="7">Нормативов за выбранную дату нет.</td></tr>'
+                        ? '<tr><td colspan="6">Загрузка...</td></tr>'
+                        : '<tr><td colspan="6">Нормативов за выбранную дату нет.</td></tr>'
                 );
 
         return (
