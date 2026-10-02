@@ -202,12 +202,12 @@
   function shell(user, title, subtitle, body) {
     var menu = management(user)
       ? '<div class="section-title">УПРАВЛЕНИЕ</div>' +
-        link("access") + link("admins") + link("statistics-all") +
+        link("access") + link("statistics-all") +
         link("notifications") + link("normatives-all") + link("requests-all") +
         '<div class="section-title">КОНТРОЛЬ</div>' + link("logs") + link("rules") +
         '<div class="section-title">СИСТЕМА</div>' + link("settings")
       : link("notifications") + link("normatives") + link("requests") +
-        link("admins") + link("statistics") + link("rules") +
+        link("statistics") + link("rules") +
         '<div class="section-title">СИСТЕМА</div>' + link("settings");
 
     return '<div class="panel">' +
