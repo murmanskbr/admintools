@@ -247,61 +247,317 @@
   }
 
   function allStatistics() {
-    async function load(user) {
+    var selectedDate = dateIso(0);
+    var lastData = [];
+    var lastNormatives = [];
+
+    var EDIT_FIELDS = [
+      ["Никнейм", "nickname", "text"],
+      ["Должность", "position", "text"],
+      ["Возраст", "age", "text"],
+      ["Доступ с ПК", "pc_access", "text"],
+      ["Уровни", "levels", "text"],
+      ["Баллы активности", "activity_points", "text"],
+      ["Неактивы", "inactives", "text"],
+      ["Страйки", "strikes", "text"],
+      ["Предупреждения", "warnings", "text"],
+      ["Баллы", "points", "text"],
+      ["Последнее повышение", "last_promotion", "text"]
+    ];
+
+    var STATUS_LABELS = {
+      norm: "Норма",
+      rework: "Перенорма",
+      no_norm: "Нет нормы",
+      inactive: "Неактив",
+      pending: "На проверке",
+      not_submitted: "Не сдан"
+    };
+
+    function normMap() {
+      var map = {};
+      lastNormatives.forEach(function (item) {
+        map[String(item.nickname || "").trim().toLowerCase()] = item;
+      });
+      return map;
+    }
+
+    function valueOf(item, key) {
+      var values = item && item.values ? item.values : {};
+      return values[key] != null ? values[key] : "";
+    }
+
+    function displayValue(value) {
+      return value == null || value === "" ? "—" : value;
+    }
+
+    function load(user) {
       var root = document.getElementById("allStatsRoot");
       var refresh = document.getElementById("allStatsRefresh");
-      if (!root) return;
+      var dateInput = document.getElementById("allStatsDate");
+      if (!root) return Promise.resolve();
+
+      if (dateInput && dateInput.value) {
+        selectedDate = dateInput.value;
+      }
 
       if (refresh) {
         refresh.disabled = true;
-        refresh.textContent = "Обновление…";
+        refresh.textContent = "Загрузка…";
       }
 
-      try {
-        var result = await window.BR_API.allStatistics(user.token);
-        var list = Array.isArray(result.statistics) ? result.statistics : [];
-        var fields = [["Никнейм","nickname"],["Должность","position"],["Уровни","levels"],["Активность","activity_points"],["Баллы","points"],["Последнее повышение","last_promotion"]];
-        var rows = list.length ? list.map(function (item) {
-          var values = item.values || {};
-          return '<tr>' + fields.map(function (f) {
-            return '<td>' + E(values[f[1]] == null || values[f[1]] === "" ? "—" : values[f[1]]) + '</td>';
-          }).join("") + '</tr>';
-        }).join("") : '<tr><td colspan="6" class="table-empty">Данных нет.</td></tr>';
+      return Promise.all([
+        window.BR_API.allStatistics(user.token),
+        window.BR_API.normativesDaily(user.token, selectedDate)
+      ]).then(function (results) {
+        var statisticsResult = results[0] || {};
+        var normativesResult = results[1] || {};
+        lastData = Array.isArray(statisticsResult.statistics) ? statisticsResult.statistics : [];
+        lastNormatives = Array.isArray(normativesResult.administrators) ? normativesResult.administrators : [];
 
-        root.innerHTML =
-          '<div class="box table-box">' +
-            '<div class="stats-table-head">' +
-              '<div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(list.length)) + ' сотрудников</b></div>' +
-              '<span class="muted">Источник: Google Sheets</span>' +
-            '</div>' +
-            '<table><thead><tr>' +
-              fields.map(function (f) { return '<th>' + E(f[0]) + '</th>'; }).join("") +
-            '</tr></thead><tbody>' + rows + '</tbody></table>' +
-          '</div>';
-      } catch (error) {
-        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить статистику администрации.") + '</div></div>';
-      } finally {
+        renderTable(user);
+      }).catch(function (error) {
+        root.innerHTML = '<div class="box"><div class="empty">' +
+          E(error.message || "Не удалось загрузить статистику администрации.") +
+          '</div></div>';
+      }).finally(function () {
         if (refresh) {
           refresh.disabled = false;
           refresh.textContent = "↻ Обновить";
         }
+      });
+    }
+
+    function renderTable(user) {
+      var root = document.getElementById("allStatsRoot");
+      if (!root) return;
+
+      var norms = normMap();
+
+      var rows = lastData.map(function (item) {
+        var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
+        if (!nickname) return "";
+        var norm = norms[nickname.toLowerCase()] || {};
+        var status = norm.status || "not_submitted";
+
+        return '<tr>' +
+          '<td><b>' + E(nickname) + '</b></td>' +
+          '<td>' + E(displayValue(valueOf(item, "position") || norm.position)) + '</td>' +
+          '<td>' + E(displayValue(valueOf(item, "levels"))) + '</td>' +
+          '<td>' + E(displayValue(valueOf(item, "activity_points"))) + '</td>' +
+          '<td>' + E(displayValue(valueOf(item, "points"))) + '</td>' +
+          '<td>' + E(displayValue(valueOf(item, "last_promotion"))) + '</td>' +
+          '<td class="stats-norm-cell">' +
+            '<span>' + normativeStatus(status) + '</span>' +
+            '<div class="stats-norm-actions">' +
+              '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
+              '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
+              '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
+              '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
+            '</div>' +
+          '</td>' +
+          '<td class="admin-actions-cell">' +
+            '<div class="admin-menu-wrap">' +
+              '<button class="admin-menu-trigger" type="button" data-admin-menu="' + E(nickname) + '" title="Действия" aria-label="Действия">⋮</button>' +
+              '<div class="admin-row-menu" data-admin-row-menu="' + E(nickname) + '">' +
+                '<button type="button" data-edit-admin="' + E(nickname) + '">Изменить</button>' +
+              '</div>' +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+      }).filter(Boolean).join("");
+
+      if (!rows) {
+        rows = '<tr><td colspan="8" class="table-empty">Данных администрации нет.</td></tr>';
       }
+
+      root.innerHTML =
+        '<div class="box table-box">' +
+          '<div class="stats-table-head">' +
+            '<div><small>ИНТЕРАКТИВНАЯ СТАТИСТИКА</small><b>' + E(String(lastData.length)) + ' сотрудников</b></div>' +
+            '<span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span>' +
+          '</div>' +
+          '<table id="allStatsTable">' +
+            '<thead><tr>' +
+              '<th>Никнейм</th><th>Должность</th><th>Уровни</th><th>Активность</th><th>Баллы</th><th>Последнее повышение</th><th>Норматив</th><th>Действия</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+        '<div id="adminEditModal"></div>';
+
+      document.querySelectorAll("[data-stat-norm]").forEach(function (button) {
+        button.onclick = async function () {
+          var nickname = button.dataset.nickname || "";
+          var status = button.dataset.statNorm || "";
+          var label = STATUS_LABELS[status] || status;
+
+          if (!confirm("Выставить «" + label + "» для " + nickname + " за " + formatDateOnly(selectedDate) + "?")) {
+            return;
+          }
+
+          button.disabled = true;
+
+          try {
+            await window.BR_API.normativeMark(
+              user.token,
+              nickname,
+              selectedDate,
+              status,
+              ""
+            );
+            await load(user);
+          } catch (error) {
+            alert(error.message || "Не удалось сохранить норматив.");
+            button.disabled = false;
+          }
+        };
+      });
+
+      document.querySelectorAll("[data-admin-menu]").forEach(function (button) {
+        button.onclick = function (event) {
+          event.stopPropagation();
+          var nickname = button.dataset.adminMenu || "";
+          document.querySelectorAll(".admin-row-menu.open").forEach(function (menu) {
+            if (menu.getAttribute("data-admin-row-menu") !== nickname) {
+              menu.classList.remove("open");
+            }
+          });
+          var menu = document.querySelector('[data-admin-row-menu="' + CSS.escape(nickname) + '"]');
+          if (menu) menu.classList.toggle("open");
+        };
+      });
+
+      document.querySelectorAll("[data-edit-admin]").forEach(function (button) {
+        button.onclick = function () {
+          var nickname = button.dataset.editAdmin || "";
+          var item = lastData.find(function (entry) {
+            return String(valueOf(entry, "nickname") || entry.nickname || "").trim().toLowerCase() === nickname.toLowerCase();
+          });
+          closeMenus();
+          openEditModal(user, item || {values:{nickname:nickname}});
+        };
+      });
+    }
+
+    function closeMenus() {
+      document.querySelectorAll(".admin-row-menu.open").forEach(function (menu) {
+        menu.classList.remove("open");
+      });
+    }
+
+    function openEditModal(user, item) {
+      var root = document.getElementById("adminEditModal");
+      if (!root) return;
+
+      var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
+      var formFields = EDIT_FIELDS.map(function (field) {
+        var value = valueOf(item, field[1]);
+        return '<div class="form-field">' +
+          '<label>' + E(field[0]) + '</label>' +
+          '<input class="form-input" name="' + E(field[1]) + '" type="' + E(field[2]) + '" value="' + E(value) + '">' +
+        '</div>';
+      }).join("");
+
+      root.innerHTML =
+        '<div class="modal-backdrop" id="adminEditBackdrop">' +
+          '<div class="modal-card admin-edit-card">' +
+            '<div class="modal-head">' +
+              '<div><small>РЕДАКТИРОВАНИЕ АДМИНИСТРАТОРА</small><h2>' + E(nickname || "Администратор") + '</h2></div>' +
+              '<button class="modal-close" id="adminEditClose" type="button">×</button>' +
+            '</div>' +
+            '<form id="adminEditForm">' +
+              '<div class="form-grid">' + formFields + '</div>' +
+              '<div class="form-actions admin-edit-actions">' +
+                '<button class="button button-secondary" id="adminEditCancel" type="button">Отмена</button>' +
+                '<button class="button button-primary" type="submit">Сохранить изменения</button>' +
+              '</div>' +
+              '<div class="field-hint admin-edit-hint">Дни и расчётные показатели не вводятся вручную — они рассчитываются системой.</div>' +
+            '</form>' +
+          '</div>' +
+        '</div>';
+
+      function close() {
+        root.innerHTML = "";
+      }
+
+      document.getElementById("adminEditClose").onclick = close;
+      document.getElementById("adminEditCancel").onclick = close;
+
+      document.getElementById("adminEditForm").onsubmit = async function (event) {
+        event.preventDefault();
+        var form = event.currentTarget;
+        var changes = {};
+
+        EDIT_FIELDS.forEach(function (field) {
+          var input = form.querySelector('[name="' + CSS.escape(field[1]) + '"]');
+          if (input) changes[field[1]] = input.value.trim();
+        });
+
+        var saveButton = form.querySelector('button[type="submit"]');
+        if (saveButton) {
+          saveButton.disabled = true;
+          saveButton.textContent = "Сохранение…";
+        }
+
+        try {
+          await window.BR_API.updateAdminStatistics(
+            user.token,
+            nickname,
+            changes
+          );
+          close();
+          await load(user);
+        } catch (error) {
+          alert(error.message || "Не удалось сохранить изменения администратора.");
+          if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = "Сохранить изменения";
+          }
+        }
+      };
     }
 
     return {
       managementOnly: true,
       title: "Статистика администрации",
-      subtitle: "Сводные данные администрации из Google Sheets",
+      subtitle: "Интерактивный контроль состава, статистики и нормативов",
       render: function () {
-        return '<div class="page-toolbar">' +
-          '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Данные состава администрации</b></div>' +
-          '<button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button>' +
+        return '<div class="page-toolbar stats-all-toolbar">' +
+          '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Состояние администрации и норматив за выбранную дату</b></div>' +
+          '<div class="stats-toolbar-actions">' +
+            '<button class="small-button" id="statsDatePrev" type="button">←</button>' +
+            '<input id="allStatsDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
+            '<button class="small-button" id="statsDateNext" type="button">→</button>' +
+            '<button class="button button-secondary" id="statsDateToday" type="button">Сегодня</button>' +
+            '<button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button>' +
+          '</div>' +
         '</div>' +
         '<div id="allStatsRoot"><div class="box"><div class="empty">Загрузка статистики администрации...</div></div></div>';
       },
       bind: function (user) {
-        var button = document.getElementById("allStatsRefresh");
-        if (button) button.onclick = function () { load(user); };
+        var date = document.getElementById("allStatsDate");
+        var prev = document.getElementById("statsDatePrev");
+        var next = document.getElementById("statsDateNext");
+        var today = document.getElementById("statsDateToday");
+        var refresh = document.getElementById("allStatsRefresh");
+
+        function setDate(value) {
+          if (!value) return;
+          selectedDate = value;
+          if (date) date.value = value;
+          load(user);
+        }
+
+        if (date) date.onchange = function () { setDate(date.value); };
+        if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
+        if (next) next.onclick = function () { setDate(dateIso(1)); };
+        if (today) today.onclick = function () { setDate(dateIso(0)); };
+        if (refresh) refresh.onclick = function () { load(user); };
+
+        document.addEventListener("click", function () {
+          closeMenus();
+        });
       },
       load: load
     };

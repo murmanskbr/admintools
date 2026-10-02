@@ -180,3 +180,20 @@ button{cursor:pointer}
 .normative-icon-button:hover{background:var(--surface3)}
 .normative-mark-norm{color:#6de9a0}.normative-mark-rework{color:#9fc2ff}.normative-mark-no-norm{color:#ff8797}.normative-mark-inactive{color:#b6bdc9}
 @media(max-width:520px){.admins-source-row{align-items:flex-start;flex-direction:column}.admins-actions{width:100%}.admins-search{width:100%;flex:1}}
+
+.stats-all-toolbar{align-items:center}
+.stats-toolbar-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.stats-norm-cell{min-width:245px}.stats-norm-cell>span{display:inline-flex;margin-right:6px;vertical-align:middle}
+.stats-norm-actions{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
+.admin-actions-cell{width:58px;text-align:center!important}
+.admin-menu-wrap{position:relative;display:inline-block}
+.admin-menu-trigger{width:34px;height:34px;padding:0;border:1px solid var(--line);border-radius:9px;background:var(--surface2);color:#dbe1eb;font-size:18px;line-height:1}
+.admin-menu-trigger:hover{background:var(--surface3)}
+.admin-row-menu{position:absolute;right:0;top:39px;z-index:300;display:none;min-width:145px;padding:5px;border:1px solid var(--line);border-radius:10px;background:#171b23;box-shadow:0 16px 40px rgba(0,0,0,.4)}
+.admin-row-menu.open{display:block}
+.admin-row-menu button{display:block;width:100%;padding:9px 10px;border:0;border-radius:7px;background:transparent;color:var(--text);text-align:left;font-size:10px;font-weight:700}
+.admin-row-menu button:hover{background:var(--surface3)}
+.admin-edit-card{width:min(900px,100%)}
+.admin-edit-actions{justify-content:flex-end}
+.admin-edit-hint{margin-top:9px}
+@media(max-width:900px){.stats-norm-cell{min-width:220px}.stats-toolbar-actions{width:100%;justify-content:flex-start}.stats-all-toolbar{align-items:stretch}.stats-all-toolbar .date-control{flex:1}}
