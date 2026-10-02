@@ -1220,7 +1220,7 @@
             nav(
                 "statistics-all",
                 "▥",
-                "Общая статистика"
+                "Статистика администрации"
             ) +
 
             nav(
@@ -2772,7 +2772,7 @@
         ) {
             return (
                 head(
-                    "Общая статистика",
+                    "Статистика администрации",
                     "Подключение к Google Sheets"
                 ) +
                 '<div class="box">' +
@@ -2795,7 +2795,7 @@
         ) {
             return (
                 head(
-                    "Общая статистика",
+                    "Статистика администрации",
                     "Ошибка подключения к Google Sheets"
                 ) +
                 '<div class="box">' +
@@ -2877,7 +2877,7 @@
 
         return (
             head(
-                "Общая статистика",
+                "Статистика администрации",
                 "Сводные данные администрации из Google Sheets"
             ) +
 
@@ -2887,9 +2887,6 @@
                         '<h2>Состав</h2>' +
                         '<span>Обновляется из общей таблицы</span>' +
                     '</div>' +
-                    '<button class="button button-secondary" id="refreshStatistics" type="button">' +
-                        'Обновить' +
-                    '</button>' +
                 '</div>' +
                 '<table>' +
                     '<thead>' +
@@ -3786,7 +3783,7 @@
             dashboard: "Главная",
             profile: "Профиль",
             statistics: "Моя статистика",
-            "statistics-all": "Общая статистика",
+            "statistics-all": "Статистика администрации",
             admins: "Администрация",
             normatives: "Нормативы",
             "normatives-all": "Все нормативы",
@@ -4244,17 +4241,27 @@
                                     "data-page"
                                 );
 
+                            state.page =
+                                target;
+
                             if (
-                                [
-                                    "statistics",
-                                    "statistics-all"
-                                ].indexOf(target) !== -1
+                                target ===
+                                "statistics-all"
                             ) {
-                                state.page =
-                                    "dashboard";
-                            } else {
-                                state.page =
-                                    target;
+                                state.allStatisticsData =
+                                    [];
+
+                                state.allStatisticsLoaded =
+                                    false;
+
+                                state.allStatisticsLoading =
+                                    false;
+
+                                state.allStatisticsError =
+                                    "";
+
+                                state.allStatisticsDisabled =
+                                    false;
                             }
 
                             if (
