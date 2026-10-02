@@ -4,6 +4,9 @@
     var API_URL =
         "https://frwajpwzurzokkvhntdl.supabase.co/functions/v1/veb-tools";
 
+    var STATISTICS_URL =
+        "https://frwajpwzurzokkvhntdl.supabase.co/functions/v1/statistics";
+
     function getDeviceId() {
         var key = "br_device_id";
         var value = localStorage.getItem(key);
@@ -43,6 +46,9 @@
         if (token) {
             headers.Authorization =
                 "Bearer " + token;
+
+            headers["x-device-id"] =
+                getDeviceId();
         }
 
         var response;
@@ -275,9 +281,260 @@
         );
     }
 
+    async function requestStatistics(
+        payload,
+        token
+    ) {
+        var headers = {
+            "Content-Type":
+                "application/json"
+        };
+
+        if (token) {
+            headers.Authorization =
+                "Bearer " + token;
+
+            headers["x-device-id"] =
+                getDeviceId();
+        }
+
+        var response;
+
+        try {
+            response = await fetch(
+                STATISTICS_URL,
+                {
+                    method: "POST",
+                    headers: headers,
+                    body:
+                        JSON.stringify(
+                            payload
+                        )
+                }
+            );
+        } catch (networkError) {
+            console.error(
+                "[BR AdminTools] Ошибка подключения Statistics:",
+                networkError
+            );
+
+            var error =
+                new Error(
+                    "Не удалось подключиться к модулю статистики."
+                );
+
+            error.kind =
+                "server";
+
+            error.code =
+                "STATISTICS_NETWORK_ERROR";
+
+            throw error;
+        }
+
+        var raw = await response.text();
+        var data = null;
+
+        try {
+            data = raw
+                ? JSON.parse(raw)
+                : null;
+        } catch (parseError) {
+            var invalidResponse =
+                new Error(
+                    "Модуль статистики вернул некорректный ответ."
+                );
+
+            invalidResponse.kind =
+                "server";
+
+            invalidResponse.code =
+                "STATISTICS_INVALID_RESPONSE";
+
+            throw invalidResponse;
+        }
+
+        if (
+            !response.ok ||
+            !data ||
+            data.success === false
+        ) {
+            var message =
+                data &&
+                (
+                    data.message ||
+                    data.error ||
+                    ""
+                );
+
+            var code =
+                data &&
+                (
+                    data.code ||
+                    data.error_code ||
+                    ""
+                );
+
+            var error =
+                new Error(
+                    message ||
+                    "Ошибка модуля статистики."
+                );
+
+            error.kind =
+                "server";
+
+            error.code =
+                code ||
+                "STATISTICS_ERROR";
+
+            throw error;
+        }
+
+        return data;
+    }
+
+    async function uploadNormative(
+        token,
+        file,
+        date,
+        position,
+        comment
+    ) {
+        var formData =
+            new FormData();
+
+        formData.append(
+            "action",
+            "normative_upload"
+        );
+
+        formData.append(
+            "date",
+            date
+        );
+
+        formData.append(
+            "position",
+            position ||
+            ""
+        );
+
+        formData.append(
+            "comment",
+            comment ||
+            ""
+        );
+
+        formData.append(
+            "file",
+            file,
+            file.name
+        );
+
+        var headers = {};
+
+        if (token) {
+            headers.Authorization =
+                "Bearer " + token;
+
+            headers["x-device-id"] =
+                getDeviceId();
+        }
+
+        var response;
+
+        try {
+            response = await fetch(
+                API_URL,
+                {
+                    method: "POST",
+                    headers: headers,
+                    body: formData
+                }
+            );
+        } catch (networkError) {
+            var error =
+                new Error(
+                    "Не удалось загрузить файл."
+                );
+
+            error.kind =
+                "server";
+
+            error.code =
+                "NORMATIVE_UPLOAD_NETWORK_ERROR";
+
+            throw error;
+        }
+
+        var raw = await response.text();
+        var data = null;
+
+        try {
+            data = raw
+                ? JSON.parse(raw)
+                : null;
+        } catch (parseError) {
+            var invalid =
+                new Error(
+                    "Сервер вернул некорректный ответ при загрузке файла."
+                );
+
+            invalid.kind =
+                "server";
+
+            invalid.code =
+                "NORMATIVE_UPLOAD_INVALID_RESPONSE";
+
+            throw invalid;
+        }
+
+        if (
+            !response.ok ||
+            !data ||
+            data.success === false
+        ) {
+            var message =
+                data &&
+                (
+                    data.message ||
+                    data.error ||
+                    ""
+                );
+
+            var code =
+                data &&
+                (
+                    data.code ||
+                    ""
+                );
+
+            var uploadError =
+                new Error(
+                    message ||
+                    "Не удалось загрузить файл."
+                );
+
+            uploadError.kind =
+                "server";
+
+            uploadError.code =
+                code ||
+                "NORMATIVE_UPLOAD_ERROR";
+
+            throw uploadError;
+        }
+
+        return data;
+    }
+
     window.BR_API = {
         url:
             API_URL,
+
+        statisticsUrl:
+            STATISTICS_URL,
 
         deviceId:
             getDeviceId,
@@ -312,6 +569,78 @@
         serverStats:
             function (token) {
                 return fetchGameServers(
+                    token
+                );
+            },
+
+        myStatistics:
+            function (token) {
+                return requestStatistics(
+                    {
+                        action:
+                            "my_statistics"
+                    },
+                    token
+                );
+            },
+
+        allStatistics:
+            function (token) {
+                return requestStatistics(
+                    {
+                        action:
+                            "all_statistics"
+                    },
+                    token
+                );
+            },
+
+        normativeUpload:
+            function (
+                token,
+                file,
+                date,
+                position,
+                comment
+            ) {
+                return uploadNormative(
+                    token,
+                    file,
+                    date,
+                    position,
+                    comment
+                );
+            },
+
+        normativesList:
+            function (
+                token,
+                scope
+            ) {
+                return request(
+                    {
+                        action:
+                            scope ===
+                            "all"
+                                ? "normatives_all"
+                                : "normatives_list"
+                    },
+                    token
+                );
+            },
+
+        normativeUrl:
+            function (
+                token,
+                id
+            ) {
+                return request(
+                    {
+                        action:
+                            "normative_url",
+                        id:
+                            Number(id)
+                    },
                     token
                 );
             },
