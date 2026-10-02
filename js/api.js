@@ -635,6 +635,104 @@
                 );
             },
 
+        getStatisticsAdmin:
+            function (
+                token,
+                nickname
+            ) {
+                return requestStatistics(
+                    {
+                        action:
+                            "get_admin",
+                        nickname:
+                            nickname
+                    },
+                    token
+                );
+            },
+
+        getStatisticsRow:
+            function (
+                token,
+                rowNumber,
+                sheetName
+            ) {
+                return requestStatistics(
+                    {
+                        action:
+                            "get_row",
+                        row_number:
+                            Number(rowNumber),
+                        sheet_name:
+                            sheetName || ""
+                    },
+                    token
+                );
+            },
+
+        updateStatisticsAdmin:
+            function (
+                token,
+                nickname,
+                changes,
+                sheetName
+            ) {
+                return requestStatistics(
+                    {
+                        action:
+                            "update_admin",
+                        nickname:
+                            nickname,
+                        changes:
+                            changes,
+                        sheet_name:
+                            sheetName || ""
+                    },
+                    token
+                );
+            },
+
+        updateStatisticsRow:
+            function (
+                token,
+                rowNumber,
+                changes,
+                sheetName
+            ) {
+                return requestStatistics(
+                    {
+                        action:
+                            "update_row",
+                        row_number:
+                            Number(rowNumber),
+                        changes:
+                            changes,
+                        sheet_name:
+                            sheetName || ""
+                    },
+                    token
+                );
+            },
+
+        appendStatisticsAdmin:
+            function (
+                token,
+                values,
+                sheetName
+            ) {
+                return requestStatistics(
+                    {
+                        action:
+                            "append_admin",
+                        values:
+                            values,
+                        sheet_name:
+                            sheetName || ""
+                    },
+                    token
+                );
+            },
+
         updateAdminStatistics:
             function (
                 token,
