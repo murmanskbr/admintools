@@ -60,8 +60,25 @@
     "Администратор",
     "Старший администратор",
     "Следящий",
-    "Старший следящий"
+    "Старший следящий",
+    "Руководство"
   ];
+
+  function positionSelect(id, name, value, extraClass) {
+    var current = String(value == null ? "" : value).trim();
+    var options = POSITIONS.slice();
+
+    if (current && options.indexOf(current) === -1) {
+      options.unshift(current);
+    }
+
+    return '<select id="' + E(id || "") + '" name="' + E(name || "") + '" class="form-select ' + E(extraClass || "") + '">' +
+      '<option value="">Выберите должность</option>' +
+      options.map(function (position) {
+        return '<option value="' + E(position) + '"' + (position === current ? ' selected' : '') + '>' + E(position) + '</option>';
+      }).join("") +
+    '</select>';
+  }
 
   var STAT_FIELDS = [
     ["Возраст", "age"],
@@ -479,6 +496,14 @@
       var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
       var formFields = EDIT_FIELDS.map(function (field) {
         var value = valueOf(item, field[1]);
+
+        if (field[1] === "position") {
+          return '<div class="form-field">' +
+            '<label>' + E(field[0]) + '</label>' +
+            positionSelect("", field[1], value) +
+          '</div>';
+        }
+
         return '<div class="form-field">' +
           '<label>' + E(field[0]) + '</label>' +
           '<input class="form-input" name="' + E(field[1]) + '" type="' + E(field[2]) + '" value="' + E(value) + '">' +
@@ -898,7 +923,9 @@
                   '<div id="normPreview" class="norm-preview"></div>' +
                 '</div>' +
                 '<div class="form-field"><label>Дата норматива</label><input id="normDate" class="form-input" type="date" value="' + E(dateIso(0)) + '" required></div>' +
-                '<div class="form-field"><label>Должность</label><input id="normPosition" class="form-input" value="' + E(user.position || "") + '"></div>' +
+                '<div class="form-field"><label>Должность</label>' +
+  positionSelect("normPosition", "position", user.position || "") +
+'</div>' +
                 '<div class="form-field form-full"><label>Комментарий / что выполнено</label><textarea id="normComment" class="form-textarea" placeholder="Например: недельная норма, вечерняя смена и т. п."></textarea></div>' +
               '</div>' +
               '<div class="form-actions"><button class="button button-primary" type="submit">Отправить норматив</button></div>' +
@@ -1283,7 +1310,9 @@
           '<div class="form-field form-full"><label>Никнейм</label><input id="accessNickname" class="form-input" required></div>' +
           '<div class="form-field form-full"><label>Пароль</label><input id="accessPassword" class="form-input" required></div>' +
           '<div class="form-field"><label>Роль</label><select id="accessRole" class="form-select"><option value="admin">Администратор</option><option value="management">Руководство</option></select></div>' +
-          '<div class="form-field"><label>Должность</label><input id="accessPosition" class="form-input"></div>' +
+          '<div class="form-field"><label>Должность</label>' +
+  positionSelect("accessPosition", "position", "") +
+'</div>' +
           '</div><button class="button button-primary" type="submit">Сохранить</button></form></div>';
       },
       bind: function () {
