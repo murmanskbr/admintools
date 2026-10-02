@@ -376,74 +376,344 @@
     };
   }
 
+  function formatDateTime(value) {
+    if (!value) return "—";
+    var date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  function dateIso(offset) {
+    var date = new Date();
+    date.setDate(date.getDate() + (offset || 0));
+    return date.toISOString().slice(0, 10);
+  }
+
+  function normativeStatus(status) {
+    var map = {
+      pending: ["На проверке", "badge-yellow"],
+      norm: ["Норма", "badge-green"],
+      rework: ["Перенорма", "badge-blue"],
+      no_norm: ["Нет нормы", "badge-red"],
+      not_submitted: ["Не сдан", ""]
+    };
+    var value = map[status] || ["Неизвестно", ""];
+    return '<span class="badge ' + value[1] + '">' + E(value[0]) + '</span>';
+  }
+
   function normatives(user, all) {
-    return {
-      managementOnly: all,
-      title: all ? "Нормативы администрации" : "Нормативы",
-      subtitle: all ? "Общий архив нормативов" : "Подача и просмотр моих нормативов",
-      render: function () {
-        var upload = all ? "" :
-          '<div class="box"><form id="normForm"><div class="form-grid">' +
-          '<div class="form-field form-full"><label>Файл</label><input id="normFile" class="form-input" type="file" accept="image/gif,image/png,image/jpeg,.gif,.png,.jpg,.jpeg" required></div>' +
-          '<div class="form-field"><label>За какое число</label><input id="normDate" class="form-input" type="date" required></div>' +
-          '<div class="form-field"><label>Должность</label><input id="normPosition" class="form-input" value="' + E(user.position || "") + '"></div>' +
-          '<div class="form-field form-full"><label>Комментарий</label><textarea id="normComment" class="form-textarea"></textarea></div>' +
-          '</div><button class="button button-primary" type="submit">Сохранить норматив</button></form></div>';
-        return upload + '<div id="normRoot" class="spaced-box"><div class="box"><div class="empty">Загрузка...</div></div></div>';
-      },
-      bind: function () {
-        var form = document.getElementById("normForm");
-        if (!form) return;
-        form.onsubmit = async function (event) {
-          event.preventDefault();
-          var file = document.getElementById("normFile").files[0];
-          if (!file) return;
+    if (!all) {
+      return {
+        title: "Нормативы",
+        subtitle: "Отправка норматива и история по датам",
+        render: function () {
+          return '<div class="box">' +
+            '<form id="normForm">' +
+              '<div class="form-grid">' +
+                '<div class="form-field form-full"><label>Файлы норматива</label>' +
+                  '<input id="normFile" class="form-input" type="file" accept="image/gif,image/png,image/jpeg,.gif,.png,.jpg,.jpeg" multiple required>' +
+                  '<span class="field-hint">Можно выбрать несколько изображений. До 20 файлов, каждый до 10 МБ.</span>' +
+                  '<div id="normPreview" class="norm-preview"></div>' +
+                '</div>' +
+                '<div class="form-field"><label>Дата норматива</label><input id="normDate" class="form-input" type="date" value="' + E(dateIso(0)) + '" required></div>' +
+                '<div class="form-field"><label>Должность</label><input id="normPosition" class="form-input" value="' + E(user.position || "") + '"></div>' +
+                '<div class="form-field form-full"><label>Комментарий / что выполнено</label><textarea id="normComment" class="form-textarea" placeholder="Например: недельная норма, вечерняя смена и т. п."></textarea></div>' +
+              '</div>' +
+              '<div class="form-actions"><button class="button button-primary" type="submit">Отправить норматив</button></div>' +
+            '</form>' +
+          '</div>' +
+          '<div id="normRoot" class="spaced-box"><div class="box"><div class="empty">Загрузка истории...</div></div></div>' +
+          '<div id="normativeModal"></div>';
+        },
+        bind: function () {
+          var form = document.getElementById("normForm");
+          var fileInput = document.getElementById("normFile");
+          var preview = document.getElementById("normPreview");
+          if (!form || !fileInput) return;
+
+          fileInput.onchange = function () {
+            var files = Array.from(fileInput.files || []);
+            if (!preview) return;
+            preview.innerHTML = files.map(function (file, index) {
+              var url = URL.createObjectURL(file);
+              return '<div class="norm-preview-item"><img src="' + url + '" alt=""><span>#' + (index + 1) + ' ' + E(file.name) + '</span></div>';
+            }).join("");
+          };
+
+          form.onsubmit = async function (event) {
+            event.preventDefault();
+            var files = Array.from(fileInput.files || []);
+            if (!files.length) {
+              alert("Выберите хотя бы один файл.");
+              return;
+            }
+
+            var button = form.querySelector("button[type=submit]");
+            if (button) {
+              button.disabled = true;
+              button.textContent = "Загрузка…";
+            }
+
+            try {
+              await window.BR_API.normativeUpload(
+                user.token,
+                files,
+                document.getElementById("normDate").value,
+                document.getElementById("normPosition").value,
+                document.getElementById("normComment").value
+              );
+              alert("Норматив отправлен на проверку.");
+              form.reset();
+              document.getElementById("normDate").value = dateIso(0);
+              if (preview) preview.innerHTML = "";
+              if (window.__BR_NORM_LOAD) await window.__BR_NORM_LOAD();
+            } catch (e) {
+              alert(e.message || "Не удалось отправить норматив.");
+            } finally {
+              if (button) {
+                button.disabled = false;
+                button.textContent = "Отправить норматив";
+              }
+            }
+          };
+        },
+        load: async function () {
+          var root = document.getElementById("normRoot");
+          if (!root) return;
+          window.__BR_NORM_LOAD = arguments.callee;
           try {
-            await window.BR_API.normativeUpload(
-              user.token,
-              file,
-              document.getElementById("normDate").value,
-              document.getElementById("normPosition").value,
-              document.getElementById("normComment").value
-            );
-            location.reload();
-          } catch (e) {
-            alert(e.message || "Не удалось сохранить норматив.");
+            var result = await window.BR_API.normativesMine(user.token);
+            var list = Array.isArray(result.normatives) ? result.normatives : [];
+
+            var groups = {};
+            list.forEach(function (item) {
+              var key = item.submission_date || "—";
+              if (!groups[key]) groups[key] = [];
+              groups[key].push(item);
+            });
+
+            var html = Object.keys(groups).sort().reverse().map(function (date) {
+              var rows = groups[date].map(function (item) {
+                return '<tr>' +
+                  '<td>#' + E(item.id) + '</td>' +
+                  '<td>' + normativeStatus(item.status) + '</td>' +
+                  '<td>' + E(item.file_count || 0) + '</td>' +
+                  '<td>' + E(formatDateTime(item.created_at)) + '</td>' +
+                  '<td>' + E(item.review_comment || "—") + '</td>' +
+                  '<td><button class="small-button" data-own-norm="' + E(item.id) + '">Открыть</button></td>' +
+                '</tr>';
+              }).join("");
+
+              return '<section class="date-section"><div class="date-section-head"><h2>' + E(date) + '</h2><span>' + E(new Date(date + "T00:00:00").toLocaleDateString("ru-RU", {weekday:"long", day:"numeric", month:"long", year:"numeric"})) + '</span></div>' +
+                '<div class="box table-box"><table><thead><tr><th>№</th><th>Статус</th><th>Файлы</th><th>Отправлен</th><th>Решение</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+            }).join("");
+
+            root.innerHTML = html || '<div class="box"><div class="empty">Нормативы ещё не отправлялись.</div></div>';
+
+            document.querySelectorAll("[data-own-norm]").forEach(function (button) {
+              button.onclick = function () {
+                openNormativeModal({
+                  token: user.token,
+                  submissionId: Number(button.dataset.ownNorm),
+                  management: false
+                });
+              };
+            });
+          } catch (error) {
+            root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить историю нормативов.") + '</div></div>';
           }
-        };
-      },
-      load: async function () {
-        var root = document.getElementById("normRoot");
-        try {
-          var result = await window.BR_API.normativesList(user.token, all ? "all" : "mine");
-          var list = Array.isArray(result.normatives) ? result.normatives : [];
-          var rows = list.length ? list.map(function (item) {
-            return '<tr><td>#' + E(item.id) + '</td>' +
-              (all ? '<td>' + E(item.nickname || "—") + '</td>' : '') +
-              '<td>' + E(item.submission_date || "—") + '</td><td>' + E(item.position || "—") + '</td>' +
-              '<td>' + E(item.original_filename || "—") + '</td><td>' + E(item.comment || "—") + '</td>' +
-              '<td><button class="small-button" data-open-norm="' + E(item.id) + '">Открыть</button></td></tr>';
-          }).join("") : '<tr><td colspan="' + (all ? 7 : 6) + '">Нормативов нет.</td></tr>';
+        }
+      };
+    }
 
-          root.innerHTML = '<div class="box table-box"><table><thead><tr><th>№</th>' +
-            (all ? '<th>Никнейм</th>' : '') +
-            '<th>Дата</th><th>Должность</th><th>Файл</th><th>Комментарий</th><th></th></tr></thead><tbody>' +
-            rows + '</tbody></table></div>';
+    var selectedDate = dateIso(0);
 
-          document.querySelectorAll("[data-open-norm]").forEach(function (button) {
+    function loadDaily() {
+      var root = document.getElementById("normRoot");
+      var dateInput = document.getElementById("controlDate");
+      if (dateInput) selectedDate = dateInput.value;
+      return window.BR_API.normativesDaily(user.token, selectedDate).then(function (result) {
+        var list = Array.isArray(result.administrators) ? result.administrators : [];
+
+        var rows = list.map(function (item) {
+          var action = item.status === "not_submitted"
+            ? '<button class="small-button" data-mark-absence="' + E(item.admin_id) + '">Нет нормы</button>'
+            : '<button class="small-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id) + '">Проверить</button>';
+
+          return '<tr>' +
+            '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id) + '">' + E(item.nickname) + '</button></td>' +
+            '<td>' + E(item.position || "—") + '</td>' +
+            '<td>' + normativeStatus(item.status) + '</td>' +
+            '<td>' + E(item.file_count || 0) + '</td>' +
+            '<td>' + E(formatDateTime(item.created_at)) + '</td>' +
+            '<td>' + E(item.review_comment || "—") + '</td>' +
+            '<td>' + action + '</td>' +
+          '</tr>';
+        }).join("");
+
+        root.innerHTML =
+          '<div class="box table-box"><div class="stats-table-head"><div><small>НОРМАТИВЫ ЗА ДАТУ</small><b>' +
+          E(new Date(selectedDate + "T00:00:00").toLocaleDateString("ru-RU", {weekday:"long", day:"numeric", month:"long", year:"numeric"})) +
+          '</b></div><span class="muted">' + E(String(list.length)) + ' администраторов</span></div>' +
+          '<table><thead><tr><th>Никнейм</th><th>Должность</th><th>Статус</th><th>Файлы</th><th>Отправлен</th><th>Решение</th><th></th></tr></thead><tbody>' +
+          (rows || '<tr><td colspan="7" class="table-empty">Активных администраторов нет.</td></tr>') +
+          '</tbody></table></div>';
+
+        document.querySelectorAll("[data-open-admin-norm]").forEach(function (button) {
+          button.onclick = function () {
+            openNormativeModal({
+              token: user.token,
+              submissionId: Number(button.dataset.openAdminNorm || 0),
+              adminId: Number(button.dataset.adminId || 0),
+              date: selectedDate,
+              management: true
+            });
+          };
+        });
+
+        document.querySelectorAll("[data-mark-absence]").forEach(function (button) {
+          button.onclick = async function () {
+            if (!confirm("Отметить «Нет нормы» для этого администратора за " + selectedDate + "?")) return;
+            button.disabled = true;
+            try {
+              await window.BR_API.normativeReview(
+                user.token, 0, Number(button.dataset.markAbsence), selectedDate, "no_norm", "Норматив не сдан."
+              );
+              await loadDaily();
+            } catch (e) {
+              alert(e.message || "Не удалось выставить отсутствие норматива.");
+              button.disabled = false;
+            }
+          };
+        });
+      }).catch(function (error) {
+        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить нормативы.") + '</div></div>';
+      });
+    }
+
+    function openNormativeModal(options) {
+      var modalRoot = document.getElementById("normativeModal");
+      if (!modalRoot) return;
+      modalRoot.innerHTML = '<div class="modal-backdrop" id="normativeBackdrop"><div class="modal-card">' +
+        '<div class="modal-head"><div><small>ПРОВЕРКА НОРМАТИВА</small><h2>Загрузка...</h2></div><button class="modal-close" id="normativeClose" type="button">×</button></div>' +
+        '<div id="normativeDetailRoot"><div class="empty">Загрузка данных...</div></div>' +
+      '</div></div>';
+
+      document.getElementById("normativeClose").onclick = function () { modalRoot.innerHTML = ""; };
+
+      window.BR_API.normativeDetail(
+        options.token,
+        options.submissionId,
+        options.adminId,
+        options.date
+      ).then(function (result) {
+        var s = result.submission;
+        var title = s ? E(s.nickname) : E("Норматив не сдан");
+        var meta = s ? "Дата норматива: " + E(s.submission_date) : "Дата норматива: " + E(options.date || "—");
+
+        var files = Array.isArray(result.files) ? result.files : [];
+        var images = files.map(function (file) {
+          return '<a class="norm-image" href="' + E(file.url) + '" target="_blank" rel="noopener noreferrer"><img src="' + E(file.url) + '" alt="' + E(file.original_filename) + '"><span>' + E(file.original_filename) + '</span></a>';
+        }).join("");
+
+        var controls = options.management
+          ? '<div class="review-panel">' +
+              '<textarea id="reviewComment" class="form-textarea" placeholder="Комментарий проверки"></textarea>' +
+              '<div class="review-actions">' +
+                '<button class="button button-secondary" data-review="rework">Перенорма</button>' +
+                '<button class="button button-primary" data-review="norm">Норма</button>' +
+                '<button class="button button-danger" data-review="no_norm">Нет нормы</button>' +
+              '</div>' +
+            '</div>'
+          : '<div class="notice">Результат проверки: ' + normativeStatus(result.status) + '</div>';
+
+        document.getElementById("normativeDetailRoot").innerHTML =
+          '<div class="detail-grid">' +
+            '<div><small>КТО</small><b>' + title + '</b></div>' +
+            '<div><small>ДАТА</small><b>' + meta + '</b></div>' +
+            '<div><small>ДОЛЖНОСТЬ</small><b>' + E(s ? (s.position || "—") : "—") + '</b></div>' +
+            '<div><small>ОТПРАВЛЕН</small><b>' + E(s ? formatDateTime(s.created_at) : "—") + '</b></div>' +
+            '<div class="detail-full"><small>КОММЕНТАРИЙ</small><p>' + E(s ? (s.comment || "—") : "Администратор не отправил норматив за эту дату.") + '</p></div>' +
+          '</div>' +
+          '<div class="norm-images-title">Файлы норматива (' + E(files.length) + ')</div>' +
+          '<div class="norm-images">' + (images || '<div class="empty">Изображения отсутствуют.</div>') + '</div>' +
+          controls;
+
+        if (options.management) {
+          document.querySelectorAll("[data-review]").forEach(function (button) {
             button.onclick = async function () {
+              var comment = document.getElementById("reviewComment").value.trim();
+              button.disabled = true;
               try {
-                var response = await window.BR_API.normativeUrl(user.token, Number(button.dataset.openNorm));
-                if (response && response.url) window.open(response.url, "_blank", "noopener,noreferrer");
+                await window.BR_API.normativeReview(
+                  options.token,
+                  options.submissionId,
+                  options.adminId,
+                  options.date,
+                  button.dataset.review,
+                  comment
+                );
+                modalRoot.innerHTML = "";
+                if (document.body.getAttribute("data-page") === "normatives-all") {
+                  await loadDaily();
+                }
               } catch (e) {
-                alert(e.message || "Не удалось открыть файл.");
+                alert(e.message || "Не удалось сохранить решение.");
+                button.disabled = false;
               }
             };
           });
-        } catch (error) {
-          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить нормативы.") + '</div></div>';
         }
-      }
+      }).catch(function (error) {
+        document.getElementById("normativeDetailRoot").innerHTML =
+          '<div class="empty">' + E(error.message || "Не удалось открыть норматив.") + '</div>';
+      });
+    }
+
+    return {
+      managementOnly: true,
+      title: "Нормативы администрации",
+      subtitle: "Контроль нормативов по датам",
+      render: function () {
+        return '<div class="page-toolbar normative-toolbar">' +
+          '<div><small>ВЫСТАВЛЕНИЕ И ПРОВЕРКА</small><b>Контроль норматива за выбранную дату</b></div>' +
+          '<div class="date-controls">' +
+            '<button class="small-button" id="datePrev" type="button">←</button>' +
+            '<input id="controlDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
+            '<button class="small-button" id="dateNext" type="button">→</button>' +
+            '<button class="button button-secondary" id="dateToday" type="button">Сегодня</button>' +
+            '<button class="button button-secondary" id="normDailyRefresh" type="button">↻ Обновить</button>' +
+          '</div>' +
+        '</div>' +
+        '<div id="normRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>' +
+        '<div id="normativeModal"></div>';
+      },
+      bind: function () {
+        var input = document.getElementById("controlDate");
+        var prev = document.getElementById("datePrev");
+        var next = document.getElementById("dateNext");
+        var today = document.getElementById("dateToday");
+        var refresh = document.getElementById("normDailyRefresh");
+
+        function setDate(value) {
+          selectedDate = value;
+          if (input) input.value = value;
+          loadDaily();
+        }
+
+        if (input) input.onchange = function () { setDate(input.value); };
+        if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
+        if (next) next.onclick = function () { setDate(dateIso(1)); };
+        if (today) today.onclick = function () { setDate(dateIso(0)); };
+        if (refresh) refresh.onclick = loadDaily;
+      },
+      load: loadDaily
     };
   }
 
