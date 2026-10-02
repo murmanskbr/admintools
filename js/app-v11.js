@@ -38,13 +38,17 @@
         statistics: null,
         statisticsLoading: false,
         statisticsLoaded: false,
+        statisticsError: "",
+        statisticsDisabled: false,
         normatives: [],
         normativesLoading: false,
         normativesLoaded: false,
         normativesScope: null,
         allStatisticsData: [],
         allStatisticsLoading: false,
-        allStatisticsLoaded: false
+        allStatisticsLoaded: false,
+        allStatisticsError: "",
+        allStatisticsDisabled: false
     };
 
     var ADMINS = [
@@ -1211,6 +1215,12 @@
                 "admins",
                 "♟",
                 "Состав администрации"
+            ) +
+
+            nav(
+                "statistics-all",
+                "▥",
+                "Общая статистика"
             ) +
 
             nav(
@@ -2533,6 +2543,11 @@
             )
             .then(
                 function (result) {
+                    state.statisticsDisabled =
+                        result.enabled === false;
+
+                    state.statisticsError = "";
+
                     state.statistics =
                         result.statistics || null;
 
@@ -2591,6 +2606,28 @@
         }
 
         if (
+            state.statisticsDisabled
+        ) {
+            return (
+                head(
+                    "Моя статистика",
+                    "Подключение к Google Sheets"
+                ) +
+                '<div class="box">' +
+                    '<div class="empty">' +
+                        'Модуль статистики пока не настроен.' +
+                    '</div>' +
+                    '<p>' +
+                        'После настройки Google Apps Script и секретов Supabase данные появятся здесь автоматически.' +
+                    '</p>' +
+                    '<button class="button button-secondary" id="refreshStatistics" type="button">' +
+                        'Проверить подключение' +
+                    '</button>' +
+                '</div>'
+            );
+        }
+
+        if (
             !state.statistics
         ) {
             return (
@@ -2600,7 +2637,10 @@
                 ) +
                 '<div class="box">' +
                     '<div class="empty">' +
-                        'Статистика для вашего аккаунта не найдена.' +
+                        esc(
+                            state.statisticsError ||
+                            "Статистика для вашего аккаунта не найдена."
+                        ) +
                     '</div>' +
                     '<button class="button button-secondary" id="refreshStatistics" type="button">' +
                         'Повторить' +
@@ -2657,6 +2697,11 @@
                 )
                 .then(
                     function (result) {
+                        state.allStatisticsDisabled =
+                            result.enabled === false;
+
+                        state.allStatisticsError = "";
+
                         state.allStatisticsData =
                             Array.isArray(
                                 result.statistics
@@ -2688,6 +2733,12 @@
                         state.allStatisticsData =
                             [];
 
+                        state.allStatisticsError =
+                            error &&
+                            error.message
+                                ? error.message
+                                : "Не удалось загрузить общую статистику.";
+
                         state.allStatisticsLoaded =
                             true;
 
@@ -2702,6 +2753,28 @@
                         }
                     }
                 );
+        }
+
+        if (
+            state.allStatisticsDisabled
+        ) {
+            return (
+                head(
+                    "Общая статистика",
+                    "Подключение к Google Sheets"
+                ) +
+                '<div class="box">' +
+                    '<div class="empty">' +
+                        'Модуль общей статистики пока не настроен.' +
+                    '</div>' +
+                    '<p>' +
+                        'После настройки Google Apps Script и секретов Supabase данные появятся здесь автоматически.' +
+                    '</p>' +
+                    '<button class="button button-secondary" id="refreshStatistics" type="button">' +
+                        'Проверить подключение' +
+                    '</button>' +
+                '</div>'
+            );
         }
 
         var list =
@@ -4871,18 +4944,6 @@
                 );
 
                 return;
-            }
-
-            if (
-                [
-                    "statistics",
-                    "statistics-all"
-                ].indexOf(
-                    state.page
-                ) !== -1
-            ) {
-                state.page =
-                    "dashboard";
             }
 
             if (
