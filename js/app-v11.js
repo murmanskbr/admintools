@@ -9,10 +9,13 @@
     }
 
     var SESSION_MS = 180000;
+    var ACTIVITY_SYNC_MS = 60000;
     var REMEMBER_COOKIE = "br_session";
     var REMEMBER_DAYS = 30;
     var timer = null;
     var lastActivity = 0;
+    var lastSessionSync = 0;
+    var sessionSyncPending = false;
 
     var SERVER_INFO = {
         name: "Мурманск",
@@ -611,6 +614,46 @@
         updateTimer();
     }
 
+    function syncServerSessionActivity() {
+        if (
+            !state.user ||
+            !window.BR_API ||
+            typeof window.BR_API.me !== "function"
+        ) {
+            return;
+        }
+
+        var now = Date.now();
+
+        if (
+            sessionSyncPending ||
+            now - lastSessionSync < ACTIVITY_SYNC_MS
+        ) {
+            return;
+        }
+
+        lastSessionSync = now;
+        sessionSyncPending = true;
+
+        window.BR_API
+            .me(state.user.token)
+            .catch(function (error) {
+                if (
+                    error &&
+                    [
+                        "SESSION_IDLE_EXPIRED",
+                        "SESSION_EXPIRED",
+                        "UNAUTHORIZED"
+                    ].indexOf(error.code) !== -1
+                ) {
+                    logout(true);
+                }
+            })
+            .finally(function () {
+                sessionSyncPending = false;
+            });
+    }
+
     function updateTimer() {
         if (!state.user) {
             return;
@@ -754,6 +797,7 @@
             now;
 
         renewSession();
+        syncServerSessionActivity();
     }
 
     [
