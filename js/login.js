@@ -2,11 +2,6 @@
   "use strict";
 
   document.addEventListener("DOMContentLoaded", function () {
-    if (window.BRApp.getSession()) {
-      location.href = "pages/dashboard.html?refresh=" + Date.now();
-      return;
-    }
-
     var root = document.getElementById("app");
     root.innerHTML =
       '<main class="login-page"><section class="login-card">' +
