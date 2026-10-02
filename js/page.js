@@ -291,6 +291,27 @@
       return value == null || value === "" ? "—" : value;
     }
 
+    function isStatsColumnHeader(item) {
+      var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim().toLowerCase();
+      var position = String(valueOf(item, "position") || item.position || "").trim().toLowerCase();
+
+      if (nickname === "никнейм" || nickname === "nickname" || nickname === "nick") return true;
+      return nickname === "ник" && position === "должность";
+    }
+
+    function isStatsSectionRow(item) {
+      var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
+      if (!nickname || nickname.length < 3 || isStatsColumnHeader(item)) return false;
+
+      var otherKeys = ["position","levels","activity_points","points","last_promotion","age","pc_access","inactives","strikes","warnings"];
+      var hasOtherData = otherKeys.some(function (key) {
+        var value = valueOf(item, key);
+        return value != null && String(value).trim() !== "";
+      });
+
+      return !hasOtherData && nickname === nickname.toUpperCase();
+    }
+
     function load(user) {
       var root = document.getElementById("allStatsRoot");
       var refresh = document.getElementById("allStatsRefresh");
@@ -336,7 +357,12 @@
 
       var rows = lastData.map(function (item) {
         var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
-        if (!nickname) return "";
+        if (!nickname || isStatsColumnHeader(item)) return "";
+
+        if (isStatsSectionRow(item)) {
+          return '<tr class="stats-section-row"><td colspan="8"><b>' + E(nickname) + '</b></td></tr>';
+        }
+
         var norm = norms[nickname.toLowerCase()] || {};
         var status = norm.status || "not_submitted";
 

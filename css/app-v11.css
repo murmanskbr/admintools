@@ -197,3 +197,6 @@ button{cursor:pointer}
 .admin-edit-actions{justify-content:flex-end}
 .admin-edit-hint{margin-top:9px}
 @media(max-width:900px){.stats-norm-cell{min-width:220px}.stats-toolbar-actions{width:100%;justify-content:flex-start}.stats-all-toolbar{align-items:stretch}.stats-all-toolbar .date-control{flex:1}}
+
+.stats-section-row td{padding:10px 13px!important;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025);color:#9fc2ff;font-size:10px!important;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.stats-section-row b{display:block}
