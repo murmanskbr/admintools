@@ -3,7 +3,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     if (window.BRApp.getSession()) {
-      location.href = "pages/dashboard.html";
+      location.href = "pages/dashboard.html?refresh=" + Date.now();
       return;
     }
 
@@ -65,7 +65,7 @@
           document.getElementById("rememberMe").checked,
           lastActivityAt
         );
-        location.href = "pages/dashboard.html";
+        location.href = "pages/dashboard.html?refresh=" + Date.now();
       } catch (e) {
         error.textContent = e && e.message ? e.message : "Ошибка сервера.";
         submit.disabled = false;
