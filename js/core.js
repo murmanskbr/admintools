@@ -1,0 +1,207 @@
+(function () {
+  "use strict";
+
+  var COOKIE = "br_session";
+  var REMEMBER_DAYS = 30;
+  var timer = null;
+
+  var NAV = {
+    dashboard: ["pages/dashboard.html", "⌂", "Главная"],
+    profile: ["pages/profile.html", "◉", "Мой профиль"],
+    notifications: ["pages/notifications.html", "!", "Уведомления"],
+    normatives: ["pages/normatives.html", "↑", "Нормативы"],
+    requests: ["pages/requests.html", "✦", "Мои обращения"],
+    admins: ["pages/admins.html", "♟", "Состав администрации"],
+    statistics: ["pages/statistics.html", "▥", "Моя статистика"],
+    access: ["pages/access.html", "⚿", "Выдать доступ"],
+    "statistics-all": ["pages/statistics-all.html", "▥", "Статистика администрации"],
+    "normatives-all": ["pages/normatives-all.html", "↑", "Нормативы администрации"],
+    "requests-all": ["pages/requests-all.html", "✦", "Обращения администрации"],
+    logs: ["pages/logs.html", "◷", "Журнал действий"],
+    rules: ["pages/rules.html", "☷", "Регламент"]
+  };
+
+  function esc(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function cookie(name) {
+    var prefix = name + "=";
+    var items = document.cookie ? document.cookie.split(";") : [];
+    for (var i = 0; i < items.length; i += 1) {
+      var item = items[i].trim();
+      if (item.indexOf(prefix) === 0) return decodeURIComponent(item.slice(prefix.length));
+    }
+    return null;
+  }
+
+  function saveCookie(name, value, maxAge) {
+    document.cookie = name + "=" + encodeURIComponent(value) +
+      "; Max-Age=" + maxAge + "; Path=/; Secure; SameSite=Lax";
+  }
+
+  function clearStorage() {
+    try { localStorage.removeItem("br_session"); } catch (_) {}
+    try { sessionStorage.removeItem("br_session"); } catch (_) {}
+    document.cookie = COOKIE + "=; Max-Age=0; Path=/; Secure; SameSite=Lax";
+  }
+
+  function getSession() {
+    var raw = cookie(COOKIE);
+
+    try {
+      if (!raw) raw = sessionStorage.getItem("br_session");
+    } catch (_) {}
+
+    try {
+      if (!raw) raw = localStorage.getItem("br_session");
+    } catch (_) {}
+
+    if (!raw) return null;
+
+    try {
+      var session = JSON.parse(raw);
+      var expires = Number(session.expires);
+      if (!session.user || !session.user.token || !Number.isFinite(expires) || expires <= Date.now()) {
+        clearStorage();
+        return null;
+      }
+      return session;
+    } catch (_) {
+      clearStorage();
+      return null;
+    }
+  }
+
+  function saveSession(user, expires, remember) {
+    var data = JSON.stringify({
+      user: user,
+      token: user.token,
+      expires: expires,
+      remember: remember === true
+    });
+
+    try { localStorage.removeItem("br_session"); } catch (_) {}
+    try { sessionStorage.removeItem("br_session"); } catch (_) {}
+
+    if (remember) {
+      saveCookie(COOKIE, data, REMEMBER_DAYS * 86400);
+    } else {
+      try { sessionStorage.setItem("br_session", data); } catch (_) {}
+    }
+  }
+
+  function logout() {
+    clearStorage();
+    if (timer) clearInterval(timer);
+    timer = null;
+    location.href = "../index.html";
+  }
+
+  function management(user) {
+    return !!user && user.role === "management";
+  }
+
+  function link(page) {
+    var item = NAV[page];
+    var current = location.pathname.split("/").pop();
+    var active = current === item[0].replace("pages/", "") ? " active" : "";
+    return '<a class="side-link' + active + '" href="../' + item[0] + '">' +
+      "<span>" + item[1] + "</span>" + esc(item[2]) + "</a>";
+  }
+
+  function shell(user, title, subtitle, body) {
+    var menu = management(user)
+      ? '<div class="section-title">УПРАВЛЕНИЕ</div>' +
+        link("access") + link("admins") + link("statistics-all") +
+        link("notifications") + link("normatives-all") + link("requests-all") +
+        '<div class="section-title">КОНТРОЛЬ</div>' + link("logs") + link("rules")
+      : link("notifications") + link("normatives") + link("requests") +
+        link("admins") + link("statistics") + link("rules");
+
+    return '<div class="panel">' +
+      '<aside class="sidebar" id="sidebar">' +
+        '<div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
+        '<div class="section-title">ПАНЕЛЬ</div>' +
+        link("dashboard") + link("profile") + menu +
+        '<div class="sidebar-bottom">' +
+          '<div class="user-mini"><div class="avatar">' +
+            esc(String(user.nickname || "BR").slice(0, 2).toUpperCase()) +
+          '</div><div><b>' + esc(user.nickname) + '</b><small>' +
+            esc(user.position || "") + '</small></div></div>' +
+          '<button class="logout" id="logout" type="button">Выйти</button>' +
+        '</div>' +
+      '</aside>' +
+      '<main class="main">' +
+        '<header class="top"><button class="mobile-menu" id="mobileMenu" type="button">☰</button>' +
+          '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span><div class="top-right"><span id="sessionTimer">Сессия</span></div>' +
+        '</header>' +
+        '<section class="content"><div class="head"><h1>' + esc(title) + '</h1><p>' +
+          esc(subtitle || "") + '</p></div>' + body + '</section>' +
+        '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><strong>BR</strong><span>' +
+          esc(user.nickname) + '</span><small>BLACK RUSSIA • МУРМАНСК</small></div></div>' +
+      '</main>' +
+    '</div>';
+  }
+
+  function init(options) {
+    var root = document.getElementById("app");
+    var session = getSession();
+
+    if (!root) return;
+    if (!session) {
+      location.href = "../index.html";
+      return;
+    }
+
+    if (options.managementOnly && !management(session.user)) {
+      location.href = "../pages/dashboard.html";
+      return;
+    }
+
+    root.innerHTML = shell(
+      session.user,
+      options.title,
+      options.subtitle,
+      options.render ? options.render(session.user) : ""
+    );
+
+    var logoutButton = document.getElementById("logout");
+    if (logoutButton) logoutButton.onclick = logout;
+
+    var menu = document.getElementById("mobileMenu");
+    var sidebar = document.getElementById("sidebar");
+    if (menu && sidebar) menu.onclick = function () { sidebar.classList.toggle("open"); };
+
+    function updateTimer() {
+      var current = getSession();
+      var expires = current ? Number(current.expires) : 0;
+      var seconds = Math.max(0, Math.ceil((expires - Date.now()) / 1000));
+      var el = document.getElementById("sessionTimer");
+      if (el) el.textContent = "Сессия " + Math.floor(seconds / 60) + ":" + String(seconds % 60).padStart(2, "0");
+      if (expires && expires <= Date.now()) logout();
+    }
+
+    updateTimer();
+    if (timer) clearInterval(timer);
+    timer = setInterval(updateTimer, 1000);
+
+    if (options.bind) options.bind(session.user);
+    if (options.load) Promise.resolve(options.load(session.user)).catch(function (e) {
+      console.error("[BR AdminTools]", e);
+    });
+  }
+
+  window.BRApp = {
+    esc: esc,
+    getSession: getSession,
+    saveSession: saveSession,
+    clearSession: clearStorage,
+    logout: logout,
+    isManagement: management,
+    init: init
+  };
+})();
