@@ -3,7 +3,9 @@
 
   var COOKIE = "br_session";
   var REMEMBER_DAYS = 30;
+  var SESSION_IDLE_MS = 180000;
   var timer = null;
+  var lastActivitySync = 0;
 
   var NAV = {
     dashboard: ["pages/dashboard.html", "⌂", "Главная"],
@@ -65,10 +67,23 @@
     try {
       var session = JSON.parse(raw);
       var expires = Number(session.expires);
+      var idleUntil = Number(session.idle_until);
+
       if (!session.user || !session.user.token || !Number.isFinite(expires) || expires <= Date.now()) {
         clearStorage();
         return null;
       }
+
+      if (!Number.isFinite(idleUntil)) {
+        session.idle_until = Date.now() + SESSION_IDLE_MS;
+        persistSession(session);
+      }
+
+      if (Number(session.idle_until) <= Date.now()) {
+        clearStorage();
+        return null;
+      }
+
       return session;
     } catch (_) {
       clearStorage();
@@ -76,22 +91,63 @@
     }
   }
 
-  function saveSession(user, expires, remember) {
-    var data = JSON.stringify({
-      user: user,
-      token: user.token,
-      expires: expires,
-      remember: remember === true
-    });
+  function persistSession(session) {
+    var data = JSON.stringify(session);
 
     try { localStorage.removeItem("br_session"); } catch (_) {}
     try { sessionStorage.removeItem("br_session"); } catch (_) {}
 
-    if (remember) {
+    if (session.remember === true) {
       saveCookie(COOKIE, data, REMEMBER_DAYS * 86400);
     } else {
       try { sessionStorage.setItem("br_session", data); } catch (_) {}
     }
+  }
+
+  function saveSession(user, expires, remember, lastActivityAt) {
+    var activityAt = Number(lastActivityAt);
+    if (!Number.isFinite(activityAt)) activityAt = Date.now();
+
+    var session = {
+      user: user,
+      token: user.token,
+      expires: expires,
+      remember: remember === true,
+      idle_until: activityAt + SESSION_IDLE_MS
+    };
+
+    try { localStorage.removeItem("br_session"); } catch (_) {}
+    try { sessionStorage.removeItem("br_session"); } catch (_) {}
+
+    persistSession(session);
+  }
+
+  function touchActivity() {
+    var session = getSession();
+    if (!session) return;
+
+    session.idle_until = Date.now() + SESSION_IDLE_MS;
+    persistSession(session);
+
+    if (!window.BR_API || typeof window.BR_API.me !== "function") return;
+    if (Date.now() - lastActivitySync < 30000) return;
+
+    lastActivitySync = Date.now();
+
+    window.BR_API.me(session.user.token)
+      .then(function (result) {
+        if (result && result.session && result.session.last_activity_at) {
+          var updated = getSession();
+          if (updated) {
+            var serverActivity = new Date(result.session.last_activity_at).getTime();
+            if (Number.isFinite(serverActivity)) {
+              updated.idle_until = serverActivity + SESSION_IDLE_MS;
+              persistSession(updated);
+            }
+          }
+        }
+      })
+      .catch(function () {});
   }
 
   function logout() {
@@ -178,16 +234,20 @@
 
     function updateTimer() {
       var current = getSession();
-      var expires = current ? Number(current.expires) : 0;
-      var seconds = Math.max(0, Math.ceil((expires - Date.now()) / 1000));
+      var idleUntil = current ? Number(current.idle_until) : 0;
+      var seconds = Math.max(0, Math.ceil((idleUntil - Date.now()) / 1000));
       var el = document.getElementById("sessionTimer");
       if (el) el.textContent = "Сессия " + Math.floor(seconds / 60) + ":" + String(seconds % 60).padStart(2, "0");
-      if (expires && expires <= Date.now()) logout();
+      if (idleUntil && idleUntil <= Date.now()) logout();
     }
 
     updateTimer();
     if (timer) clearInterval(timer);
     timer = setInterval(updateTimer, 1000);
+
+    document.addEventListener("click", touchActivity, { passive: true });
+    document.addEventListener("keydown", touchActivity, { passive: true });
+    document.addEventListener("touchstart", touchActivity, { passive: true });
 
     if (options.bind) options.bind(session.user);
     if (options.load) Promise.resolve(options.load(session.user)).catch(function (e) {
