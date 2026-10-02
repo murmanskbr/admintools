@@ -37,7 +37,11 @@
         statisticsLoaded: false,
         normatives: [],
         normativesLoading: false,
-        normativesLoaded: false
+        normativesLoaded: false,
+        normativesScope: null,
+        allStatisticsData: [],
+        allStatisticsLoading: false,
+        allStatisticsLoaded: false
     };
 
     var ADMINS = [
@@ -2581,10 +2585,10 @@
 
     function allStatisticsPage() {
         if (
-            !state.statisticsLoaded &&
-            !state.statisticsLoading
+            !state.allStatisticsLoaded &&
+            !state.allStatisticsLoading
         ) {
-            state.statisticsLoading = true;
+            state.allStatisticsLoading = true;
 
             window.BR_API
                 .allStatistics(
@@ -2592,13 +2596,17 @@
                 )
                 .then(
                     function (result) {
-                        state.statistics =
-                            result.statistics || [];
+                        state.allStatisticsData =
+                            Array.isArray(
+                                result.statistics
+                            )
+                                ? result.statistics
+                                : [];
 
-                        state.statisticsLoaded =
+                        state.allStatisticsLoaded =
                             true;
 
-                        state.statisticsLoading =
+                        state.allStatisticsLoading =
                             false;
 
                         if (
@@ -2616,13 +2624,13 @@
                             error
                         );
 
-                        state.statistics =
+                        state.allStatisticsData =
                             [];
 
-                        state.statisticsLoaded =
+                        state.allStatisticsLoaded =
                             true;
 
-                        state.statisticsLoading =
+                        state.allStatisticsLoading =
                             false;
 
                         if (
@@ -2637,9 +2645,9 @@
 
         var list =
             Array.isArray(
-                state.statistics
+                state.allStatisticsData
             )
-                ? state.statistics
+                ? state.allStatisticsData
                 : [];
 
         var rows =
@@ -2694,7 +2702,7 @@
                     )
                     .join("")
                 : (
-                    state.statisticsLoading
+                    state.allStatisticsLoading
                         ? '<tr><td colspan="6">Загрузка...</td></tr>'
                         : '<tr><td colspan="6">Данных нет.</td></tr>'
                 );
@@ -2743,13 +2751,24 @@
     }
 
     function loadNormatives(all) {
+        var scope =
+            all
+                ? "all"
+                : "mine";
+
         if (
-            state.normativesLoading
+            state.normativesLoading ||
+            (
+                state.normativesLoaded &&
+                state.normativesScope ===
+                    scope
+            )
         ) {
             return;
         }
 
         state.normativesLoading = true;
+        state.normativesScope = scope;
 
         window.BR_API
             .normativesList(
@@ -2862,9 +2881,97 @@
         );
     }
 
+    function getNormativeFilter() {
+        var value =
+            getJSON(
+                "br_normative_filter",
+                ""
+            );
+
+        return String(
+            value || ""
+        );
+    }
+
+    function filteredNormatives(list) {
+        var filter =
+            getNormativeFilter();
+
+        if (!filter) {
+            return list;
+        }
+
+        return list.filter(
+            function (item) {
+                return (
+                    String(
+                        item.submission_date ||
+                        ""
+                    ) ===
+                    filter
+                );
+            }
+        );
+    }
+
+    function normativeRow(item, all) {
+        return (
+            '<tr>' +
+                '<td>' +
+                    '#' +
+                    esc(item.id) +
+                '</td>' +
+                (
+                    all
+                        ? (
+                            '<td>' +
+                                esc(
+                                    item.nickname
+                                ) +
+                            '</td>'
+                        )
+                        : ""
+                ) +
+                '<td>' +
+                    esc(
+                        item.submission_date
+                    ) +
+                '</td>' +
+                '<td>' +
+                    esc(
+                        item.position ||
+                        "—"
+                    ) +
+                '</td>' +
+                '<td>' +
+                    esc(
+                        item.original_filename
+                    ) +
+                '</td>' +
+                '<td>' +
+                    esc(
+                        item.comment ||
+                        "—"
+                    ) +
+                '</td>' +
+                '<td>' +
+                    '<button class="small-button" data-normative-url="' +
+                        esc(
+                            item.id
+                        ) +
+                    '" type="button">' +
+                        'Открыть' +
+                    '</button>' +
+                '</td>' +
+            '</tr>'
+        );
+    }
+
     function normativeFormPage() {
         if (
-            !state.normativesLoaded
+            !state.normativesLoaded ||
+            state.normativesScope !==
+                "mine"
         ) {
             loadNormatives(
                 false
@@ -2872,7 +2979,9 @@
         }
 
         var list =
-            getNormatives();
+            filteredNormatives(
+                getNormatives()
+            );
 
         var rows =
             list.length
@@ -2888,8 +2997,8 @@
                     .join("")
                 : (
                     state.normativesLoading
-                        ? '<tr><td colspan="6">Загрузка...</td></tr>'
-                        : '<tr><td colspan="6">Нормативов пока нет.</td></tr>'
+                        ? '<tr><td colspan="7">Загрузка...</td></tr>'
+                        : '<tr><td colspan="7">Нормативов за выбранную дату нет.</td></tr>'
                 );
 
         return (
@@ -2954,11 +3063,20 @@
                         '<h2>Мои нормативы</h2>' +
                         '<span>Хранятся на сервере</span>' +
                     '</div>' +
+                    '<div class="server-box-actions">' +
+                        '<input id="normativeFilterDate" class="form-input" type="date" value="' +
+                            esc(getNormativeFilter()) +
+                        '">' +
+                        '<button class="button button-secondary" id="clearNormativeFilter" type="button">' +
+                            'Все даты' +
+                        '</button>' +
+                    '</div>' +
                 '</div>' +
 
                 '<table>' +
                     '<thead>' +
                         '<tr>' +
+                            '<th>№</th>' +
                             '<th>Дата</th>' +
                             '<th>Должность</th>' +
                             '<th>Файл</th>' +
@@ -2976,7 +3094,9 @@
 
     function normativeAllPage() {
         if (
-            !state.normativesLoaded
+            !state.normativesLoaded ||
+            state.normativesScope !==
+                "all"
         ) {
             loadNormatives(
                 true
@@ -2984,7 +3104,9 @@
         }
 
         var list =
-            getNormatives();
+            filteredNormatives(
+                getNormatives()
+            );
 
         var rows =
             list.length
@@ -3000,8 +3122,8 @@
                     .join("")
                 : (
                     state.normativesLoading
-                        ? '<tr><td colspan="7">Загрузка...</td></tr>'
-                        : '<tr><td colspan="7">Нормативов нет.</td></tr>'
+                        ? '<tr><td colspan="8">Загрузка...</td></tr>'
+                        : '<tr><td colspan="8">Нормативов за выбранную дату нет.</td></tr>'
                 );
 
         return (
@@ -3016,14 +3138,23 @@
                         '<h2>Архив</h2>' +
                         '<span>Фото хранятся в защищённом хранилище</span>' +
                     '</div>' +
-                    '<button class="button button-secondary" id="refreshNormatives" type="button">' +
-                        'Обновить' +
-                    '</button>' +
+                    '<div class="server-box-actions">' +
+                        '<input id="normativeFilterDate" class="form-input" type="date" value="' +
+                            esc(getNormativeFilter()) +
+                        '">' +
+                        '<button class="button button-secondary" id="clearNormativeFilter" type="button">' +
+                            'Все даты' +
+                        '</button>' +
+                        '<button class="button button-secondary" id="refreshNormatives" type="button">' +
+                            'Обновить' +
+                        '</button>' +
+                    '</div>' +
                 '</div>' +
 
                 '<table>' +
                     '<thead>' +
                         '<tr>' +
+                            '<th>№</th>' +
                             '<th>Никнейм</th>' +
                             '<th>Дата</th>' +
                             '<th>Должность</th>' +
@@ -4262,14 +4393,62 @@
         if (statisticsRefresh) {
             statisticsRefresh.onclick =
                 function () {
-                    state.statistics =
-                        null;
+                    if (
+                        state.page ===
+                        "statistics-all"
+                    ) {
+                        state.allStatisticsData =
+                            [];
 
-                    state.statisticsLoaded =
-                        false;
+                        state.allStatisticsLoaded =
+                            false;
 
-                    state.statisticsLoading =
-                        false;
+                        state.allStatisticsLoading =
+                            false;
+                    } else {
+                        state.statistics =
+                            null;
+
+                        state.statisticsLoaded =
+                            false;
+
+                        state.statisticsLoading =
+                            false;
+                    }
+
+                    render();
+                };
+        }
+
+        var normativeFilterDate =
+            document.getElementById(
+                "normativeFilterDate"
+            );
+
+        if (normativeFilterDate) {
+            normativeFilterDate.onchange =
+                function () {
+                    setJSON(
+                        "br_normative_filter",
+                        normativeFilterDate.value || ""
+                    );
+
+                    render();
+                };
+        }
+
+        var clearNormativeFilter =
+            document.getElementById(
+                "clearNormativeFilter"
+            );
+
+        if (clearNormativeFilter) {
+            clearNormativeFilter.onclick =
+                function () {
+                    setJSON(
+                        "br_normative_filter",
+                        ""
+                    );
 
                     render();
                 };
@@ -4291,6 +4470,9 @@
 
                     state.normativesLoading =
                         false;
+
+                    state.normativesScope =
+                        null;
 
                     render();
                 };
