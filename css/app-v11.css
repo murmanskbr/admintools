@@ -210,3 +210,74 @@ body{font-size:16px}
 .form-input,.form-select,.form-textarea{font-size:14px}
 
 @media(max-width:520px){.watermark-mark{padding:22px 30px;gap:16px;transform:rotate(-18deg) scale(1.06)}}
+
+/* Final readability pass */
+.head h1{font-size:clamp(30px,3.4vw,40px)}
+.head p{font-size:16px;line-height:1.6}
+.card small{font-size:13px}
+.card b{font-size:19px}
+.box h2{font-size:17px}
+.box p{font-size:15px;line-height:1.7}
+.notice{font-size:14px;line-height:1.7}
+.field-label{font-size:14px}
+.form-field>label{font-size:14px}
+.field-hint{font-size:13px;line-height:1.6}
+.table-box th,.table-box td{font-size:15px;line-height:1.6}
+.table-box th{font-size:13px}
+.badge{font-size:13px}
+.link-button{font-size:15px}
+.filter-button{font-size:12px}
+.normative-search{font-size:14px}
+.admins-source-row{font-size:12px}
+.notification-summary small{font-size:11px}
+.notification-summary b{font-size:16px}
+.notification-summary>span{font-size:13px}
+.notification-title{font-size:16px}
+.notification-meta{font-size:12px}
+.notification-text{font-size:14px;line-height:1.7}
+.modal-head small{font-size:11px}
+.modal-head h2{font-size:24px}
+.detail-grid small{font-size:11px}
+.detail-grid b{font-size:14px}
+.detail-grid p{font-size:14px;line-height:1.7}
+.norm-images-title{font-size:11px}
+.norm-image span{font-size:11px}
+.review-panel .form-textarea{font-size:14px}
+.page-toolbar small{font-size:11px}
+.page-toolbar b{font-size:16px}
+.stats-table-head small{font-size:11px}
+.stats-table-head b{font-size:16px}
+.dashboard-section-head small{font-size:10px}
+.dashboard-section-head h2{font-size:19px}
+.dashboard-account-grid small{font-size:10px}
+.dashboard-account-grid b{font-size:14px}
+.dashboard-action b{font-size:12px}
+.dashboard-action span{font-size:11px;line-height:1.55}
+.server-box-head>div>small{font-size:11px}
+.server-box-head h2{font-size:22px}
+.server-status{font-size:12px}
+.server-stat small{font-size:10px}
+.server-stat strong{font-size:20px}
+.server-stat span{font-size:11px}
+.server-updated{font-size:11px}
+.empty{font-size:15px}
+.login-card>p{font-size:14px}
+.demo{font-size:13px}
+.login-error{font-size:12px}
+.login-card label{font-size:13px}
+.login-submit{font-size:13px}
+.user-mini b{font-size:12px}
+.user-mini small{font-size:10px}
+.section-title{font-size:11px}
+.top{font-size:13px}
+.toast{font-size:13px}
+.stats-section-row td{font-size:12px!important}
+.admin-row-menu button{font-size:12px}
+.admin-edit-hint{font-size:13px}
+@media(max-width:520px){
+  .head h1{font-size:30px}
+  .head p{font-size:15px}
+  .table-box th,.table-box td{font-size:14px}
+  .notification-text{font-size:14px}
+  .detail-grid b,.detail-grid p{font-size:14px}
+}
