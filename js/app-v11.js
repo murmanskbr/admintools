@@ -638,16 +638,10 @@
         window.BR_API
             .me(state.user.token)
             .catch(function (error) {
-                if (
-                    error &&
-                    [
-                        "SESSION_IDLE_EXPIRED",
-                        "SESSION_EXPIRED",
-                        "UNAUTHORIZED"
-                    ].indexOf(error.code) !== -1
-                ) {
-                    logout(true);
-                }
+                console.warn(
+                    "[BR AdminTools] Синхронизация сессии не выполнена:",
+                    error
+                );
             })
             .finally(function () {
                 sessionSyncPending = false;
@@ -776,6 +770,24 @@
 
         render();
     }
+
+    window.addEventListener(
+        "br:session-expired",
+        function (event) {
+            if (!state.user) {
+                return;
+            }
+
+            console.warn(
+                "[BR AdminTools] Сессия завершена сервером:",
+                event && event.detail
+                    ? event.detail.code
+                    : "unknown"
+            );
+
+            logout(true);
+        }
+    );
 
     function activity() {
         if (!state.user) {
