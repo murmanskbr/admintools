@@ -17,14 +17,49 @@ function setupSpreadsheet() {
   const spreadsheet =
     SpreadsheetApp.getActiveSpreadsheet();
 
-  PropertiesService
-    .getScriptProperties()
-    .setProperty(
-      SPREADSHEET_ID_PROPERTY,
-      spreadsheet.getId()
+  const properties =
+    PropertiesService.getScriptProperties();
+
+  properties.setProperty(
+    SPREADSHEET_ID_PROPERTY,
+    spreadsheet.getId()
+  );
+
+  let secret =
+    properties.getProperty(
+      SCRIPT_SECRET_PROPERTY
     );
 
-  return spreadsheet.getId();
+  if (!secret) {
+    secret =
+      Utilities.getUuid().replace(/-/g, "") +
+      Utilities.getUuid().replace(/-/g, "");
+
+    properties.setProperty(
+      SCRIPT_SECRET_PROPERTY,
+      secret
+    );
+  }
+
+  Logger.log(
+    JSON.stringify({
+      spreadsheet_id:
+        spreadsheet.getId(),
+      script_secret:
+        secret,
+      sheet_name:
+        getSheet().getName()
+    })
+  );
+
+  return {
+    spreadsheet_id:
+      spreadsheet.getId(),
+    script_secret:
+      secret,
+    sheet_name:
+      getSheet().getName()
+  };
 }
 
 const FIELD_ALIASES = {
