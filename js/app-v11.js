@@ -2891,6 +2891,38 @@
         );
     }
 
+    function getNormativeFilter() {
+        var value =
+            getJSON(
+                "br_normative_filter",
+                ""
+            );
+
+        return String(
+            value || ""
+        );
+    }
+
+    function filteredNormatives(list) {
+        var filter =
+            getNormativeFilter();
+
+        if (!filter) {
+            return list;
+        }
+
+        return list.filter(
+            function (item) {
+                return (
+                    String(
+                        item.submission_date ||
+                        ""
+                    ) === filter
+                );
+            }
+        );
+    }
+
     function normativeFormPage() {
         if (
             !state.normativesLoaded ||
@@ -3046,8 +3078,8 @@
                     .join("")
                 : (
                     state.normativesLoading
-                        ? '<tr><td colspan="8">Загрузка...</td></tr>'
-                        : '<tr><td colspan="8">Нормативов за выбранную дату нет.</td></tr>'
+                        ? '<tr><td colspan="7">Загрузка...</td></tr>'
+                        : '<tr><td colspan="7">Нормативов за выбранную дату нет.</td></tr>'
                 );
 
         return (
