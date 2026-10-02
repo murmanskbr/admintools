@@ -635,6 +635,41 @@
                 );
             },
 
+        updateAdminStatistics:
+            function (
+                token,
+                nickname,
+                changes
+            ) {
+                return requestStatistics(
+                    {
+                        action:
+                            "update_admin",
+                        nickname:
+                            nickname,
+                        changes:
+                            changes
+                    },
+                    token
+                );
+            },
+
+        statisticsRow:
+            function (
+                token,
+                rowNumber
+            ) {
+                return requestStatistics(
+                    {
+                        action:
+                            "get_row",
+                        row_number:
+                            Number(rowNumber)
+                    },
+                    token
+                );
+            },
+
         normativeUpload:
             function (
                 token,
