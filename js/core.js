@@ -234,11 +234,25 @@
 
     function updateTimer() {
       var current = getSession();
-      var idleUntil = current ? Number(current.idle_until) : 0;
-      var seconds = Math.max(0, Math.ceil((idleUntil - Date.now()) / 1000));
       var el = document.getElementById("sessionTimer");
+
+      // getSession() returns null after idle/absolute expiration and clears
+      // the stored session. Do not leave the page visible at 00:00.
+      if (!current) {
+        if (timer) clearInterval(timer);
+        timer = null;
+        if (el) el.textContent = "Сессия 0:00";
+        location.href = "../index.html";
+        return;
+      }
+
+      var idleUntil = Number(current.idle_until);
+      var seconds = Math.max(0, Math.ceil((idleUntil - Date.now()) / 1000));
       if (el) el.textContent = "Сессия " + Math.floor(seconds / 60) + ":" + String(seconds % 60).padStart(2, "0");
-      if (idleUntil && idleUntil <= Date.now()) logout();
+
+      if (!Number.isFinite(idleUntil) || idleUntil <= Date.now() || seconds <= 0) {
+        logout();
+      }
     }
 
     updateTimer();
