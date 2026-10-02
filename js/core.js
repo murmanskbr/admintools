@@ -150,11 +150,23 @@
       .catch(function () {});
   }
 
-  function logout() {
+  function goToLogin() {
     clearStorage();
     if (timer) clearInterval(timer);
     timer = null;
-    location.href = "../index.html";
+
+    var loginUrl = new URL(
+      document.body && document.body.dataset.page
+        ? "../index.html"
+        : "index.html",
+      location.href
+    ).href;
+
+    location.replace(loginUrl);
+  }
+
+  function logout() {
+    goToLogin();
   }
 
   function management(user) {
@@ -209,9 +221,15 @@
 
     if (!root) return;
     if (!session) {
-      location.href = "../index.html";
+      goToLogin();
       return;
     }
+
+    // API requests also report an expired server-side session. Redirect
+    // immediately instead of waiting for the local countdown.
+    window.addEventListener("br:session-expired", function () {
+      goToLogin();
+    }, { once: true });
 
     if (options.managementOnly && !management(session.user)) {
       location.href = "../pages/dashboard.html";
@@ -242,7 +260,7 @@
         if (timer) clearInterval(timer);
         timer = null;
         if (el) el.textContent = "Сессия 0:00";
-        location.href = "../index.html";
+        goToLogin();
         return;
       }
 
