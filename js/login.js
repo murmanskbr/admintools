@@ -48,6 +48,7 @@
           nickname: result.admin.nickname,
           position: result.admin.position,
           role: result.admin.role,
+          theme: result.admin.theme || "dark",
           token: result.token
         };
 
