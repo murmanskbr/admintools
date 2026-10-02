@@ -1316,6 +1316,196 @@
     };
   }
 
+  function settings(user) {
+    var lastSettings = {
+      theme: user.theme || "dark",
+      web_app_url: ""
+    };
+
+    function syncTheme(theme) {
+      var value = String(theme || "dark").toLowerCase() === "light" ? "light" : "dark";
+      window.BRApp.applyTheme(value);
+      window.BRApp.updateSessionUser({ theme: value });
+      lastSettings.theme = value;
+    }
+
+    function render() {
+      var isManagement = user.role === "management";
+
+      return '<div class="settings-grid">' +
+        '<section class="box settings-card">' +
+          '<div class="settings-card-head"><div><small>БЕЗОПАСНОСТЬ</small><h2>Пароль</h2></div><span>Изменение пароля аккаунта</span></div>' +
+          '<form id="passwordSettingsForm">' +
+            '<div class="form-grid">' +
+              '<div class="form-field form-full"><label>Текущий пароль</label><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required></div>' +
+              '<div class="form-field"><label>Новый пароль</label><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="6" required></div>' +
+              '<div class="form-field"><label>Повторите новый пароль</label><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="6" required></div>' +
+            '</div>' +
+            '<p class="settings-hint">Минимальная длина нового пароля — 6 символов.</p>' +
+            '<div class="form-actions"><button class="button button-primary" id="passwordSettingsSubmit" type="submit">Изменить пароль</button></div>' +
+          '</form>' +
+        '</section>' +
+
+        '<section class="box settings-card">' +
+          '<div class="settings-card-head"><div><small>ВНЕШНИЙ ВИД</small><h2>Тема интерфейса</h2></div><span>Настройка сохраняется за аккаунтом</span></div>' +
+          '<form id="themeSettingsForm">' +
+            '<div class="theme-choice">' +
+              '<label class="theme-option"><input type="radio" name="theme" value="dark"' + (lastSettings.theme === "dark" ? " checked" : "") + '><span><b>Тёмная</b><small>Стандартная тема панели</small></span></label>' +
+              '<label class="theme-option"><input type="radio" name="theme" value="light"' + (lastSettings.theme === "light" ? " checked" : "") + '><span><b>Светлая</b><small>Светлый вариант интерфейса</small></span></label>' +
+            '</div>' +
+            '<div class="form-actions"><button class="button button-primary" type="submit">Сохранить тему</button></div>' +
+          '</form>' +
+        '</section>' +
+
+        (isManagement
+          ? '<section class="box settings-card settings-google-card">' +
+              '<div class="settings-card-head"><div><small>GOOGLE APPS SCRIPT</small><h2>Web app URL</h2></div><span>Адрес веб-развёртывания</span></div>' +
+              '<form id="googleUrlSettingsForm">' +
+                '<div class="form-field"><label>URL Web app</label><input id="googleWebAppUrl" class="form-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" value="' + E(lastSettings.web_app_url || "") + '"></div>' +
+                '<p class="settings-hint">Ссылка сохраняется в Supabase и используется модулем статистики для запросов к Google Apps Script. Вставляйте URL веб-приложения, который заканчивается на <b>/exec</b>.</p>' +
+                '<div class="form-actions"><button class="button button-primary" id="googleUrlSettingsSubmit" type="submit">Сохранить URL</button></div>' +
+              '</form>' +
+            '</section>'
+          : "") +
+      '</div>' +
+      '<div id="settingsStatus" class="settings-status" hidden></div>';
+    }
+
+    function showStatus(message, ok) {
+      var root = document.getElementById("settingsStatus");
+      if (!root) return;
+      root.hidden = false;
+      root.className = "settings-status " + (ok ? "settings-status-ok" : "settings-status-error");
+      root.textContent = message;
+    }
+
+    return {
+      title: "Настройки",
+      subtitle: "Безопасность, внешний вид и системные параметры аккаунта",
+      render: render,
+      bind: function () {
+        var passwordForm = document.getElementById("passwordSettingsForm");
+        var themeForm = document.getElementById("themeSettingsForm");
+        var googleForm = document.getElementById("googleUrlSettingsForm");
+
+        if (passwordForm) {
+          passwordForm.onsubmit = async function (event) {
+            event.preventDefault();
+
+            var currentPassword = document.getElementById("currentPassword").value;
+            var newPassword = document.getElementById("newPassword").value;
+            var confirmPassword = document.getElementById("newPasswordConfirm").value;
+            var button = document.getElementById("passwordSettingsSubmit");
+
+            if (newPassword !== confirmPassword) {
+              showStatus("Новые пароли не совпадают.", false);
+              return;
+            }
+
+            if (newPassword.length < 6) {
+              showStatus("Новый пароль должен содержать минимум 6 символов.", false);
+              return;
+            }
+
+            button.disabled = true;
+            button.textContent = "Сохранение…";
+
+            try {
+              await window.BR_API.settingsUpdate(user.token, {
+                current_password: currentPassword,
+                new_password: newPassword
+              });
+              passwordForm.reset();
+              showStatus("Пароль успешно изменён.", true);
+            } catch (error) {
+              showStatus(error.message || "Не удалось изменить пароль.", false);
+            } finally {
+              button.disabled = false;
+              button.textContent = "Изменить пароль";
+            }
+          };
+        }
+
+        if (themeForm) {
+          themeForm.onsubmit = async function (event) {
+            event.preventDefault();
+
+            var checked = themeForm.querySelector('input[name="theme"]:checked');
+            var theme = checked ? checked.value : "dark";
+            var button = themeForm.querySelector("button[type=submit]");
+
+            button.disabled = true;
+            button.textContent = "Сохранение…";
+
+            try {
+              var result = await window.BR_API.settingsUpdate(user.token, { theme: theme });
+              var savedTheme = result && result.settings && result.settings.theme
+                ? result.settings.theme
+                : theme;
+              syncTheme(savedTheme);
+              showStatus("Тема сохранена.", true);
+            } catch (error) {
+              showStatus(error.message || "Не удалось сохранить тему.", false);
+            } finally {
+              button.disabled = false;
+              button.textContent = "Сохранить тему";
+            }
+          };
+        }
+
+        if (googleForm) {
+          googleForm.onsubmit = async function (event) {
+            event.preventDefault();
+
+            var input = document.getElementById("googleWebAppUrl");
+            var button = document.getElementById("googleUrlSettingsSubmit");
+            var value = input.value.trim();
+
+            button.disabled = true;
+            button.textContent = "Сохранение…";
+
+            try {
+              var result = await window.BR_API.settingsUpdate(user.token, {
+                web_app_url: value
+              });
+              var saved = result && result.settings ? result.settings.web_app_url : value;
+              input.value = saved || "";
+              lastSettings.web_app_url = saved || "";
+              showStatus(saved ? "URL Google Apps Script сохранён в Supabase." : "URL очищен.", true);
+            } catch (error) {
+              showStatus(error.message || "Не удалось сохранить URL.", false);
+            } finally {
+              button.disabled = false;
+              button.textContent = "Сохранить URL";
+            }
+          };
+        }
+      },
+      load: async function () {
+        try {
+          var result = await window.BR_API.settingsGet(user.token);
+          var settingsData = result && result.settings ? result.settings : {};
+          var theme = settingsData.theme || user.theme || "dark";
+
+          syncTheme(theme);
+
+          var themeInput = document.querySelector('#themeSettingsForm input[name="theme"][value="' + E(theme) + '"]');
+          if (themeInput) themeInput.checked = true;
+
+          if (user.role === "management") {
+            var urlInput = document.getElementById("googleWebAppUrl");
+            if (urlInput) {
+              urlInput.value = settingsData.web_app_url || "";
+              lastSettings.web_app_url = settingsData.web_app_url || "";
+            }
+          }
+        } catch (error) {
+          showStatus(error.message || "Не удалось загрузить настройки.", false);
+        }
+      }
+    };
+  }
+
   function logs() {
     return {
       managementOnly: true,
@@ -1400,7 +1590,8 @@
     "normatives-all": function (u) { return normatives(u, true); },
     logs: logs,
     rules: rules,
-    access: access
+    access: access,
+    settings: settings
   };
 
   document.addEventListener("DOMContentLoaded", function () {
