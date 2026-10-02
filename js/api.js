@@ -34,6 +34,29 @@
         return value;
     }
 
+    function notifySessionExpired(code) {
+        if (
+            [
+                "SESSION_IDLE_EXPIRED",
+                "SESSION_EXPIRED",
+                "UNAUTHORIZED"
+            ].indexOf(code) === -1
+        ) {
+            return;
+        }
+
+        window.dispatchEvent(
+            new CustomEvent(
+                "br:session-expired",
+                {
+                    detail: {
+                        code: code
+                    }
+                }
+            )
+        );
+    }
+
     async function request(
         payload,
         token
@@ -159,6 +182,8 @@
                     data.message ||
                     ""
                 );
+
+            notifySessionExpired(code);
 
             if (
                 code ===
@@ -375,6 +400,8 @@
                     ""
                 );
 
+            notifySessionExpired(code);
+
             var error =
                 new Error(
                     message ||
@@ -509,6 +536,8 @@
                     data.code ||
                     ""
                 );
+
+            notifySessionExpired(code);
 
             var uploadError =
                 new Error(
