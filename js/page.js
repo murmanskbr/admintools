@@ -1319,7 +1319,8 @@
   function settings(user) {
     var lastSettings = {
       theme: user.theme || "dark",
-      web_app_url: ""
+      web_app_url: "",
+      googleUrlEditing: true
     };
 
     function syncTheme(theme) {
@@ -1361,9 +1362,9 @@
           ? '<section class="box settings-card settings-google-card">' +
               '<div class="settings-card-head"><div><small>GOOGLE APPS SCRIPT</small><h2>Web app URL</h2></div><span>Адрес веб-развёртывания</span></div>' +
               '<form id="googleUrlSettingsForm">' +
-                '<div class="form-field"><label>URL Web app</label><input id="googleWebAppUrl" class="form-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" value="' + E(lastSettings.web_app_url || "") + '"></div>' +
-                '<p class="settings-hint">Ссылка сохраняется в Supabase и используется модулем статистики для запросов к Google Apps Script. Вставляйте URL веб-приложения, который заканчивается на <b>/exec</b>.</p>' +
-                '<div class="form-actions"><button class="button button-primary" id="googleUrlSettingsSubmit" type="submit">Сохранить URL</button></div>' +
+                '<div class="form-field"><label>URL Web app</label><input id="googleWebAppUrl" class="form-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" value="' + E(lastSettings.web_app_url || "") + '"' + (lastSettings.web_app_url && !lastSettings.googleUrlEditing ? ' disabled' : '') + '></div>' +
+                '<p class="settings-hint">Ссылка сохраняется в Supabase и используется модулем статистики для запросов к Google Apps Script. После сохранения поле блокируется. Для обновления нажмите «Заменить URL».</p>' +
+                '<div class="form-actions"><button class="button button-primary" id="googleUrlSettingsSubmit" type="' + (lastSettings.web_app_url && !lastSettings.googleUrlEditing ? 'button' : 'submit') + '">' + (lastSettings.web_app_url && !lastSettings.googleUrlEditing ? 'Заменить URL' : 'Сохранить URL') + '</button></div>' +
               '</form>' +
             '</section>'
           : "") +
@@ -1461,29 +1462,49 @@
         }
 
         if (googleForm) {
+          var googleUrlInput = document.getElementById("googleWebAppUrl");
+          var googleUrlButton = document.getElementById("googleUrlSettingsSubmit");
+
+          function setGoogleUrlView(editing) {
+            lastSettings.googleUrlEditing = !!editing;
+            if (!googleUrlInput || !googleUrlButton) return;
+            var hasSavedUrl = !!String(lastSettings.web_app_url || "").trim();
+            googleUrlInput.disabled = hasSavedUrl && !lastSettings.googleUrlEditing;
+            googleUrlButton.type = hasSavedUrl && !lastSettings.googleUrlEditing ? "button" : "submit";
+            googleUrlButton.textContent = hasSavedUrl && !lastSettings.googleUrlEditing ? "Заменить URL" : "Сохранить URL";
+          }
+
+          googleUrlButton.onclick = function () {
+            if (googleUrlInput.disabled) {
+              setGoogleUrlView(true);
+              googleUrlInput.focus();
+              googleUrlInput.select();
+            }
+          };
+
           googleForm.onsubmit = async function (event) {
             event.preventDefault();
 
-            var input = document.getElementById("googleWebAppUrl");
-            var button = document.getElementById("googleUrlSettingsSubmit");
-            var value = input.value.trim();
+            var value = googleUrlInput.value.trim();
 
-            button.disabled = true;
-            button.textContent = "Сохранение…";
+            googleUrlButton.disabled = true;
+            googleUrlButton.textContent = "Сохранение…";
 
             try {
               var result = await window.BR_API.settingsUpdate(user.token, {
                 web_app_url: value
               });
               var saved = result && result.settings ? result.settings.web_app_url : value;
-              input.value = saved || "";
+              googleUrlInput.value = saved || "";
               lastSettings.web_app_url = saved || "";
               showStatus(saved ? "URL Google Apps Script сохранён в Supabase." : "URL очищен.", true);
+              setGoogleUrlView(false);
             } catch (error) {
               showStatus(error.message || "Не удалось сохранить URL.", false);
+              setGoogleUrlView(true);
             } finally {
-              button.disabled = false;
-              button.textContent = "Сохранить URL";
+              googleUrlButton.disabled = false;
+              setGoogleUrlView(!!googleUrlInput.value.trim() ? false : true);
             }
           };
         }
@@ -1504,6 +1525,7 @@
             if (urlInput) {
               urlInput.value = settingsData.web_app_url || "";
               lastSettings.web_app_url = settingsData.web_app_url || "";
+              lastSettings.googleUrlEditing = !lastSettings.web_app_url;
             }
           }
         } catch (error) {
