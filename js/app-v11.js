@@ -1281,6 +1281,12 @@
             ) +
 
             nav(
+                "statistics",
+                "▥",
+                "Моя статистика"
+            ) +
+
+            nav(
                 "rules",
                 "☷",
                 "Регламент"
@@ -2569,6 +2575,12 @@
                         error
                     );
 
+                    state.statisticsError =
+                        error &&
+                        error.message
+                            ? error.message
+                            : "Не удалось загрузить статистику.";
+
                     state.statisticsLoaded =
                         true;
 
@@ -2772,6 +2784,28 @@
                     '</p>' +
                     '<button class="button button-secondary" id="refreshStatistics" type="button">' +
                         'Проверить подключение' +
+                    '</button>' +
+                '</div>'
+            );
+        }
+
+        if (
+            state.allStatisticsError &&
+            state.allStatisticsLoaded
+        ) {
+            return (
+                head(
+                    "Общая статистика",
+                    "Ошибка подключения к Google Sheets"
+                ) +
+                '<div class="box">' +
+                    '<div class="empty">' +
+                        esc(
+                            state.allStatisticsError
+                        ) +
+                    '</div>' +
+                    '<button class="button button-secondary" id="refreshStatistics" type="button">' +
+                        'Повторить' +
                     '</button>' +
                 '</div>'
             );
