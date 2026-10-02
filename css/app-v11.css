@@ -300,7 +300,7 @@ body{font-size:16px}
 .theme-option span{display:block}
 .theme-option b{display:block;font-size:13px}
 .theme-option small{display:block;margin-top:4px;color:var(--muted);font-size:10px;line-height:1.4}
-.settings-google-card{margin-top:0}
+.settings-google-card{margin-top:0}.settings-google-url-locked{opacity:.72;cursor:not-allowed}.settings-google-url-locked:disabled{color:var(--muted);background:var(--surface3);border-color:var(--line);box-shadow:none}
 @media(max-width:640px){.settings-card-head{flex-direction:column}.settings-card-head>span{text-align:left}.theme-choice{grid-template-columns:1fr}}
 
 /* Light theme */
