@@ -1523,9 +1523,17 @@
           if (user.role === "management") {
             var urlInput = document.getElementById("googleWebAppUrl");
             if (urlInput) {
-              urlInput.value = settingsData.web_app_url || "";
-              lastSettings.web_app_url = settingsData.web_app_url || "";
-              lastSettings.googleUrlEditing = !lastSettings.web_app_url;
+              var savedWebAppUrl = settingsData.web_app_url || "";
+              urlInput.value = savedWebAppUrl;
+              lastSettings.web_app_url = savedWebAppUrl;
+              lastSettings.googleUrlEditing = !savedWebAppUrl;
+
+              var urlButton = document.getElementById("googleUrlSettingsSubmit");
+              if (urlButton) {
+                urlInput.disabled = !!savedWebAppUrl;
+                urlButton.type = savedWebAppUrl ? "button" : "submit";
+                urlButton.textContent = savedWebAppUrl ? "Заменить URL" : "Сохранить URL";
+              }
             }
           }
         } catch (error) {
