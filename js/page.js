@@ -955,7 +955,11 @@
                   '<td>' + E(item.file_count || 0) + '</td>' +
                   '<td>' + E(formatDateTime(item.created_at)) + '</td>' +
                   '<td>' + E(item.review_comment || "—") + '</td>' +
-                  '<td><button class="small-button" data-own-norm="' + E(item.id) + '">Открыть</button></td>' +
+                  '<td>' + (
+                    item.id
+                      ? '<button class="small-button" data-own-norm="' + E(item.id) + '">Открыть</button>'
+                      : '<span class="muted">Результат зафиксирован</span>'
+                  ) + '</td>' +
                 '</tr>';
               }).join("");
 
