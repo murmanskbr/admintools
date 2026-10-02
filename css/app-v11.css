@@ -172,3 +172,11 @@ button{cursor:pointer}
 @media(max-width:520px){.cards{grid-template-columns:1fr}.login-card{padding:24px}.content{padding:18px 12px}.card,.box{padding:15px}.table-box table{min-width:620px}.top{font-size:9px}.top-right{gap:5px}.notification-top{flex-direction:column}.watermark{right:9px;bottom:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 .login-card label{display:block;margin:0 0 7px;color:#9aa3b3;font-size:10px;font-weight:700}.login-submit{width:100%;min-height:44px;margin-top:2px;padding:10px 14px;border:1px solid var(--accent);border-radius:10px;background:var(--accent);color:#fff;font-size:11px;font-weight:800;line-height:1;appearance:none;-webkit-appearance:none}.login-submit:hover{background:var(--accent2)}.login-submit:active{transform:translateY(1px)}.login-error-server{color:#ffb3bd}
+.badge-gray{background:rgba(170,178,190,.12);color:#b6bdc9}
+.admin-list-toolbar{margin-bottom:10px}
+.admins-source-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:0 2px;color:#687283;font-size:9px}
+.normative-row-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:220px}
+.normative-icon-button{width:32px;height:32px;display:inline-grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--surface2);font-size:12px;font-weight:900;cursor:pointer}
+.normative-icon-button:hover{background:var(--surface3)}
+.normative-mark-norm{color:#6de9a0}.normative-mark-rework{color:#9fc2ff}.normative-mark-no-norm{color:#ff8797}.normative-mark-inactive{color:#b6bdc9}
+@media(max-width:520px){.admins-source-row{align-items:flex-start;flex-direction:column}.admins-actions{width:100%}.admins-search{width:100%;flex:1}}

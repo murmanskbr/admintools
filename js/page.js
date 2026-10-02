@@ -178,78 +178,48 @@
   }
 
   function admins(user) {
+    var currentUser = user;
     async function load() {
       var root = document.getElementById("adminsRoot");
-      if (!root) return;
-
+      if (!root || !currentUser || !currentUser.token) return;
       root.innerHTML = '<div class="box"><div class="empty">Загрузка состава администрации из Google Sheets...</div></div>';
-
       try {
-        var result = await window.BR_API.adminsGoogleList(user.token);
+        var result = await window.BR_API.adminsGoogleList(currentUser.token);
         var headers = Array.isArray(result.headers) ? result.headers : [];
         var rows = Array.isArray(result.rows) ? result.rows : [];
-
         if (!headers.length) {
           root.innerHTML = '<div class="box"><div class="empty">В первом листе не найдены столбцы.</div></div>';
           return;
         }
-
-        var headerCells = headers.map(function (header) {
-          return '<th>' + E(header || "—") + '</th>';
-        }).join("");
-
+        var updated = document.getElementById("adminsUpdated");
+        if (updated) updated.textContent = "Обновлено: " + new Date().toLocaleString("ru-RU", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"});
+        var headerCells = headers.map(function (header) { return '<th>' + E(russianAdminHeader(header)) + '</th>'; }).join("");
         var bodyRows = rows.map(function (row) {
-          return '<tr>' + headers.map(function (_, index) {
-            return '<td>' + E(row && row[index] != null && row[index] !== "" ? row[index] : "—") + '</td>';
-          }).join("") + '</tr>';
+          return '<tr>' + headers.map(function (_, index) { return '<td>' + E(row && row[index] != null && row[index] !== "" ? row[index] : "—") + '</td>'; }).join("") + '</tr>';
         }).join("");
-
-        if (!bodyRows) {
-          bodyRows = '<tr><td colspan="' + headers.length + '" class="table-empty">В таблице нет данных.</td></tr>';
-        }
-
-        root.innerHTML =
-          '<div class="box table-box">' +
-            '<div class="stats-table-head">' +
-              '<div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div>' +
-              '<div class="admins-actions">' +
-                '<input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице">' +
-                '<button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button>' +
-              '</div>' +
-            '</div>' +
-            '<div class="admins-source">Источник: Google Sheets • первый лист</div>' +
-            '<table id="adminsTable"><thead><tr>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table>' +
-          '</div>';
-
+        if (!bodyRows) bodyRows = '<tr><td colspan="' + headers.length + '" class="table-empty">В таблице нет данных.</td></tr>';
+        root.innerHTML = '<div class="box table-box"><div class="stats-table-head"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div><span class="muted">Первый лист Google Sheets</span></div><table id="adminsTable"><thead><tr>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
         var search = document.getElementById("adminsSearch");
-        var refresh = document.getElementById("adminsRefresh");
-
-        if (search) {
-          search.oninput = function () {
-            var query = search.value.trim().toLowerCase();
-            document.querySelectorAll("#adminsTable tbody tr").forEach(function (tr) {
-              if (!tr.querySelector("td")) return;
-              tr.style.display = !query || tr.textContent.toLowerCase().indexOf(query) !== -1 ? "" : "none";
-            });
-          };
-        }
-
-        if (refresh) {
-          refresh.onclick = load;
-        }
+        if (search) search.oninput = function () {
+          var query = search.value.trim().toLowerCase();
+          document.querySelectorAll("#adminsTable tbody tr").forEach(function (tr) { if (!tr.querySelector("td")) return; tr.style.display = !query || tr.textContent.toLowerCase().indexOf(query) !== -1 ? "" : "none"; });
+        };
       } catch (error) {
-        root.innerHTML =
-          '<div class="box"><div class="empty">' +
-            E(error.message || "Не удалось загрузить состав администрации.") +
-          '</div></div>';
+        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить состав администрации.") + '</div></div>';
       }
     }
-
     return {
       title: "Состав администрации",
-      subtitle: "Актуальные данные из Google Sheets",
+      subtitle: "Полный состав из первого листа Google Sheets",
       render: function () {
-        return '<div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
+        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице"><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span>Источник: Google Sheets • первый лист</span><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
+      },
+      bind: function () {
+        var refresh = document.getElementById("adminsRefresh");
+        if (refresh) refresh.onclick = async function () {
+          refresh.disabled = true; refresh.textContent = "Загрузка…";
+          try { await load(); } finally { refresh.disabled = false; refresh.textContent = "↻ Обновить"; }
+        };
       },
       load: load
     };
@@ -604,12 +574,27 @@
       String(date.getDate()).padStart(2, "0");
   }
 
+  function russianAdminHeader(value) {
+    var key = String(value == null ? "" : value).trim();
+    var normalized = key.toLowerCase().replace(/\s+/g, " ");
+    var map = {"nickname":"Никнейм","nick":"Никнейм","name":"Имя","position":"Должность","role":"Роль","age":"Возраст","pc":"Доступ с ПК","pc access":"Доступ с ПК","levels":"Уровни","points":"Баллы","activity points":"Баллы активности","inactives":"Неактивы","strikes":"Страйки","warnings":"Предупреждения","last promotion":"Последнее повышение"};
+    return map[normalized] || key || "Колонка";
+  }
+
+  function formatDateOnly(value) {
+    if (!value) return "—";
+    var date = new Date(String(value) + "T00:00:00");
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString("ru-RU", {weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
+  }
+
   function normativeStatus(status) {
     var map = {
       pending: ["На проверке", "badge-yellow"],
       norm: ["Норма", "badge-green"],
       rework: ["Перенорма", "badge-blue"],
       no_norm: ["Нет нормы", "badge-red"],
+      inactive: ["Неактив", "badge-gray"],
       not_submitted: ["Не сдан", ""]
     };
     var value = map[status] || ["Неизвестно", ""];
@@ -750,16 +735,21 @@
         var list = Array.isArray(result.administrators) ? result.administrators : [];
 
         var rows = list.map(function (item) {
-          var action = item.status === "not_submitted"
-            ? '<button class="small-button" data-mark-absence="' + E(item.admin_id) + '">Нет нормы</button>'
-            : '<button class="small-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id) + '">Проверить</button>';
+          var action = '<div class="normative-row-actions">' +
+            '<button class="small-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id) + '">' + (item.submission_id ? "Проверить" : "Открыть") + '</button>' +
+            '<button class="normative-icon-button normative-mark-norm" data-quick-mark="norm" data-admin-id="' + E(item.admin_id) + '" title="Норма">✓</button>' +
+            '<button class="normative-icon-button normative-mark-rework" data-quick-mark="rework" data-admin-id="' + E(item.admin_id) + '" title="Перенорма">↻</button>' +
+            '<button class="normative-icon-button normative-mark-no-norm" data-quick-mark="no_norm" data-admin-id="' + E(item.admin_id) + '" title="Нет нормы">✕</button>' +
+            '<button class="normative-icon-button normative-mark-inactive" data-quick-mark="inactive" data-admin-id="' + E(item.admin_id) + '" title="Неактив">—</button>' +
+          '</div>';
 
           return '<tr>' +
             '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id) + '">' + E(item.nickname) + '</button></td>' +
             '<td>' + E(item.position || "—") + '</td>' +
+            '<td>' + E(formatDateOnly(selectedDate)) + '</td>' +
+            '<td>' + E(item.created_at ? formatDateTime(item.created_at) : "—") + '</td>' +
             '<td>' + normativeStatus(item.status) + '</td>' +
             '<td>' + E(item.file_count || 0) + '</td>' +
-            '<td>' + E(formatDateTime(item.created_at)) + '</td>' +
             '<td>' + E(item.review_comment || "—") + '</td>' +
             '<td>' + action + '</td>' +
           '</tr>';
@@ -773,16 +763,17 @@
             '<button class="filter-button" data-status-filter="norm" type="button">Норма</button>' +
             '<button class="filter-button" data-status-filter="rework" type="button">Перенорма</button>' +
             '<button class="filter-button" data-status-filter="no_norm" type="button">Нет нормы</button>' +
+            '<button class="filter-button" data-status-filter="inactive" type="button">Неактив</button>' +
             '<input id="normativeSearch" class="form-input normative-search" type="search" placeholder="Поиск по никнейму">' +
           '</div>';
 
         root.innerHTML =
           '<div class="box table-box"><div class="stats-table-head"><div><small>НОРМАТИВЫ ЗА ДАТУ</small><b>' +
-          E(new Date(selectedDate + "T00:00:00").toLocaleDateString("ru-RU", {weekday:"long", day:"numeric", month:"long", year:"numeric"})) +
+          E(formatDateOnly(selectedDate)) +
           '</b></div><span class="muted">' + E(String(list.length)) + ' администраторов</span></div>' +
           statusButtons +
-          '<table id="normativeJournalTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Статус</th><th>Файлы</th><th>Отправлен</th><th>Решение</th><th></th></tr></thead><tbody>' +
-          (rows || '<tr><td colspan="7" class="table-empty">Активных администраторов нет.</td></tr>') +
+          '<table id="normativeJournalTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Дата</th><th>Время отправки</th><th>Статус</th><th>Файлы</th><th>Решение</th><th>Действия</th></tr></thead><tbody>' +
+          (rows || '<tr><td colspan="8" class="table-empty">Активных администраторов нет.</td></tr>') +
           '</tbody></table></div>';
 
         var activeFilter = "all";
@@ -837,17 +828,20 @@
           };
         });
 
-        document.querySelectorAll("[data-mark-absence]").forEach(function (button) {
+        document.querySelectorAll("[data-quick-mark]").forEach(function (button) {
           button.onclick = async function () {
-            if (!confirm("Отметить «Нет нормы» для этого администратора за " + selectedDate + "?")) return;
+            var status = button.getAttribute("data-quick-mark") || "";
+            var labels = {norm:"Норма",rework:"Перенорма",no_norm:"Нет нормы",inactive:"Неактив"};
+            var row = button.closest("tr");
+            var n = row && row.querySelector(".link-button");
+            var nickname = n ? n.textContent.trim() : button.dataset.adminId;
+            if (!confirm("Выставить «" + (labels[status] || status) + "» для " + nickname + " за " + formatDateOnly(selectedDate) + "?")) return;
             button.disabled = true;
             try {
-              await window.BR_API.normativeReview(
-                user.token, 0, Number(button.dataset.markAbsence), selectedDate, "no_norm", "Норматив не сдан."
-              );
+              await window.BR_API.normativeMark(user.token, Number(button.dataset.adminId), selectedDate, status, "");
               await loadDaily();
             } catch (e) {
-              alert(e.message || "Не удалось выставить отсутствие норматива.");
+              alert(e.message || "Не удалось сохранить результат.");
               button.disabled = false;
             }
           };
@@ -886,11 +880,10 @@
           ? '<div class="review-panel">' +
               '<textarea id="reviewComment" class="form-textarea" placeholder="Комментарий проверки"></textarea>' +
               '<div class="review-actions">' +
-                (s
-                  ? '<button class="button button-secondary" data-review="rework">Перенорма</button>' +
-                    '<button class="button button-primary" data-review="norm">Норма</button>'
-                  : '') +
+                '<button class="button button-secondary" data-review="rework">Перенорма</button>' +
+                '<button class="button button-primary" data-review="norm">Норма</button>' +
                 '<button class="button button-danger" data-review="no_norm">Нет нормы</button>' +
+                '<button class="button button-secondary" data-review="inactive">Неактив</button>' +
               '</div>' +
             '</div>'
           : '<div class="notice">Результат проверки: ' + normativeStatus(result.status) + '</div>';
@@ -913,9 +906,8 @@
               var comment = document.getElementById("reviewComment").value.trim();
               button.disabled = true;
               try {
-                await window.BR_API.normativeReview(
+                await window.BR_API.normativeMark(
                   options.token,
-                  options.submissionId,
                   options.adminId,
                   options.date,
                   button.dataset.review,
