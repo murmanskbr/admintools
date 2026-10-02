@@ -1320,7 +1320,8 @@
     var lastSettings = {
       theme: user.theme || "dark",
       web_app_url: "",
-      googleUrlEditing: true
+      googleUrlEditing: false,
+      googleUrlLoaded: false
     };
 
     function syncTheme(theme) {
@@ -1362,9 +1363,9 @@
           ? '<section class="box settings-card settings-google-card">' +
               '<div class="settings-card-head"><div><small>GOOGLE APPS SCRIPT</small><h2>Web app URL</h2></div><span>Адрес веб-развёртывания</span></div>' +
               '<form id="googleUrlSettingsForm">' +
-                '<div class="form-field"><label>URL Web app</label><input id="googleWebAppUrl" class="form-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" value="' + E(lastSettings.web_app_url || "") + '"' + (lastSettings.web_app_url && !lastSettings.googleUrlEditing ? ' disabled' : '') + '></div>' +
-                '<p class="settings-hint">Ссылка сохраняется в Supabase и используется модулем статистики для запросов к Google Apps Script. После сохранения поле блокируется. Для обновления нажмите «Заменить URL».</p>' +
-                '<div class="form-actions"><button class="button button-primary" id="googleUrlSettingsSubmit" type="' + (lastSettings.web_app_url && !lastSettings.googleUrlEditing ? 'button' : 'submit') + '">' + (lastSettings.web_app_url && !lastSettings.googleUrlEditing ? 'Заменить URL' : 'Сохранить URL') + '</button></div>' +
+                '<div class="form-field"><label>URL Web app</label><input id="googleWebAppUrl" class="form-input settings-google-url-locked" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" value="' + E(lastSettings.web_app_url || "") + '" disabled></div>' +
+                '<p class="settings-hint">Сохранённый URL всегда отображается только для просмотра. Для изменения нажмите «Заменить URL» — после этого поле станет доступным для редактирования.</p>' +
+                '<div class="form-actions"><button class="button button-primary" id="googleUrlSettingsSubmit" type="button" disabled>Загрузка…</button></div>' +
               '</form>' +
             '</section>'
           : "") +
@@ -1468,14 +1469,28 @@
           function setGoogleUrlView(editing) {
             lastSettings.googleUrlEditing = !!editing;
             if (!googleUrlInput || !googleUrlButton) return;
+
+            if (!lastSettings.googleUrlLoaded) {
+              googleUrlInput.disabled = true;
+              googleUrlInput.classList.add("settings-google-url-locked");
+              googleUrlButton.type = "button";
+              googleUrlButton.disabled = true;
+              googleUrlButton.textContent = "Загрузка…";
+              return;
+            }
+
             var hasSavedUrl = !!String(lastSettings.web_app_url || "").trim();
-            googleUrlInput.disabled = hasSavedUrl && !lastSettings.googleUrlEditing;
-            googleUrlButton.type = hasSavedUrl && !lastSettings.googleUrlEditing ? "button" : "submit";
-            googleUrlButton.textContent = hasSavedUrl && !lastSettings.googleUrlEditing ? "Заменить URL" : "Сохранить URL";
+            var locked = hasSavedUrl && !lastSettings.googleUrlEditing;
+
+            googleUrlInput.disabled = locked;
+            googleUrlInput.classList.toggle("settings-google-url-locked", locked);
+            googleUrlButton.type = locked ? "button" : "submit";
+            googleUrlButton.disabled = false;
+            googleUrlButton.textContent = locked ? "Заменить URL" : "Сохранить URL";
           }
 
           googleUrlButton.onclick = function () {
-            if (googleUrlInput.disabled) {
+            if (googleUrlInput.disabled && lastSettings.googleUrlLoaded) {
               setGoogleUrlView(true);
               googleUrlInput.focus();
               googleUrlInput.select();
@@ -1526,17 +1541,20 @@
               var savedWebAppUrl = settingsData.web_app_url || "";
               urlInput.value = savedWebAppUrl;
               lastSettings.web_app_url = savedWebAppUrl;
+              lastSettings.googleUrlLoaded = true;
               lastSettings.googleUrlEditing = !savedWebAppUrl;
-
-              var urlButton = document.getElementById("googleUrlSettingsSubmit");
-              if (urlButton) {
-                urlInput.disabled = !!savedWebAppUrl;
-                urlButton.type = savedWebAppUrl ? "button" : "submit";
-                urlButton.textContent = savedWebAppUrl ? "Заменить URL" : "Сохранить URL";
-              }
+              setGoogleUrlView(!savedWebAppUrl);
             }
           }
         } catch (error) {
+          if (user.role === "management") {
+            lastSettings.googleUrlLoaded = true;
+            lastSettings.web_app_url = "";
+            lastSettings.googleUrlEditing = true;
+            var failedUrlInput = document.getElementById("googleWebAppUrl");
+            if (failedUrlInput) failedUrlInput.value = "";
+            setGoogleUrlView(true);
+          }
           showStatus(error.message || "Не удалось загрузить настройки.", false);
         }
       }
