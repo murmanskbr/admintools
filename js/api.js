@@ -549,6 +549,17 @@
                 );
             },
 
+        adminsGoogleList:
+            function (token) {
+                return request(
+                    {
+                        action:
+                            "admins_google_list"
+                    },
+                    token
+                );
+            },
+
         myStatistics:
             function (token) {
                 return requestStatistics(
