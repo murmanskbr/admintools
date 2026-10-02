@@ -87,13 +87,32 @@
   function dashboard(user) {
     return {
       title: user.role === "management" ? "Панель руководства" : "Главная",
-      subtitle: "Сервер Black Russia • Мурманск",
+      subtitle: "Рабочий стол администратора • сервер Мурманск",
       render: function () {
+        var quickLinks = user.role === "management"
+          ? '<a class="dashboard-action" href="../pages/statistics-all.html"><b>Статистика администрации</b><span>Сводные данные состава</span></a>' +
+            '<a class="dashboard-action" href="../pages/admins.html"><b>Состав администрации</b><span>Список сотрудников</span></a>' +
+            '<a class="dashboard-action" href="../pages/notifications.html"><b>Уведомления</b><span>Новости и сообщения</span></a>' +
+            '<a class="dashboard-action" href="../pages/requests-all.html"><b>Обращения</b><span>Контроль обращений</span></a>'
+          : '<a class="dashboard-action" href="../pages/profile.html"><b>Мой профиль</b><span>Данные аккаунта</span></a>' +
+            '<a class="dashboard-action" href="../pages/statistics.html"><b>Моя статистика</b><span>Личные показатели</span></a>' +
+            '<a class="dashboard-action" href="../pages/requests.html"><b>Мои обращения</b><span>Связь с руководством</span></a>' +
+            '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы</b><span>Подача и просмотр</span></a>';
+
         return '<div id="serverRoot"><div class="box"><div class="empty">Загрузка статистики сервера...</div></div></div>' +
-          '<div class="cards">' +
-          '<div class="card"><small>НИКНЕЙМ</small><b>' + E(user.nickname) + '</b></div>' +
-          '<div class="card"><small>ДОЛЖНОСТЬ</small><b>' + E(user.position || "—") + '</b></div>' +
-          '<div class="card"><small>РОЛЬ</small><b>' + E(user.role === "management" ? "Руководство" : "Администратор") + '</b></div>' +
+          '<div class="dashboard-grid">' +
+            '<div class="box dashboard-account">' +
+              '<div class="dashboard-section-head"><div><small>ВАШ АККАУНТ</small><h2>' + E(user.nickname) + '</h2></div>' +
+              '<span class="badge badge-green">Активен</span></div>' +
+              '<div class="dashboard-account-grid">' +
+                '<div><small>ДОЛЖНОСТЬ</small><b>' + E(user.position || "—") + '</b></div>' +
+                '<div><small>РОЛЬ</small><b>' + E(user.role === "management" ? "Руководство" : "Администратор") + '</b></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="box dashboard-links">' +
+              '<div class="dashboard-section-head"><div><small>БЫСТРЫЙ ДОСТУП</small><h2>Разделы панели</h2></div></div>' +
+              '<div class="dashboard-actions">' + quickLinks + '</div>' +
+            '</div>' +
           '</div>';
       },
       load: async function () {
@@ -112,16 +131,33 @@
           root.innerHTML =
             '<div class="server-box">' +
               '<div class="server-box-head"><div><small>СТАТИСТИКА СЕРВЕРА</small><h2>Мурманск</h2></div>' +
-              '<span class="server-status"><i style="background:' + (online != null ? "#36d47d" : "#8d96a7") + '"></i>' + status + '</span></div>' +
+              '<div class="server-box-actions">' +
+                '<span class="server-status"><i style="background:' + (online != null ? "#36d47d" : "#8d96a7") + '"></i>' + status + '</span>' +
+                '<button class="small-button server-refresh" id="serverRefresh" type="button">↻ Обновить</button>' +
+              '</div></div>' +
               '<div class="server-stats-grid">' +
                 '<div class="server-stat"><small>ОНЛАЙН</small><strong>' + E(online == null ? "—" : String(online) + (max != null ? " / " + max : "")) + '</strong><span>игроков онлайн</span></div>' +
                 '<div class="server-stat"><small>X2</small><strong>' + E(x2) + '</strong><span>режим опыта</span></div>' +
                 '<div class="server-stat"><small>СЕРВЕР</small><strong>Мурманск</strong><span>Black Russia</span></div>' +
-                '<div class="server-stat"><small>СОСТОЯНИЕ</small><strong>' + status + '</strong><span>загрузка автоматически</span></div>' +
+                '<div class="server-stat"><small>СОСТОЯНИЕ</small><strong>' + status + '</strong><span>обновление по запросу</span></div>' +
               '</div>' +
+              '<div class="server-updated" id="serverUpdated">Данные обновлены: ' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</div>' +
             '</div>';
+
+          var refresh = document.getElementById("serverRefresh");
+          if (refresh) {
+            refresh.onclick = function () {
+              location.reload();
+            };
+          }
         } catch (error) {
-          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить статистику сервера.") + '</div></div>';
+          root.innerHTML =
+            '<div class="box dashboard-error">' +
+              '<div class="empty">' + E(error.message || "Не удалось загрузить статистику сервера.") + '</div>' +
+              '<div class="dashboard-error-action"><button class="small-button server-refresh" id="serverRefresh" type="button">↻ Повторить</button></div>' +
+            '</div>';
+          var retry = document.getElementById("serverRefresh");
+          if (retry) retry.onclick = function () { location.reload(); };
         }
       }
     };
@@ -177,33 +213,63 @@
   }
 
   function allStatistics() {
+    async function load(user) {
+      var root = document.getElementById("allStatsRoot");
+      var refresh = document.getElementById("allStatsRefresh");
+      if (!root) return;
+
+      if (refresh) {
+        refresh.disabled = true;
+        refresh.textContent = "Обновление…";
+      }
+
+      try {
+        var result = await window.BR_API.allStatistics(user.token);
+        var list = Array.isArray(result.statistics) ? result.statistics : [];
+        var fields = [["Никнейм","nickname"],["Должность","position"],["Уровни","levels"],["Активность","activity_points"],["Баллы","points"],["Последнее повышение","last_promotion"]];
+        var rows = list.length ? list.map(function (item) {
+          var values = item.values || {};
+          return '<tr>' + fields.map(function (f) {
+            return '<td>' + E(values[f[1]] == null || values[f[1]] === "" ? "—" : values[f[1]]) + '</td>';
+          }).join("") + '</tr>';
+        }).join("") : '<tr><td colspan="6" class="table-empty">Данных нет.</td></tr>';
+
+        root.innerHTML =
+          '<div class="box table-box">' +
+            '<div class="stats-table-head">' +
+              '<div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(list.length)) + ' сотрудников</b></div>' +
+              '<span class="muted">Источник: Google Sheets</span>' +
+            '</div>' +
+            '<table><thead><tr>' +
+              fields.map(function (f) { return '<th>' + E(f[0]) + '</th>'; }).join("") +
+            '</tr></thead><tbody>' + rows + '</tbody></table>' +
+          '</div>';
+      } catch (error) {
+        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить статистику администрации.") + '</div></div>';
+      } finally {
+        if (refresh) {
+          refresh.disabled = false;
+          refresh.textContent = "↻ Обновить";
+        }
+      }
+    }
+
     return {
       managementOnly: true,
       title: "Статистика администрации",
       subtitle: "Сводные данные администрации из Google Sheets",
       render: function () {
-        return '<div id="allStatsRoot"><div class="box"><div class="empty">Загрузка статистики администрации...</div></div></div>';
+        return '<div class="page-toolbar">' +
+          '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Данные состава администрации</b></div>' +
+          '<button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button>' +
+        '</div>' +
+        '<div id="allStatsRoot"><div class="box"><div class="empty">Загрузка статистики администрации...</div></div></div>';
       },
-      load: async function (user) {
-        var root = document.getElementById("allStatsRoot");
-        try {
-          var result = await window.BR_API.allStatistics(user.token);
-          var list = Array.isArray(result.statistics) ? result.statistics : [];
-          var fields = [["Никнейм","nickname"],["Должность","position"],["Уровни","levels"],["Активность","activity_points"],["Баллы","points"],["Последнее повышение","last_promotion"]];
-          var rows = list.length ? list.map(function (item) {
-            var values = item.values || {};
-            return '<tr>' + fields.map(function (f) {
-              return '<td>' + E(values[f[1]] == null || values[f[1]] === "" ? "—" : values[f[1]]) + '</td>';
-            }).join("") + '</tr>';
-          }).join("") : '<tr><td colspan="6">Данных нет.</td></tr>';
-
-          root.innerHTML = '<div class="box table-box"><table><thead><tr>' +
-            fields.map(function (f) { return '<th>' + E(f[0]) + '</th>'; }).join("") +
-            '</tr></thead><tbody>' + rows + '</tbody></table></div>';
-        } catch (error) {
-          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить статистику администрации.") + '</div></div>';
-        }
-      }
+      bind: function (user) {
+        var button = document.getElementById("allStatsRefresh");
+        if (button) button.onclick = function () { load(user); };
+      },
+      load: load
     };
   }
 
