@@ -1,5 +1,31 @@
 const SCRIPT_SECRET_PROPERTY = "SCRIPT_SECRET";
+const SPREADSHEET_ID_PROPERTY = "BOUND_SPREADSHEET_ID";
 const DEFAULT_SHEET_NAME = "";
+
+function onOpen(e) {
+  if (e && e.source) {
+    PropertiesService
+      .getScriptProperties()
+      .setProperty(
+        SPREADSHEET_ID_PROPERTY,
+        e.source.getId()
+      );
+  }
+}
+
+function setupSpreadsheet() {
+  const spreadsheet =
+    SpreadsheetApp.getActiveSpreadsheet();
+
+  PropertiesService
+    .getScriptProperties()
+    .setProperty(
+      SPREADSHEET_ID_PROPERTY,
+      spreadsheet.getId()
+    );
+
+  return spreadsheet.getId();
+}
 
 const FIELD_ALIASES = {
   nickname: ["Никнейм", "Nickname", "Ник"],
@@ -122,13 +148,33 @@ function checkSecret(value) {
 }
 
 function getSpreadsheet() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const spreadsheetId =
+    PropertiesService
+      .getScriptProperties()
+      .getProperty(
+        SPREADSHEET_ID_PROPERTY
+      );
 
-  if (!spreadsheet) {
-    throw new Error("SPREADSHEET_NOT_FOUND");
+  if (!spreadsheetId) {
+    throw new Error(
+      "SPREADSHEET_NOT_INITIALIZED"
+    );
   }
 
-  return spreadsheet;
+  try {
+    return SpreadsheetApp.openById(
+      spreadsheetId
+    );
+  } catch (error) {
+    console.error(
+      "SPREADSHEET OPEN ERROR",
+      error
+    );
+
+    throw new Error(
+      "SPREADSHEET_NOT_FOUND"
+    );
+  }
 }
 
 function getSheet(sheetName) {
@@ -702,6 +748,7 @@ function messageForError(code) {
     SCRIPT_SECRET_NOT_CONFIGURED: "Не настроен секрет Apps Script",
     UNAUTHORIZED: "Недействительный секрет",
     SPREADSHEET_NOT_FOUND: "Таблица не найдена",
+    SPREADSHEET_NOT_INITIALIZED: "Apps Script ещё не привязан к таблице",
     SHEET_NOT_FOUND: "Лист не найден",
     HEADERS_NOT_FOUND: "Заголовки администрации не найдены",
     NICKNAME_REQUIRED: "Не передан никнейм",
