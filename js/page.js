@@ -701,13 +701,65 @@
           '</tr>';
         }).join("");
 
+        var statusButtons =
+          '<div class="normative-filters">' +
+            '<button class="filter-button active" data-status-filter="all" type="button">Все</button>' +
+            '<button class="filter-button" data-status-filter="not_submitted" type="button">Не сдали</button>' +
+            '<button class="filter-button" data-status-filter="pending" type="button">На проверке</button>' +
+            '<button class="filter-button" data-status-filter="norm" type="button">Норма</button>' +
+            '<button class="filter-button" data-status-filter="rework" type="button">Перенорма</button>' +
+            '<button class="filter-button" data-status-filter="no_norm" type="button">Нет нормы</button>' +
+            '<input id="normativeSearch" class="form-input normative-search" type="search" placeholder="Поиск по никнейму">' +
+          '</div>';
+
         root.innerHTML =
           '<div class="box table-box"><div class="stats-table-head"><div><small>НОРМАТИВЫ ЗА ДАТУ</small><b>' +
           E(new Date(selectedDate + "T00:00:00").toLocaleDateString("ru-RU", {weekday:"long", day:"numeric", month:"long", year:"numeric"})) +
           '</b></div><span class="muted">' + E(String(list.length)) + ' администраторов</span></div>' +
-          '<table><thead><tr><th>Никнейм</th><th>Должность</th><th>Статус</th><th>Файлы</th><th>Отправлен</th><th>Решение</th><th></th></tr></thead><tbody>' +
+          statusButtons +
+          '<table id="normativeJournalTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Статус</th><th>Файлы</th><th>Отправлен</th><th>Решение</th><th></th></tr></thead><tbody>' +
           (rows || '<tr><td colspan="7" class="table-empty">Активных администраторов нет.</td></tr>') +
           '</tbody></table></div>';
+
+        var activeFilter = "all";
+        var searchInput = document.getElementById("normativeSearch");
+
+        function applyNormativeFilters() {
+          var query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+          document.querySelectorAll("#normativeJournalTable tbody tr[data-normative-status]").forEach(function (row) {
+            var status = row.getAttribute("data-normative-status") || "";
+            var nickname = row.getAttribute("data-normative-nickname") || "";
+            row.style.display =
+              (activeFilter === "all" || status === activeFilter) &&
+              (!query || nickname.indexOf(query) !== -1)
+                ? ""
+                : "none";
+          });
+        }
+
+        // Mark rows after they are inserted so the filters do not need
+        // to rebuild the whole table.
+        document.querySelectorAll("#normativeJournalTable tbody tr").forEach(function (row, index) {
+          var item = list[index];
+          if (item) {
+            row.setAttribute("data-normative-status", item.status || "not_submitted");
+            row.setAttribute("data-normative-nickname", String(item.nickname || "").toLowerCase());
+          }
+        });
+
+        document.querySelectorAll("[data-status-filter]").forEach(function (button) {
+          button.onclick = function () {
+            activeFilter = button.getAttribute("data-status-filter") || "all";
+            document.querySelectorAll("[data-status-filter]").forEach(function (item) {
+              item.classList.toggle("active", item === button);
+            });
+            applyNormativeFilters();
+          };
+        });
+
+        if (searchInput) {
+          searchInput.oninput = applyNormativeFilters;
+        }
 
         document.querySelectorAll("[data-open-admin-norm]").forEach(function (button) {
           button.onclick = function () {
