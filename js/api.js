@@ -808,7 +808,7 @@
                 token,
                 date
             ) {
-                return request(
+                return requestStatistics(
                     {
                         action:
                             "normatives_daily",
