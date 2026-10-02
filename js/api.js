@@ -423,50 +423,31 @@
 
     async function uploadNormative(
         token,
-        file,
+        files,
         date,
         position,
         comment
     ) {
-        var formData =
-            new FormData();
+        var formData = new FormData();
 
-        formData.append(
-            "action",
-            "normative_upload"
-        );
+        formData.append("action", "normative_upload");
+        formData.append("date", date);
+        formData.append("position", position || "");
+        formData.append("comment", comment || "");
 
-        formData.append(
-            "date",
-            date
-        );
+        var list = Array.from(files || []).filter(function (file) {
+            return file instanceof File;
+        });
 
-        formData.append(
-            "position",
-            position ||
-            ""
-        );
-
-        formData.append(
-            "comment",
-            comment ||
-            ""
-        );
-
-        formData.append(
-            "file",
-            file,
-            file.name
-        );
+        list.forEach(function (file) {
+            formData.append("file", file, file.name);
+        });
 
         var headers = {};
 
         if (token) {
-            headers.Authorization =
-                "Bearer " + token;
-
-            headers["x-device-id"] =
-                getDeviceId();
+            headers.Authorization = "Bearer " + token;
+            headers["x-device-id"] = getDeviceId();
         }
 
         var response;
@@ -481,17 +462,9 @@
                 }
             );
         } catch (networkError) {
-            var error =
-                new Error(
-                    "Не удалось загрузить файл."
-                );
-
-            error.kind =
-                "server";
-
-            error.code =
-                "NORMATIVE_UPLOAD_NETWORK_ERROR";
-
+            var error = new Error("Не удалось загрузить норматив.");
+            error.kind = "server";
+            error.code = "NORMATIVE_UPLOAD_NETWORK_ERROR";
             throw error;
         }
 
@@ -499,59 +472,22 @@
         var data = null;
 
         try {
-            data = raw
-                ? JSON.parse(raw)
-                : null;
-        } catch (parseError) {
-            var invalid =
-                new Error(
-                    "Сервер вернул некорректный ответ при загрузке файла."
-                );
-
-            invalid.kind =
-                "server";
-
-            invalid.code =
-                "NORMATIVE_UPLOAD_INVALID_RESPONSE";
-
+            data = raw ? JSON.parse(raw) : null;
+        } catch (_) {
+            var invalid = new Error("Сервер вернул некорректный ответ при загрузке норматива.");
+            invalid.kind = "server";
+            invalid.code = "NORMATIVE_UPLOAD_INVALID_RESPONSE";
             throw invalid;
         }
 
-        if (
-            !response.ok ||
-            !data ||
-            data.success === false
-        ) {
-            var message =
-                data &&
-                (
-                    data.message ||
-                    data.error ||
-                    ""
-                );
-
-            var code =
-                data &&
-                (
-                    data.code ||
-                    ""
-                );
-
+        if (!response.ok || !data || data.success === false) {
+            var message = data && (data.message || data.error || "");
+            var code = data && (data.code || data.error_code || "");
             notifySessionExpired(code);
 
-            var uploadError =
-                new Error(
-                    message ||
-                    "Не удалось загрузить файл."
-                );
-
-            uploadError.kind =
-                "server";
-
-            uploadError.code =
-                code ||
-                "NORMATIVE_UPLOAD_ERROR";
-
+            var uploadError = new Error(message || "Не удалось загрузить норматив.");
+            uploadError.kind = "server";
+            uploadError.code = code || "NORMATIVE_UPLOAD_ERROR";
             throw uploadError;
         }
 
@@ -771,17 +707,96 @@
         normativeUpload:
             function (
                 token,
-                file,
+                files,
                 date,
                 position,
                 comment
             ) {
                 return uploadNormative(
                     token,
-                    file,
+                    files,
                     date,
                     position,
                     comment
+                );
+            },
+
+        normativesMine:
+            function (
+                token
+            ) {
+                return request(
+                    {
+                        action:
+                            "normatives_mine"
+                    },
+                    token
+                );
+            },
+
+        normativesDaily:
+            function (
+                token,
+                date
+            ) {
+                return request(
+                    {
+                        action:
+                            "normatives_daily",
+                        date:
+                            date
+                    },
+                    token
+                );
+            },
+
+        normativeDetail:
+            function (
+                token,
+                submissionId,
+                adminId,
+                date
+            ) {
+                return request(
+                    {
+                        action:
+                            "normative_detail",
+                        submission_id:
+                            Number(submissionId || 0),
+                        admin_id:
+                            Number(adminId || 0),
+                        date:
+                            date || ""
+                    },
+                    token
+                );
+            },
+
+        normativeReview:
+            function (
+                token,
+                submissionId,
+                adminId,
+                date,
+                status,
+                reviewComment
+            ) {
+                return request(
+                    {
+                        action:
+                            "normative_review",
+                        submission_id:
+                            Number(submissionId || 0),
+                        admin_id:
+                            Number(adminId || 0),
+                        date:
+                            date || "",
+                        status:
+                            status,
+                        review_comment:
+                            reviewComment || ""
+                    },
+                    token
                 );
             },
 
