@@ -840,6 +840,22 @@
                 );
             },
 
+        normativesDailyLocal:
+            function (
+                token,
+                date
+            ) {
+                return request(
+                    {
+                        action:
+                            "normatives_daily",
+                        date:
+                            date
+                    },
+                    token
+                );
+            },
+
         normativeDetail:
             function (
                 token,
