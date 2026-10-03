@@ -1230,6 +1230,10 @@
 
       var value = valueOf(item, key);
 
+      if (key === "inactives" && /^неактив$/i.test(String(value == null ? "" : value).trim())) {
+        value = "1/14";
+      }
+
       if (key === "post_days" && (value == null || value === "")) {
         var values = item && item.values ? item.values : {};
         var headers = Array.isArray(values.headers) ? values.headers : [];
