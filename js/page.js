@@ -855,7 +855,7 @@
     }
 
     function statsPositionTitle(item) {
-      var value = String(statisticsValue(item, "position") || "").trim();
+      var value = String(valueOf(item, "position") || "").trim();
       return value === "—" ? "" : value;
     }
 
