@@ -4,6 +4,7 @@
   var COOKIE = "br_session";
   var REMEMBER_DAYS = 30;
   var SESSION_IDLE_MS = 180000;
+  var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var timer = null;
   var lastActivitySync = 0;
 
@@ -48,7 +49,32 @@
   function clearStorage() {
     try { localStorage.removeItem("br_session"); } catch (_) {}
     try { sessionStorage.removeItem("br_session"); } catch (_) {}
+    try { sessionStorage.removeItem(STATS_CACHE_KEY); } catch (_) {}
     document.cookie = COOKIE + "=; Max-Age=0; Path=/; Secure; SameSite=Lax";
+  }
+
+  function isPageReload() {
+    try {
+      var entries = performance.getEntriesByType
+        ? performance.getEntriesByType("navigation")
+        : [];
+      if (entries && entries.length && entries[0]) {
+        return entries[0].type === "reload";
+      }
+    } catch (_) {}
+
+    try {
+      return !!performance.navigation &&
+        performance.navigation.type === 1;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function clearReloadCaches() {
+    if (!isPageReload()) return;
+
+    try { sessionStorage.removeItem(STATS_CACHE_KEY); } catch (_) {}
   }
 
   function getSession() {
@@ -243,9 +269,15 @@
 
   function init(options) {
     var root = document.getElementById("app");
-    var session = getSession();
 
     if (!root) return;
+
+    // Кэш статистики живёт только в рамках текущего сеанса навигации.
+    // При полноценном F5 / Ctrl+R его очищаем, чтобы страница получила
+    // действительно свежие данные.
+    clearReloadCaches();
+
+    var session = getSession();
 
     // При обновлении страницы сохраняем текущий маршрут.
     // Авторизованная сессия хранится независимо от URL страницы,
