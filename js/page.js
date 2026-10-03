@@ -132,11 +132,45 @@
     var data = googleRowPayload(result);
     if (!data.count) return '<div class="box"><div class="empty">В Google-таблице нет данных этой строки.</div></div>';
     var rangeText = data.rowNumber ? "Строка " + data.rowNumber + " • диапазон " + data.firstColumn + data.rowNumber + ":" + data.lastColumn + data.rowNumber : "Полная строка Google Sheets";
+    function formatGoogleCellValue(header, value) {
+      if (value == null || value === "") return "—";
+
+      var key = String(header || "")
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .replace(/\s+/g, " ");
+
+      var rawValue = String(value);
+
+      if (
+        key === "последнее повышение" ||
+        key === "last promotion" ||
+        key === "дата" ||
+        key === "date"
+      ) {
+        var parsedDate = new Date(rawValue);
+
+        if (!Number.isNaN(parsedDate.getTime())) {
+          return parsedDate.toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+          });
+        }
+      }
+
+      return rawValue;
+    }
+
     var rows = data.headers.map(function (header, index) {
-      return '<tr><td><b>' + E(columnLetter(index)) + '</b></td><td>' + E(header || "Без названия") + '</td><td>' + E(data.raw[index] == null || data.raw[index] === "" ? "—" : data.raw[index]) + '</td></tr>';
+      var value = formatGoogleCellValue(header, data.raw[index]);
+
+      return '<tr><td><b>' + E(columnLetter(index)) + '</b></td><td>' + E(header || "Без названия") + '</td><td>' + E(value) + '</td></tr>';
     }).join("");
     var mobileRows = data.headers.map(function (header, index) {
-      var value = data.raw[index] == null || data.raw[index] === "" ? "—" : data.raw[index];
+      var value = formatGoogleCellValue(header, data.raw[index]);
+
       return '<div class="mobile-data-card">' +
         '<div class="mobile-data-label">' + E(header || ("Колонка " + columnLetter(index))) + '</div>' +
         '<div class="mobile-data-value">' + E(value) + '</div>' +
