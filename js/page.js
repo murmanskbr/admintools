@@ -855,55 +855,119 @@
     }
 
     function statsPositionTitle(item) {
-      var value = String(statDisplayValue(item, "position") || "").trim();
+      var value = String(statisticsValue(item, "position") || "").trim();
       return value === "—" ? "" : value;
     }
 
-    function statsPositionScore(value) {
+    function statsGroupTitleFromRow(item) {
+      var nickname = itemNickname(item).trim();
+      if (!nickname || isStatsColumnHeader(item)) return "";
+
+      var values = item && item.values ? item.values : {};
+      var headers = Array.isArray(values.headers) ? values.headers : [];
+      var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
+      var nonEmptyCount = 0;
+
+      for (var i = 0; i < raw.length; i += 1) {
+        if (String(raw[i] == null ? "" : raw[i]).trim() !== "") {
+          nonEmptyCount += 1;
+          if (nonEmptyCount > 1) return "";
+        }
+      }
+
+      var normalized = normalizeStatsPosition(nickname);
+      var compact = normalized.replace(/[^a-zа-я0-9]/gi, "");
+
+      var looksLikeCategory =
+        normalized.indexOf("младш") !== -1 && normalized.indexOf("модер") !== -1 ||
+        normalized.indexOf("старш") !== -1 && normalized.indexOf("модер") !== -1 ||
+        normalized === "модераторы" ||
+        normalized === "модератор" ||
+        normalized.indexOf("администратор") !== -1 ||
+        compact.indexOf("admin") === 0 ||
+        normalized.indexOf("следящ") !== -1 ||
+        normalized.indexOf("сидящ") !== -1 ||
+        normalized.indexOf("куратор") !== -1 ||
+        normalized.indexOf("руковод") !== -1 ||
+        normalized.indexOf("управлен") !== -1;
+
+      return looksLikeCategory ? nickname : "";
+    }
+
+    function statsGroupScore(value) {
       var position = normalizeStatsPosition(value);
       if (!position) return 0;
 
       var compact = position.replace(/[^a-zа-я0-9]/gi, "");
 
-      // Чем выше число, тем выше должность. Неизвестные должности получают 0.
-      if (position.indexOf("руковод") !== -1) return 1000;
-      if (position.indexOf("куратор") !== -1) return 980;
-      if (position.indexOf("главн") !== -1 && (position.indexOf("админ") !== -1 || compact.indexOf("admin") !== -1)) return 960;
+      // Старшие следящие за АП — самая верхняя группа.
+      if (
+        position.indexOf("старш") !== -1 &&
+        (position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1) &&
+        position.indexOf("ап") !== -1
+      ) return 1300;
 
-      var seniorController = position.indexOf("старш") !== -1 && (position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1);
-      var controller = position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1;
-      if (seniorController) return 940;
-      if (controller) return 900;
+      if (position.indexOf("руковод") !== -1 || position.indexOf("управлен") !== -1) return 1200;
+      if (position.indexOf("куратор") !== -1) return 1150;
 
-      var seniorAdmin = position.indexOf("старш") !== -1 && position.indexOf("админ") !== -1;
-      if (seniorAdmin || (compact.indexOf("стадмин") === 0)) return 850;
-      if (position.indexOf("админ") !== -1 || compact.indexOf("admin") !== -1) return 800;
+      if (
+        position.indexOf("старш") !== -1 &&
+        (position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1)
+      ) return 1100;
 
-      var juniorModerator =
-        position.indexOf("младш") !== -1 ||
-        compact.indexOf("млмодер") !== -1 ||
-        compact.indexOf("млмод") !== -1;
+      if (position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1) return 1050;
 
-      var seniorModerator =
-        position.indexOf("старш") !== -1 && position.indexOf("модер") !== -1 ||
-        compact.indexOf("стмодер") !== -1 ||
-        compact.indexOf("стмод") !== -1;
+      if (position.indexOf("старш") !== -1 && position.indexOf("админ") !== -1) return 1000;
+      if (position.indexOf("админ") !== -1 || compact.indexOf("admin") === 0) return 900;
 
-      if (seniorModerator) return 700;
-      if (position.indexOf("модер") !== -1 && !juniorModerator) return 600;
-      if (juniorModerator) return 500;
+      if (position.indexOf("старш") !== -1 && position.indexOf("модер") !== -1) return 800;
+      if (position.indexOf("модер") !== -1 && position.indexOf("младш") === -1) return 700;
+      if (position.indexOf("младш") !== -1 && position.indexOf("модер") !== -1) return 600;
 
       return 0;
     }
 
-    function statsPositionMeta(item) {
-      var title = statsPositionTitle(item) || "Без должности";
-      var key = normalizeStatsPosition(title);
+    function statsPositionMeta(title) {
+      var value = String(title == null ? "" : title).trim();
       return {
-        key: key || "__empty__",
-        title: title,
-        score: statsPositionScore(title)
+        key: normalizeStatsPosition(value) || "__other__",
+        title: value || "Другие",
+        score: statsGroupScore(value)
       };
+    }
+
+    function buildStatsEntries(items) {
+      var entries = [];
+      var currentGroup = null;
+
+      items.forEach(function (item, originalIndex) {
+        var headerTitle = statsGroupTitleFromRow(item);
+
+        if (headerTitle) {
+          currentGroup = statsPositionMeta(headerTitle);
+          return;
+        }
+
+        var positionTitle = statsPositionTitle(item);
+        var group = currentGroup;
+
+        // Если в таблице нет отдельного заголовка группы, используем
+        // фактическое название должности из строки как запасной вариант.
+        if (!group && positionTitle) {
+          group = statsPositionMeta(positionTitle);
+        }
+
+        // Строки без должности и без категории не показываем.
+        if (!group || !group.title) return;
+
+        entries.push({
+          item: item,
+          meta: group,
+          originalIndex: originalIndex
+        });
+      });
+
+      return entries;
     }
 
     function statsName(item) {
@@ -918,14 +982,8 @@
       );
     }
 
-    function sortStatsItems(items) {
-      return items.map(function (item, originalIndex) {
-        return {
-          item: item,
-          meta: statsPositionMeta(item),
-          originalIndex: originalIndex
-        };
-      }).sort(function (a, b) {
+    function sortStatsEntries(entries) {
+      return entries.slice().sort(function (a, b) {
         var result = 0;
 
         if (statsSortMode === "alphabet") {
@@ -980,11 +1038,13 @@
       var root = document.getElementById("allStatsRoot");
       if (!root) return;
 
-      var sortedItems = sortStatsItems(
-        lastData.filter(function (item) {
-          var nickname = itemNickname(item);
-          return nickname && !isStatsColumnHeader(item);
-        })
+      var sortedItems = sortStatsEntries(
+        buildStatsEntries(
+          lastData.filter(function (item) {
+            var nickname = itemNickname(item);
+            return nickname && !isStatsColumnHeader(item);
+          })
+        )
       );
 
       var columnCount = STATS_DISPLAY_COLUMNS.length + 2;
