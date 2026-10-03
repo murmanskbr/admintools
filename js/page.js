@@ -944,7 +944,7 @@
       }
 
       return Promise.all([
-        window.BR_API.allStatistics(user.token),
+        window.BR_API.allStatistics(user.token, selectedDate),
         window.BR_API.normativesDaily(user.token, selectedDate)
       ]).then(function (results) {
         var statisticsResult = results[0] || {};
@@ -1173,26 +1173,17 @@
     }
 
     function googleNormativeStatus(item) {
-      var values = item && item.values ? item.values : {};
-      var headers = Array.isArray(values.headers) ? values.headers : [];
-
-      for (var i = 0; i < headers.length; i += 1) {
-        if (normalizeHeaderKey(headers[i]) !== "normative") continue;
-
-        var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
-        var value = raw[i] != null ? raw[i] : valueOf(item, "normative");
-
-        // Если колонка «Норматив» есть в Google Таблице, она является
-        // источником истины даже тогда, когда ячейка очищена.
-        return {
-          present: true,
-          status: normalizeGoogleNormativeStatus(value)
-        };
-      }
+      // Статус нормативa теперь приходит непосредственно из Google Таблицы
+      // через Apps Script и хранится в отдельном поле строки.
+      var direct = normalizeGoogleNormativeStatus(
+        item && item.normative_status != null
+          ? item.normative_status
+          : ""
+      );
 
       return {
-        present: false,
-        status: ""
+        present: item && item.normative_status != null,
+        status: direct
       };
     }
 
@@ -1322,7 +1313,7 @@
             '<small>ПОЛНАЯ СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
             '<b>' + E(String(sortedItems.length)) + ' сотрудников</b>' +
           '</div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
-          '<div class="admins-source-row"><span>Порядок групп: старшие следящие за АП сверху, младшие модераторы снизу</span><span>Источник: Google Таблица</span></div>' +
+          '<div class="admins-source-row"><span>Порядок групп: старшие следящие за АП сверху, младшие модераторы снизу • норматив из Google Таблицы</span><span>Источник: Google Таблица</span></div>' +
           '<table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
