@@ -1157,3 +1157,78 @@ body{font-size:16px}
     min-width:0;
   }
 }
+
+
+/* Final action-menu layout: reserve enough sticky width for the menu. */
+#allStatsRoot #allStatsTable .stats-actions-sticky{
+  width:160px!important;
+  min-width:160px!important;
+  max-width:160px!important;
+  right:0!important;
+  padding:8px 14px!important;
+  overflow:visible!important;
+}
+
+#allStatsRoot #allStatsTable .stats-norm-sticky{
+  right:160px!important;
+}
+
+#allStatsRoot #allStatsTable thead .stats-norm-sticky{
+  right:160px!important;
+}
+
+#allStatsRoot #allStatsTable .admin-actions-cell{
+  width:160px!important;
+  min-width:160px!important;
+  max-width:160px!important;
+  overflow:visible!important;
+}
+
+#allStatsRoot #allStatsTable .stats-actions-sticky .admin-row-menu{
+  right:0!important;
+  top:42px!important;
+  min-width:145px!important;
+}
+
+#allStatsRoot #allStatsTable .stats-actions-sticky .admin-menu-wrap{
+  width:100%;
+}
+
+#allStatsRoot #allStatsTable .stats-actions-sticky .admin-menu-trigger{
+  margin-left:auto;
+  margin-right:0;
+}
+
+@media(max-width:900px){
+  #allStatsRoot #allStatsTable .stats-actions-sticky,
+  #allStatsRoot #allStatsTable .admin-actions-cell{
+    width:150px!important;
+    min-width:150px!important;
+    max-width:150px!important;
+  }
+
+  #allStatsRoot #allStatsTable .stats-norm-sticky{
+    right:150px!important;
+  }
+
+  #allStatsRoot #allStatsTable thead .stats-norm-sticky{
+    right:150px!important;
+  }
+}
+
+@media(max-width:520px){
+  #allStatsRoot #allStatsTable .stats-actions-sticky,
+  #allStatsRoot #allStatsTable .admin-actions-cell{
+    width:145px!important;
+    min-width:145px!important;
+    max-width:145px!important;
+  }
+
+  #allStatsRoot #allStatsTable .stats-norm-sticky{
+    right:145px!important;
+  }
+
+  #allStatsRoot #allStatsTable thead .stats-norm-sticky{
+    right:145px!important;
+  }
+}
