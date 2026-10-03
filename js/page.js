@@ -393,6 +393,43 @@
       return value == null || value === "" ? "—" : value;
     }
 
+    function showNormativeResult(message, type) {
+      var existing = document.getElementById("normativeActionToast");
+      if (existing) existing.remove();
+
+      var toast = document.createElement("div");
+      toast.id = "normativeActionToast";
+      toast.className = "toast normative-action-toast " +
+        (type === "success" ? "normative-toast-success" : "normative-toast-error");
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      window.setTimeout(function () {
+        if (toast.parentNode) toast.remove();
+      }, 4500);
+    }
+
+    function normativeErrorMessage(error) {
+      var code = error && error.code ? error.code : "";
+
+      var messages = {
+        NORMATIVE_ADMIN_NOT_FOUND: "❌ Никнейм не найден ни на одном подходящем листе Google Sheets.",
+        NORMATIVE_DATE_NOT_FOUND: "❌ Указанная дата не найдена ни на одном подходящем листе.",
+        NORMATIVE_CELL_NOT_FOUND: "❌ Не удалось определить ячейку для норматива.",
+        NORMATIVE_MARK_STATUS_REQUIRED: "❌ Передан неизвестный статус норматива.",
+        APPS_SCRIPT_UNAUTHORIZED: "❌ Google Apps Script отклонил запрос: проверь секрет.",
+        APPS_SCRIPT_TIMEOUT: "❌ Google Apps Script не ответил вовремя.",
+        APPS_SCRIPT_HTTP_404: "❌ Google Apps Script вернул 404. Проверь веб-развёртывание.",
+        APPS_SCRIPT_HTTP_403: "❌ Google Apps Script отклонил доступ к веб-приложению.",
+        STATISTICS_DISABLED: "❌ Модуль статистики отключён.",
+        FORBIDDEN: "❌ Недостаточно прав для выставления норматива."
+      };
+
+      return messages[code] ||
+        (error && error.message) ||
+        "❌ Не удалось сохранить норматив.";
+    }
+
     function isStatsColumnHeader(item) {
       var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim().toLowerCase();
       var position = String(valueOf(item, "position") || item.position || "").trim().toLowerCase();
@@ -539,10 +576,37 @@
           if (!confirm("Выставить «" + label + "» для " + nickname + " за " + formatDateOnly(selectedDate) + "?")) return;
           button.disabled = true;
           try {
-            await window.BR_API.normativeMark(user.token, nickname, selectedDate, status, "");
+            var result = await window.BR_API.normativeMark(
+              user.token,
+              nickname,
+              selectedDate,
+              status,
+              ""
+            );
+
+            var google = result && result.google_sheet
+              ? result.google_sheet
+              : {};
+
+            var cellText = google.cell
+              ? " • ячейка " + google.cell
+              : "";
+
+            showNormativeResult(
+              "✅ " + label + " проставлена для " +
+              nickname +
+              " за " +
+              formatDateOnly(selectedDate) +
+              cellText,
+              "success"
+            );
+
             await load(user);
           } catch (error) {
-            alert(error.message || "Не удалось сохранить норматив.");
+            showNormativeResult(
+              normativeErrorMessage(error),
+              "error"
+            );
             button.disabled = false;
           }
         };
