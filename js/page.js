@@ -1270,8 +1270,10 @@
           previousGroupKey = entry.meta.key;
         }
 
-        var norm = norms[nickname.toLowerCase()] || {};
-        var status = norm.status || "not_submitted";
+        var googleStatus = googleNormativeStatus(item);
+        var status = googleStatus.present
+          ? (googleStatus.status || "not_submitted")
+          : ((norms[nickname.toLowerCase()] || {}).status || "not_submitted");
 
         var cells = STATS_DISPLAY_COLUMNS.map(function (column) {
           var key = column[0];
