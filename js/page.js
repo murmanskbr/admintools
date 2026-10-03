@@ -393,6 +393,65 @@
       return map;
     }
 
+    function normalizeHeaderKey(header) {
+      var key = String(
+        header == null ? "" : header
+      )
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .replace(/\s+/g, " ");
+
+      var map = {
+        "никнейм": "nickname",
+        "ник": "nickname",
+        "nickname": "nickname",
+        "nick": "nickname",
+        "логин": "nickname",
+        "login": "nickname",
+
+        "возраст": "age",
+        "age": "age",
+
+        "доступ с пк": "pc_access",
+        "доступ с пк": "pc_access",
+        "pc access": "pc_access",
+        "pc_access": "pc_access",
+
+        "должность": "position",
+        "position": "position",
+
+        "уровни": "levels",
+        "уровень": "levels",
+        "levels": "levels",
+
+        "баллы активности": "activity_points",
+        "activity points": "activity_points",
+        "activity_points": "activity_points",
+
+        "неактивы": "inactives",
+        "неактив": "inactives",
+        "inactives": "inactives",
+
+        "страйки": "strikes",
+        "страйк": "strikes",
+        "strikes": "strikes",
+
+        "предупреждения": "warnings",
+        "предупреждение": "warnings",
+        "warnings": "warnings",
+
+        "баллы": "points",
+        "points": "points",
+
+        "последнее повышение": "last_promotion",
+        "last promotion": "last_promotion",
+        "last_promotion": "last_promotion"
+      };
+
+      return map[key] || key;
+    }
+
     function valueOf(item, key) {
       if (!item) return "";
 
