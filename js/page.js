@@ -1205,9 +1205,14 @@
 
             var html = Object.keys(groups).sort().reverse().map(function (date) {
               var rows = groups[date].map(function (item) {
+                var reviewed = !!item.reviewed_at;
+                var statusCell = reviewed
+                  ? '<div class="normative-result-stack"><span class="badge badge-green">Проверено</span>' + normativeStatus(item.status) + '</div>'
+                  : normativeStatus(item.status);
+
                 return '<tr>' +
-                  '<td>#' + E(item.id) + '</td>' +
-                  '<td>' + normativeStatus(item.status) + '</td>' +
+                  '<td>#' + E(item.id == null ? "—" : item.id) + '</td>' +
+                  '<td>' + statusCell + '</td>' +
                   '<td>' + E(item.file_count || 0) + '</td>' +
                   '<td>' + E(formatDateTime(item.created_at)) + '</td>' +
                   '<td>' + E(item.review_comment || "—") + '</td>' +
@@ -1342,7 +1347,6 @@
         });
 
 
-        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить нормативы.") + '</div></div>';
       });
     }
 
