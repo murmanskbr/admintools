@@ -639,11 +639,16 @@
             },
 
         allStatistics:
-            function (token) {
+            function (
+                token,
+                date
+            ) {
                 return requestStatistics(
                     {
                         action:
-                            "all_statistics"
+                            "all_statistics",
+                        date:
+                            date || ""
                     },
                     token
                 );
