@@ -1360,3 +1360,22 @@ body{font-size:16px}
     right:145px!important;
   }
 }
+
+
+#allStatsRoot #allStatsTable tbody tr.stats-row-selected{
+  background:#202733!important;
+}
+
+#allStatsRoot #allStatsTable tbody tr.stats-row-selected > td{
+  background:transparent!important;
+}
+
+#allStatsRoot #allStatsTable tbody tr.stats-row-selected .stats-nickname-sticky,
+#allStatsRoot #allStatsTable tbody tr.stats-row-selected .stats-norm-sticky,
+#allStatsRoot #allStatsTable tbody tr.stats-row-selected .stats-actions-sticky{
+  background:transparent!important;
+}
+
+.theme-light #allStatsRoot #allStatsTable tbody tr.stats-row-selected{
+  background:#e8edf2!important;
+}
