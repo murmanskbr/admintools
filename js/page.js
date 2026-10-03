@@ -816,6 +816,8 @@
         NORMATIVE_ADMIN_NOT_FOUND: "❌ Никнейм не найден ни на одном подходящем листе Google Sheets.",
         NORMATIVE_DATE_NOT_FOUND: "❌ Указанная дата не найдена ни на одном подходящем листе.",
         NORMATIVE_CELL_NOT_FOUND: "❌ Не удалось определить ячейку для норматива.",
+        POST_DAYS_FIELD_NOT_FOUND: "❌ В Google Таблице не найдена колонка «Дни на посту».",
+        INACTIVES_FIELD_NOT_FOUND: "❌ В Google Таблице не найдена колонка «Неактивы».",
         NORMATIVE_MARK_STATUS_REQUIRED: "❌ Передан неизвестный статус норматива.",
         APPS_SCRIPT_UNAUTHORIZED: "❌ Google Таблица отклонил запрос: проверь секрет.",
         APPS_SCRIPT_TIMEOUT: "❌ Google Таблица не ответил вовремя.",
