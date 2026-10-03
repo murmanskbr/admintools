@@ -1454,6 +1454,10 @@
           if (input) changes[field[1]] = input.value.trim();
         });
 
+        if (!confirm("Сохранить изменения администратора «" + nickname + "» в Google Таблицу?")) {
+          return;
+        }
+
         var saveButton = form.querySelector('button[type="submit"]');
         if (saveButton) {
           saveButton.disabled = true;
