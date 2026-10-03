@@ -247,22 +247,9 @@
 
     if (!root) return;
 
-    // При обычном обновлении любой внутренней страницы возвращаем
-    // пользователя на index.html. Сам index при обновлении остаётся index.
-    var pagePath = document.body && document.body.getAttribute("data-page");
-    var isReload = false;
-
-    try {
-      var navEntry = performance.getEntriesByType("navigation")[0];
-      isReload = !!navEntry && navEntry.type === "reload";
-    } catch (_) {
-      isReload = false;
-    }
-
-    if (isReload && pagePath) {
-      location.replace("../index.html");
-      return;
-    }
+    // При обновлении страницы сохраняем текущий маршрут.
+    // Авторизованная сессия хранится независимо от URL страницы,
+    // поэтому обычный F5 не должен отправлять пользователя на вход.
     if (!session) {
       goToLogin();
       return;
