@@ -827,12 +827,17 @@
               ? " • ячейка " + google.cell
               : "";
 
+            var postDaysText = google.post_days_updated
+              ? " • Дни на посте: " + String(google.post_days_value)
+              : "";
+
             showNormativeResult(
               "✅ " + label + " проставлена для " +
               nickname +
               " за " +
               formatDateOnly(selectedDate) +
-              cellText,
+              cellText +
+              postDaysText,
               "success"
             );
 
