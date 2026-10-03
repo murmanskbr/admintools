@@ -765,13 +765,57 @@
 
       document.querySelectorAll("[data-admin-menu]").forEach(function (button) {
         button.onclick = function (event) {
+          event.preventDefault();
           event.stopPropagation();
+
           var nickname = button.dataset.adminMenu || "";
-          document.querySelectorAll(".admin-row-menu.open").forEach(function (menu) {
-            if (menu.getAttribute("data-admin-row-menu") !== nickname) menu.classList.remove("open");
+
+          document.querySelectorAll(".admin-row-menu.open").forEach(function (openMenu) {
+            openMenu.classList.remove("open");
+            openMenu.style.left = "";
+            openMenu.style.top = "";
           });
+
           var menu = document.querySelector('[data-admin-row-menu="' + CSS.escape(nickname) + '"]');
-          if (menu) menu.classList.toggle("open");
+          if (!menu) return;
+
+          var isOpen = menu.classList.contains("open");
+
+          if (isOpen) {
+            menu.classList.remove("open");
+            menu.style.left = "";
+            menu.style.top = "";
+            return;
+          }
+
+          var rect = button.getBoundingClientRect();
+          var menuWidth = Math.max(menu.offsetWidth || 150, 150);
+          var margin = 8;
+
+          var left = rect.right - menuWidth;
+          var top = rect.bottom + 6;
+
+          if (left < margin) {
+            left = margin;
+          }
+
+          if (left + menuWidth > window.innerWidth - margin) {
+            left = window.innerWidth - menuWidth - margin;
+          }
+
+          var menuHeight = Math.max(menu.offsetHeight || 44, 44);
+
+          if (top + menuHeight > window.innerHeight - margin) {
+            top = rect.top - menuHeight - 6;
+          }
+
+          if (top < margin) {
+            top = margin;
+          }
+
+          menu.style.left = Math.round(left) + "px";
+          menu.style.top = Math.round(top) + "px";
+          menu.classList.add("open");
         };
       });
 
@@ -812,6 +856,8 @@
     function closeMenus() {
       document.querySelectorAll(".admin-row-menu.open").forEach(function (menu) {
         menu.classList.remove("open");
+        menu.style.left = "";
+        menu.style.top = "";
       });
     }
 
