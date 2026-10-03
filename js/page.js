@@ -135,7 +135,7 @@
     var rows = data.headers.map(function (header, index) {
       return '<tr><td><b>' + E(columnLetter(index)) + '</b></td><td>' + E(header || "Без названия") + '</td><td>' + E(data.raw[index] == null || data.raw[index] === "" ? "—" : data.raw[index]) + '</td></tr>';
     }).join("");
-    return '<div class="page-toolbar"><div><small>GOOGLE APPS SCRIPT</small><b>' + E(caption || "Полные данные строки") + '</b></div><span class="muted">' + E(rangeText) + '</span></div>' +
+    return '<div class="page-toolbar"><div><small>GOOGLE ТАБЛИЦА</small><b>' + E(caption || "Полные данные строки") + '</b></div><span class="muted">' + E(rangeText) + '</span></div>' +
       '<div class="box table-box"><table class="google-row-table"><thead><tr><th>Колонка</th><th>Заголовок</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
 
@@ -272,7 +272,7 @@
     async function load() {
       var root = document.getElementById("adminsRoot");
       if (!root || !currentUser || !currentUser.token) return;
-      root.innerHTML = '<div class="box"><div class="empty">Загрузка состава администрации через Google Apps Script...</div></div>';
+      root.innerHTML = '<div class="box"><div class="empty">Загрузка состава администрации через Google Таблица...</div></div>';
       try {
         var result = await window.BR_API.adminsGoogleList(currentUser.token);
         var statistics = Array.isArray(result.statistics) ? result.statistics : [];
@@ -295,7 +295,7 @@
           }).join("") + '</tr>';
         }).join("");
         if (!bodyRows) bodyRows = '<tr><td colspan="' + (headers.length + 1) + '" class="table-empty">В таблице нет данных.</td></tr>';
-        root.innerHTML = '<div class="box table-box"><div class="stats-table-head"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div><span class="muted">Источник: Google Apps Script • Google Sheets</span></div><table id="adminsTable"><thead><tr><th>Строка</th>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
+        root.innerHTML = '<div class="box table-box"><div class="stats-table-head"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div><span class="muted">Источник: Google Таблица • Google Sheets</span></div><table id="adminsTable"><thead><tr><th>Строка</th>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
         var search = document.getElementById("adminsSearch");
         if (search) search.oninput = function () {
           var query = search.value.trim().toLowerCase();
@@ -307,9 +307,9 @@
     }
     return {
       title: "Состав администрации",
-      subtitle: "Полный состав из Google Apps Script",
+      subtitle: "Полный состав из Google Таблица",
       render: function () {
-        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице"><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span>Источник: Google Apps Script • Google Sheets</span><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
+        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице"><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span>Источник: Google Таблица • Google Sheets</span><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
       },
       bind: function () {
         var refresh = document.getElementById("adminsRefresh");
@@ -325,7 +325,7 @@
   function myStatistics() {
     return {
       title: "Моя статистика",
-      subtitle: "Полная строка администратора из Google Apps Script",
+      subtitle: "Полная строка администратора из Google Таблица",
       render: function () {
         return '<div id="statsRoot"><div class="box"><div class="empty">Поиск администратора в Google Sheets...</div></div></div>';
       },
@@ -512,10 +512,10 @@
         NORMATIVE_DATE_NOT_FOUND: "❌ Указанная дата не найдена ни на одном подходящем листе.",
         NORMATIVE_CELL_NOT_FOUND: "❌ Не удалось определить ячейку для норматива.",
         NORMATIVE_MARK_STATUS_REQUIRED: "❌ Передан неизвестный статус норматива.",
-        APPS_SCRIPT_UNAUTHORIZED: "❌ Google Apps Script отклонил запрос: проверь секрет.",
-        APPS_SCRIPT_TIMEOUT: "❌ Google Apps Script не ответил вовремя.",
-        APPS_SCRIPT_HTTP_404: "❌ Google Apps Script вернул 404. Проверь веб-развёртывание.",
-        APPS_SCRIPT_HTTP_403: "❌ Google Apps Script отклонил доступ к веб-приложению.",
+        APPS_SCRIPT_UNAUTHORIZED: "❌ Google Таблица отклонил запрос: проверь секрет.",
+        APPS_SCRIPT_TIMEOUT: "❌ Google Таблица не ответил вовремя.",
+        APPS_SCRIPT_HTTP_404: "❌ Google Таблица вернул 404. Проверь веб-развёртывание.",
+        APPS_SCRIPT_HTTP_403: "❌ Google Таблица отклонил доступ к веб-приложению.",
         STATISTICS_DISABLED: "❌ Модуль статистики отключён.",
         FORBIDDEN: "❌ Недостаточно прав для выставления норматива."
       };
@@ -684,7 +684,7 @@
             '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
             '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
           '</div></td>' +
-          '<td class="admin-actions-cell stats-actions-sticky"><div class="admin-menu-wrap"><button class="admin-menu-trigger" type="button" data-admin-menu="' + E(nickname) + '" title="Действия" aria-label="Действия">⋮</button><div class="admin-row-menu" data-admin-row-menu="' + E(nickname) + '"><button type="button" data-edit-admin="' + E(nickname) + '">Изменить</button></div></div></td></tr>';
+          '<td class="admin-actions-cell stats-actions-sticky"><button class="admin-edit-inline" type="button" data-edit-admin="' + E(nickname) + '">Изменить</button></td></tr>';
       }).filter(Boolean).join("");
 
       var realRows = lastData.filter(function (item) {
@@ -699,8 +699,8 @@
         return '<th class="' + classes + '">' + E(russianAdminHeader(header)) + '</th>';
       }).join("");
       root.innerHTML =
-        '<div class="box table-box"><div class="stats-table-head"><div><small>ПОЛНАЯ СТАТИСТИКА ИЗ GOOGLE APPS SCRIPT</small><b>' + E(String(realRows)) + ' сотрудников</b></div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
-        '<div class="admins-source-row"><span>Все столбцы строки Google Sheets</span><span>Источник: Google Apps Script</span></div>' +
+        '<div class="box table-box"><div class="stats-table-head"><div><small>ПОЛНАЯ СТАТИСТИКА ИЗ GOOGLE ТАБЛИЦА</small><b>' + E(String(realRows)) + ' сотрудников</b></div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
+        '<div class="admins-source-row"><span>Все столбцы строки Google Sheets</span><span>Источник: Google Таблица</span></div>' +
         '<table id="allStatsTable"><thead><tr>' + headerCells + '<th class="stats-norm-sticky">Норматив</th><th class="stats-actions-sticky">Действия</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
         '<div id="adminEditModal"></div>';
 
@@ -760,62 +760,6 @@
             );
             button.disabled = false;
           }
-        };
-      });
-
-      document.querySelectorAll("[data-admin-menu]").forEach(function (button) {
-        button.onclick = function (event) {
-          event.preventDefault();
-          event.stopPropagation();
-
-          var nickname = button.dataset.adminMenu || "";
-
-          document.querySelectorAll(".admin-row-menu.open").forEach(function (openMenu) {
-            openMenu.classList.remove("open");
-            openMenu.style.left = "";
-            openMenu.style.top = "";
-          });
-
-          var menu = document.querySelector('[data-admin-row-menu="' + CSS.escape(nickname) + '"]');
-          if (!menu) return;
-
-          var isOpen = menu.classList.contains("open");
-
-          if (isOpen) {
-            menu.classList.remove("open");
-            menu.style.left = "";
-            menu.style.top = "";
-            return;
-          }
-
-          var rect = button.getBoundingClientRect();
-          var menuWidth = Math.max(menu.offsetWidth || 150, 150);
-          var margin = 8;
-
-          var left = rect.right - menuWidth;
-          var top = rect.bottom + 6;
-
-          if (left < margin) {
-            left = margin;
-          }
-
-          if (left + menuWidth > window.innerWidth - margin) {
-            left = window.innerWidth - menuWidth - margin;
-          }
-
-          var menuHeight = Math.max(menu.offsetHeight || 44, 44);
-
-          if (top + menuHeight > window.innerHeight - margin) {
-            top = rect.top - menuHeight - 6;
-          }
-
-          if (top < margin) {
-            top = margin;
-          }
-
-          menu.style.left = Math.round(left) + "px";
-          menu.style.top = Math.round(top) + "px";
-          menu.classList.add("open");
         };
       });
 
@@ -1693,7 +1637,7 @@
 
         (isManagement
           ? '<section class="box settings-card settings-google-card">' +
-              '<div class="settings-card-head"><div><small>GOOGLE APPS SCRIPT</small><h2>Web app URL</h2></div><span>Адрес активного веб-развёртывания Google Apps Script</span></div>' +
+              '<div class="settings-card-head"><div><small>GOOGLE ТАБЛИЦА</small><h2>Web app URL</h2></div><span>Адрес активного веб-развёртывания Google Таблица</span></div>' +
               '<form id="googleUrlSettingsForm">' +
                 '<div class="form-field"><label>URL Web app</label><input id="googleWebAppUrl" class="form-input settings-google-url-locked" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" value="' + E(lastSettings.web_app_url || "") + '" disabled></div>' +
                 '<p class="settings-hint">Сохранённый URL отображается только для просмотра. Нажмите «Заменить URL», чтобы разблокировать поле. После изменения нажмите «Сохранить».</p>' +
@@ -1882,7 +1826,7 @@
               lastSettings.web_app_url = saved || "";
 
               showStatus(
-                "URL Google Apps Script сохранён в Supabase.",
+                "URL Google Таблица сохранён в Supabase.",
                 true
               );
 
