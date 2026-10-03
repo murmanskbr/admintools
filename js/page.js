@@ -1156,15 +1156,71 @@
       });
     }
 
+    function normalizeGoogleNormativeStatus(value) {
+      var text = String(value == null ? "" : value)
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .replace(/[_\-]+/g, " ")
+        .replace(/\s+/g, " ");
+
+      if (!text) return "";
+      if (text === "norm" || text === "норма" || text === "сдан" || text === "зачет" || text === "зачёт") return "norm";
+      if (text === "rework" || text === "перенорма" || text === "пересдача" || text === "пересдать") return "rework";
+      if (text === "no_norm" || text === "нет нормы" || text === "не сдан" || text === "не сдал") return "no_norm";
+      if (text === "inactive" || text === "неактив" || text === "неактивен" || text === "неактивна") return "inactive";
+      return "";
+    }
+
+    function googleNormativeStatus(item) {
+      var values = item && item.values ? item.values : {};
+      var headers = Array.isArray(values.headers) ? values.headers : [];
+
+      for (var i = 0; i < headers.length; i += 1) {
+        if (normalizeHeaderKey(headers[i]) !== "normative") continue;
+
+        var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
+        var value = raw[i] != null ? raw[i] : valueOf(item, "normative");
+
+        // Если колонка «Норматив» есть в Google Таблице, она является
+        // источником истины даже тогда, когда ячейка очищена.
+        return {
+          present: true,
+          status: normalizeGoogleNormativeStatus(value)
+        };
+      }
+
+      return {
+        present: false,
+        status: ""
+      };
+    }
+
     function statDisplayValue(item, key) {
       if (key === "nickname") return itemNickname(item) || "—";
       if (key === "normative") {
+        var googleStatus = googleNormativeStatus(item);
+
+        if (googleStatus.present) {
+          return normativeStatus(googleStatus.status || "not_submitted");
+        }
+
         var nickname = itemNickname(item);
         var map = normMap();
         return normativeStatus((map[nickname.toLowerCase()] || {}).status || "not_submitted");
       }
 
       var value = valueOf(item, key);
+
+      if (
+        key === "inactives" &&
+        (value == null || String(value).trim() === "")
+      ) {
+        var googleStatusForInactives = googleNormativeStatus(item);
+        if (googleStatusForInactives.present && googleStatusForInactives.status === "inactive") {
+          return "Неактив";
+        }
+      }
 
       if (key === "post_days" && (value == null || value === "")) {
         var values = item && item.values ? item.values : {};
