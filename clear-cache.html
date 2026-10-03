@@ -7,7 +7,7 @@ try{
 if("serviceWorker" in navigator){var rs=await navigator.serviceWorker.getRegistrations();for(var i=0;i<rs.length;i++)await rs[i].unregister();}
 if("caches" in window){var ks=await caches.keys();for(var j=0;j<ks.length;j++)await caches.delete(ks[j]);}
 }catch(e){}
-setTimeout(function(){location.replace("./?v=8");},300);
+setTimeout(function(){location.replace("./");},300);
 })();
 </script></body>
 </html>
