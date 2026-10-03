@@ -807,7 +807,7 @@
       });
 
       document.querySelectorAll("[data-edit-admin]").forEach(function (button) {
-        button.onclick = async function (event) {
+        button.onclick = function (event) {
           event.preventDefault();
           event.stopPropagation();
 
@@ -815,27 +815,18 @@
           if (!nickname) return;
 
           closeMenus();
-          button.disabled = true;
 
-          try {
-            /*
-             * Always read the selected administrator again from Google Sheets.
-             * This keeps the edit form synchronized with the source table.
-             */
-            var fresh = await window.BR_API.getStatisticsAdmin(
-              user.token,
-              nickname
-            );
+          var item = lastData.find(function (entry) {
+            return itemNickname(entry).trim().toLowerCase() ===
+              nickname.trim().toLowerCase();
+          });
 
-            openEditModal(user, fresh);
-          } catch (error) {
-            alert(
-              error.message ||
-              "Не удалось загрузить данные администратора из Google Sheets."
-            );
-          } finally {
-            button.disabled = false;
+          if (!item) {
+            alert("Не удалось определить выбранного администратора в загруженной таблице.");
+            return;
           }
+
+          openEditModal(user, item);
         };
       });
     }
