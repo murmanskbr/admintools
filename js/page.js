@@ -469,16 +469,19 @@
         var raw = googleStatisticsRaw(item, googleCount);
         var valuesCells = googleHeaders.map(function (header, index) {
           var value = displayValue(raw[index]);
-          return '<td>' + (isGoogleNicknameHeader(header) ? '<b>' + E(value) + '</b>' : E(value)) + '</td>';
+          var cellClass = index === nicknameIndex ? "stats-nickname-sticky" : "";
+          return '<td class="' + cellClass + '">' +
+            (isGoogleNicknameHeader(header) ? '<b>' + E(value) + '</b>' : E(value)) +
+          '</td>';
         }).join("");
         return '<tr>' + valuesCells +
-          '<td class="stats-norm-cell"><span>' + normativeStatus(status) + '</span><div class="stats-norm-actions">' +
+          '<td class="stats-norm-cell stats-norm-sticky"><span>' + normativeStatus(status) + '</span><div class="stats-norm-actions">' +
             '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
             '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
             '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
             '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
           '</div></td>' +
-          '<td class="admin-actions-cell"><div class="admin-menu-wrap"><button class="admin-menu-trigger" type="button" data-admin-menu="' + E(nickname) + '" title="Действия" aria-label="Действия">⋮</button><div class="admin-row-menu" data-admin-row-menu="' + E(nickname) + '"><button type="button" data-edit-admin="' + E(nickname) + '">Изменить</button></div></div></td></tr>';
+          '<td class="admin-actions-cell stats-actions-sticky"><div class="admin-menu-wrap"><button class="admin-menu-trigger" type="button" data-admin-menu="' + E(nickname) + '" title="Действия" aria-label="Действия">⋮</button><div class="admin-row-menu" data-admin-row-menu="' + E(nickname) + '"><button type="button" data-edit-admin="' + E(nickname) + '">Изменить</button></div></div></td></tr>';
       }).filter(Boolean).join("");
 
       var realRows = lastData.filter(function (item) {
@@ -488,11 +491,18 @@
 
       if (!rows) rows = '<tr><td colspan="' + (googleCount + 2) + '" class="table-empty">Данных администрации нет.</td></tr>';
 
-      var headerCells = googleHeaders.map(function (header) { return '<th>' + E(russianAdminHeader(header)) + '</th>'; }).join("");
+      var nicknameIndex = googleHeaders.findIndex(function (header) {
+        return isGoogleNicknameHeader(header);
+      });
+
+      var headerCells = googleHeaders.map(function (header, index) {
+        var classes = index === nicknameIndex ? "stats-nickname-sticky" : "";
+        return '<th class="' + classes + '">' + E(russianAdminHeader(header)) + '</th>';
+      }).join("");
       root.innerHTML =
         '<div class="box table-box"><div class="stats-table-head"><div><small>ПОЛНАЯ СТАТИСТИКА ИЗ GOOGLE APPS SCRIPT</small><b>' + E(String(realRows)) + ' сотрудников</b></div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
         '<div class="admins-source-row"><span>Все столбцы строки Google Sheets</span><span>Источник: Google Apps Script</span></div>' +
-        '<table id="allStatsTable"><thead><tr>' + headerCells + '<th>Норматив</th><th>Действия</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+        '<table id="allStatsTable"><thead><tr>' + headerCells + '<th class="stats-norm-sticky">Норматив</th><th class="stats-actions-sticky">Действия</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
         '<div id="adminEditModal"></div>';
 
       document.querySelectorAll("[data-stat-norm]").forEach(function (button) {
