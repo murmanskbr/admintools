@@ -1349,8 +1349,9 @@
             var google = result && result.google_sheet ? result.google_sheet : {};
             var cellText = google.cell ? " • ячейка " + google.cell : "";
             var postDaysText = google.post_days_updated ? " • Дни на посте: " + String(google.post_days_value) : "";
+            var inactivesText = google.inactives_updated ? " • Неактивы: " + String(google.inactives_value) : "";
             showNormativeResult(
-              "✅ " + label + " проставлена для " + nickname + " за " + formatDateOnly(selectedDate) + cellText + postDaysText,
+              "✅ " + label + " проставлена для " + nickname + " за " + formatDateOnly(selectedDate) + cellText + postDaysText + inactivesText,
               "success"
             );
             clearStatsDateCache(selectedDate);
