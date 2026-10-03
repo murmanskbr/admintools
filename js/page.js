@@ -886,42 +886,6 @@
       return formatStatisticsCellValue(key, value);
     }
 
-    function statsPositionGroup(item) {
-      var position = String(statDisplayValue(item, "position") || "")
-        .trim().toLowerCase().replace(/ё/g, "е").replace(/[.]/g, "").replace(/\s+/g, " ");
-
-      if (!position) return { index: STATS_POSITION_GROUPS.length, key:"other", title:"Другие" };
-
-      for (var i = 0; i < STATS_POSITION_GROUPS.length; i += 1) {
-        var group = STATS_POSITION_GROUPS[i];
-        for (var j = 0; j < group.match.length; j += 1) {
-          var candidate = group.match[j].toLowerCase().replace(/ё/g, "е").replace(/[.]/g, "").replace(/\s+/g, " ").trim();
-          if (position === candidate || position.indexOf(candidate) !== -1) {
-            return { index:i, key:group.key, title:group.title };
-          }
-        }
-      }
-
-      if (position.indexOf("младш") !== -1 && position.indexOf("модер") !== -1) return { index:0, key:"junior_moderators", title:"Младшие модераторы" };
-      if (position.indexOf("старш") !== -1 && position.indexOf("модер") !== -1) return { index:2, key:"senior_moderators", title:"Старшие модераторы" };
-      if (position.indexOf("модер") !== -1) return { index:1, key:"moderators", title:"Модераторы" };
-      if (position.indexOf("старш") !== -1 && position.indexOf("админ") !== -1) return { index:4, key:"senior_administrators", title:"Старшие администраторы" };
-      if (position.indexOf("админ") !== -1) return { index:3, key:"administrators", title:"Администраторы" };
-      if (position.indexOf("руковод") !== -1 || position.indexOf("следящ") !== -1 || position.indexOf("куратор") !== -1) return { index:5, key:"management", title:"Руководство" };
-
-      return { index:STATS_POSITION_GROUPS.length, key:"other", title:"Другие" };
-    }
-
-    function sortStatsItemsByPosition(items) {
-      return items.map(function (item, originalIndex) {
-        return { item:item, group:statsPositionGroup(item), originalIndex:originalIndex };
-      }).sort(function (a, b) {
-        return a.group.index !== b.group.index
-          ? a.group.index - b.group.index
-          : a.originalIndex - b.originalIndex;
-      });
-    }
-
     function renderTable(user) {
       var root = document.getElementById("allStatsRoot");
       if (!root) return;
@@ -940,7 +904,6 @@
 
       sortedItems.forEach(function (entry) {
         var item = entry.item;
-        var group = entry.group;
         var nickname = itemNickname(item);
 
         if (statsSortMode !== "alphabet" && entry.meta.key !== previousGroupKey) {
