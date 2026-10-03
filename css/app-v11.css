@@ -2577,3 +2577,277 @@ body{font-size:16px}
     font-size:9px!important;
   }
 }
+
+
+/* Mobile unified data views */
+.google-row-mobile,
+.normative-mobile-list{
+  display:none;
+}
+
+@media(max-width:700px){
+  .mobile-menu-backdrop{
+    position:fixed;
+    inset:0;
+    z-index:90;
+    display:none;
+    background:rgba(0,0,0,.56);
+    backdrop-filter:blur(2px);
+  }
+
+  .mobile-menu-backdrop.open{
+    display:block;
+  }
+
+  .sidebar.open{
+    z-index:100;
+  }
+
+  .top{
+    position:sticky;
+    z-index:110;
+  }
+
+  /* My statistics: one card per field, same order on every date. */
+  .google-row-desktop{
+    display:none!important;
+  }
+
+  .google-row-mobile{
+    display:grid;
+    gap:8px;
+  }
+
+  .mobile-data-card{
+    display:grid;
+    grid-template-columns:minmax(0,42%) minmax(0,1fr);
+    align-items:center;
+    gap:10px;
+    padding:12px 13px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--surface);
+  }
+
+  .mobile-data-label{
+    min-width:0;
+    color:#7e899b;
+    font-size:9px;
+    font-weight:750;
+    line-height:1.35;
+  }
+
+  .mobile-data-value{
+    min-width:0;
+    color:var(--text);
+    font-size:11px;
+    font-weight:700;
+    line-height:1.4;
+    overflow-wrap:anywhere;
+  }
+
+  /* Personal normative history: date -> status -> meta -> decision. */
+  .normative-table-desktop{
+    display:none!important;
+  }
+
+  .normative-mobile-list{
+    display:grid;
+    gap:10px;
+  }
+
+  .normative-mobile-card{
+    padding:13px;
+    border:1px solid var(--line);
+    border-radius:13px;
+    background:var(--surface);
+  }
+
+  .normative-mobile-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:11px;
+  }
+
+  .normative-mobile-index{
+    color:#778297;
+    font-size:9px;
+    font-weight:800;
+  }
+
+  .normative-mobile-meta{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:10px;
+  }
+
+  .normative-mobile-meta>div{
+    min-width:0;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:var(--surface2);
+  }
+
+  .normative-mobile-meta small,
+  .normative-mobile-comment small{
+    display:block;
+    margin-bottom:4px;
+    color:#778297;
+    font-size:8px;
+    font-weight:800;
+    text-transform:uppercase;
+  }
+
+  .normative-mobile-meta b{
+    display:block;
+    color:var(--text);
+    font-size:10px;
+    line-height:1.35;
+  }
+
+  .normative-mobile-comment{
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:var(--surface2);
+  }
+
+  .normative-mobile-comment p{
+    margin:0;
+    color:var(--text);
+    font-size:10px;
+    line-height:1.45;
+    overflow-wrap:anywhere;
+  }
+
+  .normative-mobile-open{
+    width:100%;
+    min-height:38px;
+    margin-top:10px;
+  }
+
+  .date-section{
+    margin-bottom:14px;
+  }
+
+  .date-section-head{
+    align-items:flex-end;
+    margin-bottom:7px;
+    padding:0 1px;
+  }
+
+  .date-section-head h2{
+    font-size:15px;
+    line-height:1.15;
+  }
+
+  .date-section-head span{
+    font-size:9px;
+  }
+
+  .date-section-count{
+    white-space:nowrap;
+  }
+
+  /* Management normative control: same card structure on phones. */
+  #normRoot .table-box{
+    overflow:visible!important;
+  }
+
+  #normRoot .table-box table{
+    min-width:0!important;
+    width:100%!important;
+  }
+
+  #normRoot .table-box thead{
+    display:none!important;
+  }
+
+  #normRoot .table-box tbody,
+  #normRoot .table-box tr,
+  #normRoot .table-box td{
+    display:block!important;
+    width:100%!important;
+  }
+
+  #normRoot .table-box tbody tr{
+    margin-bottom:10px;
+    padding:12px;
+    border:1px solid var(--line);
+    border-radius:13px;
+    background:var(--surface);
+  }
+
+  #normRoot .table-box tbody td{
+    padding:8px 0!important;
+    border:0!important;
+  }
+
+  #normRoot .table-box tbody td:before{
+    display:block;
+    margin-bottom:3px;
+    color:#778297;
+    font-size:8px;
+    font-weight:800;
+    text-transform:uppercase;
+  }
+
+  #normRoot .table-box tbody td:nth-child(1):before{content:"Никнейм"}
+  #normRoot .table-box tbody td:nth-child(2):before{content:"Должность"}
+  #normRoot .table-box tbody td:nth-child(3):before{content:"Дата"}
+  #normRoot .table-box tbody td:nth-child(4):before{content:"Отправлен"}
+  #normRoot .table-box tbody td:nth-child(5):before{content:"Статус"}
+  #normRoot .table-box tbody td:nth-child(6):before{content:"Файлы"}
+  #normRoot .table-box tbody td:nth-child(7):before{content:"Решение"}
+  #normRoot .table-box tbody td:nth-child(8):before{content:"Действие"}
+
+  #normRoot .table-box tbody td:nth-child(8) .small-button{
+    width:100%;
+    margin-top:2px;
+  }
+}
+
+@media(max-width:480px){
+  .mobile-data-card{
+    grid-template-columns:1fr;
+    gap:4px;
+  }
+
+  .normative-mobile-meta{
+    grid-template-columns:1fr;
+  }
+
+  .normative-mobile-top{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .date-section-head{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:2px;
+  }
+
+  .date-section-count{
+    align-self:flex-start;
+  }
+}
+
+/* Mobile menu safety: the sidebar is above the overlay, the content is below it. */
+@media(max-width:800px){
+  .mobile-menu-backdrop{
+    display:none;
+  }
+
+  .mobile-menu-backdrop.open{
+    display:block;
+  }
+
+  body{
+    overflow-x:hidden;
+  }
+}
