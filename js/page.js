@@ -915,8 +915,14 @@
       var dateInput = document.getElementById("allStatsDate");
       if (!root) return Promise.resolve();
 
-      if (dateInput && dateInput.value) {
-        selectedDate = dateInput.value;
+      if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(String(dateInput.value || ""))) {
+        selectedDate = String(dateInput.value);
+      }
+
+      // Дата из верхнего календаря — единственный источник даты запроса.
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(selectedDate || ""))) {
+        selectedDate = dateIso(0);
+        if (dateInput) dateInput.value = selectedDate;
       }
 
       var cache = readStatsCache();
