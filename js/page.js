@@ -1361,7 +1361,7 @@
 
         (isManagement
           ? '<section class="box settings-card settings-google-card">' +
-              '<div class="settings-card-head"><div><small>GOOGLE APPS SCRIPT</small><h2>Web app URL</h2></div><span>Адрес веб-развёртывания</span></div>' +
+              '<div class="settings-card-head"><div><small>GOOGLE APPS SCRIPT</small><h2>Web app URL</h2></div><span>Адрес активного веб-развёртывания Google Apps Script</span></div>' +
               '<form id="googleUrlSettingsForm">' +
                 '<div class="form-field"><label>URL Web app</label><input id="googleWebAppUrl" class="form-input settings-google-url-locked" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" value="' + E(lastSettings.web_app_url || "") + '" disabled></div>' +
                 '<p class="settings-hint">Сохранённый URL отображается только для просмотра. Нажмите «Заменить URL», чтобы разблокировать поле. После изменения нажмите «Сохранить».</p>' +
