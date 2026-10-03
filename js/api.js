@@ -648,7 +648,9 @@
                         action:
                             "all_statistics",
                         date:
-                            date || ""
+                            String(date || "").trim(),
+                        selected_date:
+                            String(date || "").trim()
                     },
                     token
                 );
