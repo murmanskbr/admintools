@@ -458,8 +458,34 @@
       var googleHeaders = googleStatisticsColumns(lastData);
       var googleCount = googleHeaders.length;
 
+      var nicknameIndex = -1;
+      for (var headerIndex = 0; headerIndex < googleHeaders.length; headerIndex += 1) {
+        if (isGoogleNicknameHeader(googleHeaders[headerIndex])) {
+          nicknameIndex = headerIndex;
+          break;
+        }
+      }
+
+      function rowNickname(item) {
+        var direct = String(
+          valueOf(item, "nickname") ||
+          item.nickname ||
+          ""
+        ).trim();
+
+        if (direct) return direct;
+
+        var raw = googleStatisticsRaw(item, googleCount);
+
+        if (nicknameIndex >= 0 && raw[nicknameIndex] != null) {
+          return String(raw[nicknameIndex]).trim();
+        }
+
+        return "";
+      }
+
       var rows = lastData.map(function (item) {
-        var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
+        var nickname = rowNickname(item);
         if (!nickname || isStatsColumnHeader(item)) return "";
         if (isStatsSectionRow(item)) {
           return '<tr class="stats-section-row"><td colspan="' + (googleCount + 2) + '"><b>' + E(nickname) + '</b></td></tr>';
@@ -485,7 +511,7 @@
       }).filter(Boolean).join("");
 
       var realRows = lastData.filter(function (item) {
-        var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
+        var nickname = rowNickname(item);
         return nickname && !isStatsColumnHeader(item) && !isStatsSectionRow(item);
       }).length;
 
