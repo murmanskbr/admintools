@@ -1232,3 +1232,131 @@ body{font-size:16px}
     right:145px!important;
   }
 }
+
+
+/* Statistics table — unified row surface and sticky columns */
+#allStatsRoot #allStatsTable{
+  border-collapse:separate!important;
+  border-spacing:0!important;
+}
+
+#allStatsRoot #allStatsTable tbody tr{
+  background:var(--surface)!important;
+}
+
+#allStatsRoot #allStatsTable tbody tr:nth-child(even){
+  background:#11151d!important;
+}
+
+#allStatsRoot #allStatsTable tbody tr:hover{
+  background:#171c26!important;
+}
+
+#allStatsRoot #allStatsTable tbody tr > td{
+  background:transparent!important;
+  transition:background .12s ease;
+}
+
+#allStatsRoot #allStatsTable tbody tr:hover > td{
+  background:transparent!important;
+}
+
+/* The sticky cells are part of the same row surface. */
+#allStatsRoot #allStatsTable tbody .stats-nickname-sticky,
+#allStatsRoot #allStatsTable tbody .stats-norm-sticky,
+#allStatsRoot #allStatsTable tbody .stats-actions-sticky{
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+#allStatsRoot #allStatsTable thead .stats-nickname-sticky,
+#allStatsRoot #allStatsTable thead .stats-norm-sticky,
+#allStatsRoot #allStatsTable thead .stats-actions-sticky{
+  background:var(--surface3)!important;
+  box-shadow:none!important;
+}
+
+/* Keep the visible row continuous while preserving sticky edges. */
+#allStatsRoot #allStatsTable .stats-nickname-sticky{
+  left:0!important;
+  z-index:20!important;
+}
+
+#allStatsRoot #allStatsTable .stats-norm-sticky{
+  right:160px!important;
+  z-index:20!important;
+}
+
+#allStatsRoot #allStatsTable .stats-actions-sticky{
+  right:0!important;
+  z-index:22!important;
+}
+
+/* Action menu is anchored to the three-dots cell and never changes
+   the width/position of the row. */
+#allStatsRoot #allStatsTable .stats-actions-sticky .admin-menu-wrap{
+  position:relative!important;
+  display:flex!important;
+  justify-content:flex-end!important;
+  align-items:center!important;
+  width:100%!important;
+}
+
+#allStatsRoot #allStatsTable .stats-actions-sticky .admin-row-menu{
+  top:40px!important;
+  right:0!important;
+  z-index:100!important;
+  min-width:150px!important;
+}
+
+#allStatsRoot #allStatsTable .stats-actions-sticky .admin-menu-trigger{
+  position:relative!important;
+  z-index:101!important;
+}
+
+/* Visual selection/hover: the entire row reacts together. */
+#allStatsRoot #allStatsTable tbody tr:has(.stats-nickname-sticky:hover),
+#allStatsRoot #allStatsTable tbody tr:has(.stats-norm-sticky:hover),
+#allStatsRoot #allStatsTable tbody tr:has(.stats-actions-sticky:hover){
+  background:#1a202b!important;
+}
+
+#allStatsRoot #allStatsTable tbody tr:has(.stats-nickname-sticky:hover) > td,
+#allStatsRoot #allStatsTable tbody tr:has(.stats-norm-sticky:hover) > td,
+#allStatsRoot #allStatsTable tbody tr:has(.stats-actions-sticky:hover) > td{
+  background:transparent!important;
+}
+
+/* Light theme */
+.theme-light #allStatsRoot #allStatsTable tbody tr{
+  background:#fff!important;
+}
+
+.theme-light #allStatsRoot #allStatsTable tbody tr:nth-child(even){
+  background:#fafbfd!important;
+}
+
+.theme-light #allStatsRoot #allStatsTable tbody tr:hover,
+.theme-light #allStatsRoot #allStatsTable tbody tr:has(.stats-nickname-sticky:hover),
+.theme-light #allStatsRoot #allStatsTable tbody tr:has(.stats-norm-sticky:hover),
+.theme-light #allStatsRoot #allStatsTable tbody tr:has(.stats-actions-sticky:hover){
+  background:#f1f4f7!important;
+}
+
+.theme-light #allStatsRoot #allStatsTable tbody .stats-nickname-sticky,
+.theme-light #allStatsRoot #allStatsTable tbody .stats-norm-sticky,
+.theme-light #allStatsRoot #allStatsTable tbody .stats-actions-sticky{
+  background:transparent!important;
+}
+
+@media(max-width:900px){
+  #allStatsRoot #allStatsTable .stats-norm-sticky{
+    right:150px!important;
+  }
+}
+
+@media(max-width:520px){
+  #allStatsRoot #allStatsTable .stats-norm-sticky{
+    right:145px!important;
+  }
+}
