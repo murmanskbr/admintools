@@ -1416,7 +1416,7 @@ body{font-size:16px}
   line-height:1.35;
 }
 
-/* Column proportions. Action controls keep the highest priority. */
+/* 11 data columns + 2 control columns = 100%. */
 #allStatsRoot #allStatsTable th:nth-child(1),
 #allStatsRoot #allStatsTable td:nth-child(1){width:11%}
 #allStatsRoot #allStatsTable th:nth-child(2),
@@ -1439,32 +1439,28 @@ body{font-size:16px}
 #allStatsRoot #allStatsTable td:nth-child(10){width:5%}
 #allStatsRoot #allStatsTable th:nth-child(11),
 #allStatsRoot #allStatsTable td:nth-child(11){width:8%}
+
+/* Control columns keep priority and remain visible while the page scrolls. */
 #allStatsRoot #allStatsTable th:nth-child(12),
 #allStatsRoot #allStatsTable td:nth-child(12){
-  width:14%;
+  width:12%;
   position:sticky!important;
-  right:160px!important;
+  right:10%!important;
+  z-index:45!important;
 }
+
 #allStatsRoot #allStatsTable th:nth-child(13),
 #allStatsRoot #allStatsTable td:nth-child(13){
-  width:8%;
+  width:10%;
   position:sticky!important;
   right:0!important;
-  z-index:40!important;
+  z-index:50!important;
 }
 
-#allStatsRoot #allStatsTable td:nth-child(12),
-#allStatsRoot #allStatsTable td:nth-child(13),
-#allStatsRoot #allStatsTable th:nth-child(12),
-#allStatsRoot #allStatsTable th:nth-child(13){
-  background:inherit!important;
-}
-
-#allStatsRoot #allStatsTable tbody tr:hover td:nth-child(12),
-#allStatsRoot #allStatsTable tbody tr:hover td:nth-child(13),
-#allStatsRoot #allStatsTable tbody tr.stats-row-selected td:nth-child(12),
-#allStatsRoot #allStatsTable tbody tr.stats-row-selected td:nth-child(13){
-  background:inherit!important;
+#allStatsRoot #allStatsTable .stats-norm-cell{
+  width:12%!important;
+  min-width:0!important;
+  max-width:none!important;
 }
 
 #allStatsRoot #allStatsTable .stats-norm-actions{
@@ -1476,32 +1472,34 @@ body{font-size:16px}
 }
 
 #allStatsRoot #allStatsTable .normative-icon-button{
-  flex:0 0 30px!important;
-  width:30px!important;
-  min-width:30px!important;
-  max-width:30px!important;
-  height:30px!important;
+  flex:0 0 29px!important;
+  width:29px!important;
+  min-width:29px!important;
+  max-width:29px!important;
+  height:29px!important;
 }
 
 #allStatsRoot #allStatsTable .stats-actions-sticky{
-  width:8%!important;
+  width:10%!important;
   min-width:0!important;
   max-width:none!important;
-  padding:8px 8px!important;
+  padding:8px 7px!important;
 }
 
 #allStatsRoot #allStatsTable .stats-actions-sticky .admin-menu-wrap{
+  position:relative!important;
   width:100%!important;
   display:flex!important;
+  align-items:center!important;
   justify-content:flex-end!important;
 }
 
 #allStatsRoot #allStatsTable .stats-actions-sticky .admin-row-menu{
-  position:fixed!important;
-  right:18px!important;
-  top:auto!important;
+  position:absolute!important;
+  right:0!important;
+  top:40px!important;
   z-index:1000!important;
-  min-width:145px!important;
+  min-width:150px!important;
 }
 
 #allStatsRoot #allStatsTable .stats-actions-sticky .admin-menu-trigger{
@@ -1510,7 +1508,7 @@ body{font-size:16px}
   flex:0 0 34px!important;
 }
 
-/* Keep rows continuous visually, including sticky cells. */
+/* One continuous row surface. */
 #allStatsRoot #allStatsTable tbody tr > td{
   background:transparent!important;
 }
@@ -1540,7 +1538,7 @@ body{font-size:16px}
 
   #allStatsRoot #allStatsTable th,
   #allStatsRoot #allStatsTable td{
-    padding:8px 7px!important;
+    padding:8px 6px!important;
   }
 
   #allStatsRoot #allStatsTable .normative-icon-button{
@@ -1558,23 +1556,25 @@ body{font-size:16px}
 
   #allStatsRoot #allStatsTable th,
   #allStatsRoot #allStatsTable td{
-    padding:7px 5px!important;
+    padding:7px 4px!important;
   }
 
   #allStatsRoot #allStatsTable th:nth-child(12),
   #allStatsRoot #allStatsTable td:nth-child(12){
-    right:8%!important;
+    right:12%!important;
   }
 
   #allStatsRoot #allStatsTable th:nth-child(13),
   #allStatsRoot #allStatsTable td:nth-child(13){
-    width:10%;
+    width:12%!important;
+  }
+
+  #allStatsRoot #allStatsTable .stats-norm-cell{
+    width:12%!important;
   }
 
   #allStatsRoot #allStatsTable .stats-actions-sticky{
-    width:10%!important;
-    padding-left:5px!important;
-    padding-right:5px!important;
+    width:12%!important;
   }
 
   #allStatsRoot #allStatsTable .normative-icon-button{
@@ -1583,10 +1583,6 @@ body{font-size:16px}
     min-width:25px!important;
     height:25px!important;
     font-size:11px;
-  }
-
-  #allStatsRoot #allStatsTable .stats-norm-actions{
-    gap:3px!important;
   }
 }
 
@@ -1598,6 +1594,25 @@ body{font-size:16px}
   #allStatsRoot #allStatsTable th,
   #allStatsRoot #allStatsTable td{
     padding:6px 3px!important;
+  }
+
+  #allStatsRoot #allStatsTable th:nth-child(12),
+  #allStatsRoot #allStatsTable td:nth-child(12){
+    right:14%!important;
+    width:14%!important;
+  }
+
+  #allStatsRoot #allStatsTable th:nth-child(13),
+  #allStatsRoot #allStatsTable td:nth-child(13){
+    width:14%!important;
+  }
+
+  #allStatsRoot #allStatsTable .stats-norm-cell{
+    width:14%!important;
+  }
+
+  #allStatsRoot #allStatsTable .stats-actions-sticky{
+    width:14%!important;
   }
 
   #allStatsRoot #allStatsTable .normative-icon-button{
