@@ -90,9 +90,46 @@
     ["Последнее повышение", "last_promotion"]
   ];
 
+  function formatStatisticsCellValue(headerOrKey, value) {
+    if (value == null || value === "") return "—";
+
+    var key = String(headerOrKey == null ? "" : headerOrKey)
+      .trim()
+      .toLowerCase()
+      .replace(/ё/g, "е")
+      .replace(/\s+/g, " ");
+
+    var isDayOnly =
+      key === "last_promotion" ||
+      key === "последнее повышение" ||
+      key === "дата заполнения" ||
+      key === "дата";
+
+    if (isDayOnly) {
+      var text = String(value).trim();
+
+      var iso = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:t|\s|$)/i);
+      if (iso) {
+        return String(Number(iso[3]));
+      }
+
+      var dmy = text.match(/^(\d{1,2})[.\-/]\d{1,2}[.\-/]\d{4}/);
+      if (dmy) {
+        return String(Number(dmy[1]));
+      }
+
+      var numeric = Number(text);
+      if (Number.isFinite(numeric)) {
+        return String(Math.trunc(numeric));
+      }
+    }
+
+    return value;
+  }
+
   function statCards(values) {
     return STAT_FIELDS.map(function (field) {
-      var value = values[field[1]];
+      var value = formatStatisticsCellValue(field[1], values[field[1]]);
       return '<div class="card"><small>' + E(field[0]) + '</small><b>' +
         E(value == null || value === "" ? "—" : value) + '</b></div>';
     }).join("");
@@ -714,7 +751,11 @@
         var status = norm.status || "not_submitted";
         var raw = googleStatisticsRaw(item, googleCount);
         var valuesCells = googleHeaders.map(function (header, index) {
-          var value = displayValue(raw[index]);
+          var value = formatStatisticsCellValue(
+            normalizeHeaderKey(header),
+            raw[index]
+          );
+
           var cellClass = index === nicknameIndex ? "stats-nickname-sticky" : "";
           return '<td class="' + cellClass + '">' +
             (isGoogleNicknameHeader(header) ? '<b>' + E(value) + '</b>' : E(value)) +
