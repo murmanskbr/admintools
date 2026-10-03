@@ -927,11 +927,12 @@
       return 0;
     }
 
-    function statsPositionMeta(title) {
+    function statsPositionMeta(title, order) {
       var value = String(title == null ? "" : title).trim();
       return {
         key: normalizeStatsPosition(value) || "__other__",
         title: value || "Другие",
+        order: Number.isFinite(order) ? order : 0,
         score: statsGroupScore(value)
       };
     }
@@ -939,12 +940,23 @@
     function buildStatsEntries(items) {
       var entries = [];
       var currentGroup = null;
+      var groupOrders = Object.create(null);
+      var nextGroupOrder = 0;
+
+      function getGroup(title) {
+        var key = normalizeStatsPosition(title) || "__other__";
+        if (groupOrders[key] == null) {
+          groupOrders[key] = nextGroupOrder;
+          nextGroupOrder += 1;
+        }
+        return statsPositionMeta(title, groupOrders[key]);
+      }
 
       items.forEach(function (item, originalIndex) {
         var headerTitle = statsGroupTitleFromRow(item);
 
         if (headerTitle) {
-          currentGroup = statsPositionMeta(headerTitle);
+          currentGroup = getGroup(headerTitle);
           return;
         }
 
@@ -954,7 +966,7 @@
         // Если в таблице нет отдельного заголовка группы, используем
         // фактическое название должности из строки как запасной вариант.
         if (!group && positionTitle) {
-          group = statsPositionMeta(positionTitle);
+          group = getGroup(positionTitle);
         }
 
         // Строки без должности и без категории не показываем.
@@ -990,23 +1002,25 @@
           result = compareStatsText(statsName(a.item), statsName(b.item));
         } else if (statsSortMode === "position") {
           result = compareStatsText(a.meta.title, b.meta.title);
-          if (result === 0) result = compareStatsText(statsName(a.item), statsName(b.item));
+          if (result === 0) result = a.originalIndex - b.originalIndex;
         } else {
-          result = b.meta.score - a.meta.score;
-          if (result === 0) result = compareStatsText(a.meta.title, b.meta.title);
-          if (result === 0) result = compareStatsText(statsName(a.item), statsName(b.item));
+          // По умолчанию сохраняем точный порядок Google Таблицы:
+          // сначала группа, которая пришла первой, затем следующая,
+          // а внутри группы — исходный порядок строк.
+          result = a.meta.order - b.meta.order;
+          if (result === 0) result = a.originalIndex - b.originalIndex;
         }
 
-        return result === 0 ? a.originalIndex - b.originalIndex : result;
+        return result;
       });
     }
 
     function statsSortLabel() {
       return {
-        seniority: "По старшинству",
+        seniority: "По порядку таблицы",
         alphabet: "По алфавиту",
         position: "По должности"
-      }[statsSortMode] || "По старшинству";
+      }[statsSortMode] || "По порядку таблицы";
     }
 
     function statDisplayValue(item, key) {
@@ -1116,7 +1130,7 @@
             '<small>ПОЛНАЯ СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
             '<b>' + E(String(sortedItems.length)) + ' сотрудников</b>' +
           '</div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
-          '<div class="admins-source-row"><span>Сортировка: ' + E(statsSortLabel()) + ' • должности берутся из Google Таблицы</span><span>Источник: Google Таблица</span></div>' +
+          '<div class="admins-source-row"><span>Сортировка: ' + E(statsSortLabel()) + ' • порядок групп берётся из Google Таблицы</span><span>Источник: Google Таблица</span></div>' +
           '<table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
@@ -1287,7 +1301,7 @@
         return '<div class="page-toolbar stats-all-toolbar">' +
           '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Состояние администрации и норматив за выбранную дату</b></div>' +
           '<div class="stats-toolbar-actions">' +
-            '<label class="stats-sort-wrap"><span class="stats-sort-label">Сортировка</span><select id="statsSortMode" class="form-select stats-sort-select"><option value="seniority">По старшинству</option><option value="alphabet">По алфавиту</option><option value="position">По должности</option></select></label>' +
+            '<label class="stats-sort-wrap"><span class="stats-sort-label">Сортировка</span><select id="statsSortMode" class="form-select stats-sort-select"><option value="seniority">По порядку таблицы</option><option value="alphabet">По алфавиту</option><option value="position">По должности</option></select></label>' +
             '<button class="small-button" id="statsDatePrev" type="button">←</button>' +
             '<input id="allStatsDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
             '<button class="small-button" id="statsDateNext" type="button">→</button>' +
