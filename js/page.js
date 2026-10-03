@@ -608,10 +608,6 @@
 
       if (!rows) rows = '<tr><td colspan="' + (googleCount + 2) + '" class="table-empty">Данных администрации нет.</td></tr>';
 
-      var nicknameIndex = googleHeaders.findIndex(function (header) {
-        return isGoogleNicknameHeader(header);
-      });
-
       var headerCells = googleHeaders.map(function (header, index) {
         var classes = index === nicknameIndex ? "stats-nickname-sticky" : "";
         return '<th class="' + classes + '">' + E(russianAdminHeader(header)) + '</th>';
