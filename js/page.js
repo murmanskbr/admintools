@@ -91,13 +91,35 @@
   ];
 
   function formatStatisticsCellValue(headerOrKey, value) {
-    if (value == null || value === "") return "—";
-
     var key = String(headerOrKey == null ? "" : headerOrKey)
       .trim()
       .toLowerCase()
       .replace(/ё/g, "е")
       .replace(/\s+/g, " ");
+
+    if (key === "post_days" || key === "дни на посте" || key === "дни на посту" || key === "inactives" || key === "неактивы") {
+      var counterRaw = String(value == null ? "" : value).trim();
+
+      if (!counterRaw) return "0/14";
+
+      if (/^неактив$/i.test(counterRaw)) {
+        return key === "inactives" || key === "неактивы" ? "1/14" : "0/14";
+      }
+
+      var counterRatio = counterRaw.match(/(-?\d+)\s*\/\s*(\d+)/);
+      if (counterRatio) {
+        return String(Number(counterRatio[1])) + "/" + String(Number(counterRatio[2]) || 14);
+      }
+
+      var counterNumber = counterRaw.match(/-?\d+/);
+      if (counterNumber) {
+        return String(Number(counterNumber[0])) + "/14";
+      }
+
+      return "0/14";
+    }
+
+    if (value == null || value === "") return "—";
 
     var isDateField =
       key === "last_promotion" ||
