@@ -352,6 +352,7 @@
     var selectedDate = dateIso(0);
     var lastData = [];
     var lastNormatives = [];
+    var lastMarks = [];
 
     var EDIT_FIELDS = [
       ["Никнейм", "nickname", "text"],
@@ -378,9 +379,17 @@
 
     function normMap() {
       var map = {};
+
       lastNormatives.forEach(function (item) {
-        map[String(item.nickname || "").trim().toLowerCase()] = item;
+        var nickname = String(item.nickname || "").trim().toLowerCase();
+        if (nickname) map[nickname] = item;
       });
+
+      lastMarks.forEach(function (item) {
+        var nickname = String(item.nickname || "").trim().toLowerCase();
+        if (nickname) map[nickname] = item;
+      });
+
       return map;
     }
 
@@ -430,23 +439,81 @@
         "❌ Не удалось сохранить норматив.";
     }
 
-    function isStatsColumnHeader(item) {
-      var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim().toLowerCase();
-      var position = String(valueOf(item, "position") || item.position || "").trim().toLowerCase();
+    function itemNickname(item) {
+      var direct = String(
+        valueOf(item, "nickname") ||
+        item.nickname ||
+        ""
+      ).trim();
 
-      if (nickname === "никнейм" || nickname === "nickname" || nickname === "nick") return true;
-      return nickname === "ник" && position === "должность";
+      if (direct) {
+        return direct;
+      }
+
+      var values = item && item.values ? item.values : {};
+      var headers = Array.isArray(values.headers) ? values.headers : [];
+      var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
+
+      for (var i = 0; i < headers.length; i += 1) {
+        if (isGoogleNicknameHeader(headers[i])) {
+          return String(raw[i] == null ? "" : raw[i]).trim();
+        }
+      }
+
+      return "";
+    }
+
+    function isStatsColumnHeader(item) {
+      var nickname = itemNickname(item).toLowerCase();
+
+      var values = item && item.values ? item.values : {};
+      var headers = Array.isArray(values.headers) ? values.headers : [];
+      var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
+      var position = "";
+
+      for (var i = 0; i < headers.length; i += 1) {
+        if (String(headers[i] || "").trim().toLowerCase() === "должность") {
+          position = String(raw[i] == null ? "" : raw[i]).trim().toLowerCase();
+          break;
+        }
+      }
+
+      return (
+        nickname === "никнейм" ||
+        nickname === "nickname" ||
+        nickname === "nick" ||
+        (nickname === "ник" && position === "должность")
+      );
     }
 
     function isStatsSectionRow(item) {
-      var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
-      if (!nickname || nickname.length < 3 || isStatsColumnHeader(item)) return false;
+      var nickname = itemNickname(item);
 
-      var otherKeys = ["position","levels","activity_points","points","last_promotion","age","pc_access","inactives","strikes","warnings"];
-      var hasOtherData = otherKeys.some(function (key) {
-        var value = valueOf(item, key);
-        return value != null && String(value).trim() !== "";
-      });
+      if (!nickname || nickname.length < 3 || isStatsColumnHeader(item)) {
+        return false;
+      }
+
+      var values = item && item.values ? item.values : {};
+      var headers = Array.isArray(values.headers) ? values.headers : [];
+      var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
+      var nicknameIndex = -1;
+
+      for (var i = 0; i < headers.length; i += 1) {
+        if (isGoogleNicknameHeader(headers[i])) {
+          nicknameIndex = i;
+          break;
+        }
+      }
+
+      var hasOtherData = false;
+
+      for (var j = 0; j < raw.length; j += 1) {
+        if (j === nicknameIndex) continue;
+        if (String(raw[j] == null ? "" : raw[j]).trim() !== "") {
+          hasOtherData = true;
+          break;
+        }
+      }
 
       return !hasOtherData && nickname === nickname.toUpperCase();
     }
@@ -474,6 +541,7 @@
         var normativesResult = results[1] || {};
         lastData = Array.isArray(statisticsResult.statistics) ? statisticsResult.statistics : [];
         lastNormatives = Array.isArray(normativesResult.administrators) ? normativesResult.administrators : [];
+        lastMarks = Array.isArray(normativesResult.marks) ? normativesResult.marks : [];
 
         renderTable(user);
       }).catch(function (error) {
@@ -504,21 +572,7 @@
       }
 
       function rowNickname(item) {
-        var direct = String(
-          valueOf(item, "nickname") ||
-          item.nickname ||
-          ""
-        ).trim();
-
-        if (direct) return direct;
-
-        var raw = googleStatisticsRaw(item, googleCount);
-
-        if (nicknameIndex >= 0 && raw[nicknameIndex] != null) {
-          return String(raw[nicknameIndex]).trim();
-        }
-
-        return "";
+        return itemNickname(item);
       }
 
       var rows = lastData.map(function (item) {
