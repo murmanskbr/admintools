@@ -603,7 +603,7 @@
   }
 
   function allStatistics(user) {
-    var STATS_CACHE_KEY = "br_all_stats_cache_v1";
+    var STATS_CACHE_KEY = "br_all_stats_cache_v2";
 
     function readStatsCache() {
       try {
@@ -1197,14 +1197,11 @@
       if (key === "nickname") return itemNickname(item) || "—";
       if (key === "normative") {
         var googleStatus = googleNormativeStatus(item);
-
-        if (googleStatus.present) {
-          return normativeStatus(googleStatus.status || "not_submitted");
-        }
-
-        var nickname = itemNickname(item);
-        var map = normMap();
-        return normativeStatus((map[nickname.toLowerCase()] || {}).status || "not_submitted");
+        return normativeStatus(
+          googleStatus.present
+            ? (googleStatus.status || "not_submitted")
+            : "not_submitted"
+        );
       }
 
       var value = valueOf(item, key);
@@ -1253,8 +1250,6 @@
       var columnCount = STATS_DISPLAY_COLUMNS.length + 2;
       var groupedRows = [];
       var previousGroupKey = null;
-      var norms = normMap();
-
       sortedItems.forEach(function (entry) {
         var item = entry.item;
         var nickname = itemNickname(item);
@@ -1273,7 +1268,7 @@
         var googleStatus = googleNormativeStatus(item);
         var status = googleStatus.present
           ? (googleStatus.status || "not_submitted")
-          : ((norms[nickname.toLowerCase()] || {}).status || "not_submitted");
+          : "not_submitted";
 
         var cells = STATS_DISPLAY_COLUMNS.map(function (column) {
           var key = column[0];
