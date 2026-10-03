@@ -451,9 +451,73 @@
     };
   }
 
-  function allStatistics() {
-    var selectedDate = dateIso(0);
-    var statsSortMode = "seniority";
+  function allStatistics(user) {
+    var STATS_CACHE_KEY = "br_all_stats_cache_v1";
+
+    function readStatsCache() {
+      try {
+        var raw = sessionStorage.getItem(STATS_CACHE_KEY);
+        if (!raw) return null;
+
+        var cache = JSON.parse(raw);
+        return cache && typeof cache === "object" ? cache : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function writeStatsCache(cache) {
+      try {
+        sessionStorage.setItem(STATS_CACHE_KEY, JSON.stringify(cache));
+      } catch (_) {
+        // Кэш необязателен: при переполненном sessionStorage просто
+        // продолжаем работать с обычной загрузкой данных.
+      }
+    }
+
+    function clearStatsDateCache(date) {
+      var cache = readStatsCache();
+      if (!cache) return;
+
+      if (cache.dates && typeof cache.dates === "object") {
+        delete cache.dates[String(date || "")];
+      }
+
+      writeStatsCache(cache);
+    }
+
+    function saveStatsCache(date, statistics, normatives, marks) {
+      var cache = readStatsCache() || {};
+      cache.version = 1;
+      cache.nickname = String(user && user.nickname || "");
+      cache.selectedDate = date;
+      cache.sortMode = statsSortMode;
+      cache.statistics = Array.isArray(statistics) ? statistics : [];
+      cache.dates = cache.dates && typeof cache.dates === "object" ? cache.dates : {};
+      cache.dates[date] = {
+        normatives: Array.isArray(normatives) ? normatives : [],
+        marks: Array.isArray(marks) ? marks : []
+      };
+
+      writeStatsCache(cache);
+    }
+
+    var initialCache = readStatsCache();
+    var sameUserCache =
+      initialCache &&
+      String(initialCache.nickname || "").toLowerCase() ===
+        String(user && user.nickname || "").toLowerCase();
+
+    var selectedDate =
+      sameUserCache && initialCache.selectedDate
+        ? String(initialCache.selectedDate)
+        : dateIso(0);
+
+    var statsSortMode =
+      sameUserCache && ["seniority", "alphabet", "position"].indexOf(initialCache.sortMode) !== -1
+        ? initialCache.sortMode
+        : "seniority";
+
     var lastData = [];
     var lastNormatives = [];
     var lastMarks = [];
@@ -701,7 +765,7 @@
       return !hasOtherData && nickname === nickname.toUpperCase();
     }
 
-    function load(user) {
+    function load(user, forceRefresh) {
       var root = document.getElementById("allStatsRoot");
       var refresh = document.getElementById("allStatsRefresh");
       var dateInput = document.getElementById("allStatsDate");
@@ -711,9 +775,28 @@
         selectedDate = dateInput.value;
       }
 
+      var cache = readStatsCache();
+      var cacheMatchesUser =
+        cache &&
+        String(cache.nickname || "").toLowerCase() ===
+          String(user && user.nickname || "").toLowerCase();
+
+      var cachedDate =
+        cacheMatchesUser &&
+        cache.dates &&
+        cache.dates[selectedDate];
+
+      if (!forceRefresh && cacheMatchesUser && Array.isArray(cache.statistics) && cachedDate) {
+        lastData = cache.statistics;
+        lastNormatives = Array.isArray(cachedDate.normatives) ? cachedDate.normatives : [];
+        lastMarks = Array.isArray(cachedDate.marks) ? cachedDate.marks : [];
+        renderTable(user);
+        return Promise.resolve();
+      }
+
       if (refresh) {
         refresh.disabled = true;
-        refresh.textContent = "Загрузка…";
+        refresh.textContent = forceRefresh ? "Обновление…" : "Загрузка…";
       }
 
       return Promise.all([
@@ -725,6 +808,13 @@
         lastData = Array.isArray(statisticsResult.statistics) ? statisticsResult.statistics : [];
         lastNormatives = Array.isArray(normativesResult.administrators) ? normativesResult.administrators : [];
         lastMarks = Array.isArray(normativesResult.marks) ? normativesResult.marks : [];
+
+        saveStatsCache(
+          selectedDate,
+          lastData,
+          lastNormatives,
+          lastMarks
+        );
 
         renderTable(user);
       }).catch(function (error) {
@@ -1001,6 +1091,7 @@
               "✅ " + label + " проставлена для " + nickname + " за " + formatDateOnly(selectedDate) + cellText + postDaysText,
               "success"
             );
+            clearStatsDateCache(selectedDate);
             await load(user);
           } catch (error) {
             showNormativeResult(normativeErrorMessage(error), "error");
@@ -1116,7 +1207,8 @@
             changes
           );
           close();
-          await load(user);
+          clearStatsDateCache(selectedDate);
+          await load(user, true);
         } catch (error) {
           alert(error.message || "Не удалось сохранить изменения администратора.");
           if (saveButton) {
@@ -1171,7 +1263,7 @@
         if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
         if (next) next.onclick = function () { setDate(dateIso(1)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
-        if (refresh) refresh.onclick = function () { load(user); };
+        if (refresh) refresh.onclick = function () { load(user, true); };
 
         document.addEventListener("click", function () {
           closeMenus();
