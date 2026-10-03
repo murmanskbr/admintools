@@ -394,8 +394,35 @@
     }
 
     function valueOf(item, key) {
-      var values = item && item.values ? item.values : {};
-      return values[key] != null ? values[key] : "";
+      if (!item) return "";
+
+      if (item[key] != null && item[key] !== "") {
+        return item[key];
+      }
+
+      var values = item.values || {};
+
+      if (values[key] != null && values[key] !== "") {
+        return values[key];
+      }
+
+      var headers = Array.isArray(values.headers)
+        ? values.headers
+        : [];
+
+      var raw = Array.isArray(values.raw_row)
+        ? values.raw_row
+        : [];
+
+      for (var i = 0; i < headers.length; i += 1) {
+        var mappedKey = normalizeHeaderKey(headers[i]);
+
+        if (mappedKey === key) {
+          return raw[i] != null ? raw[i] : "";
+        }
+      }
+
+      return "";
     }
 
     function displayValue(value) {
@@ -678,7 +705,7 @@
         button.onclick = function () {
           var nickname = button.dataset.editAdmin || "";
           var item = lastData.find(function (entry) {
-            return String(valueOf(entry, "nickname") || entry.nickname || "").trim().toLowerCase() === nickname.toLowerCase();
+            return itemNickname(entry).trim().toLowerCase() === nickname.toLowerCase();
           });
           closeMenus();
           openEditModal(user, item || {values:{nickname:nickname}});
@@ -696,7 +723,13 @@
       var root = document.getElementById("adminEditModal");
       if (!root) return;
 
-      var nickname = String(valueOf(item, "nickname") || item.nickname || "").trim();
+      var nickname = itemNickname(item).trim();
+
+      if (!nickname) {
+        alert("Не удалось определить выбранного администратора.");
+        return;
+      }
+
       var formFields = EDIT_FIELDS.map(function (field) {
         var value = valueOf(item, field[1]);
 
@@ -717,7 +750,7 @@
         '<div class="modal-backdrop" id="adminEditBackdrop">' +
           '<div class="modal-card admin-edit-card">' +
             '<div class="modal-head">' +
-              '<div><small>РЕДАКТИРОВАНИЕ АДМИНИСТРАТОРА</small><h2>' + E(nickname || "Администратор") + '</h2></div>' +
+              '<div class="admin-edit-title"><small>РЕДАКТИРОВАНИЕ АДМИНИСТРАТОРА</small><h2>' + E(nickname || "Администратор") + '</h2><span>Данные из Google Sheets</span></div>' +
               '<button class="modal-close" id="adminEditClose" type="button">×</button>' +
             '</div>' +
             '<form id="adminEditForm">' +
