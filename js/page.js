@@ -262,6 +262,139 @@
     return ["никнейм","ник","nickname","nick","логин","login"].indexOf(value) !== -1;
   }
 
+  function normalizeAdminRosterText(value) {
+    return String(value == null ? "" : value)
+      .trim()
+      .toLowerCase()
+      .replace(/ё/g, "е")
+      .replace(/[._-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // Названия разделов Google Таблицы никогда не являются никнеймами.
+  // Фильтр используется во всех местах, где из таблицы строятся списки администрации.
+  function isAdminCategoryLabel(value) {
+    var text = normalizeAdminRosterText(value);
+    if (!text) return false;
+
+    var compact = text.replace(/[^a-zа-я0-9]/gi, "");
+
+    var exact = [
+      "администратор",
+      "администраторы",
+      "старший администратор",
+      "старшие администраторы",
+      "модератор",
+      "модераторы",
+      "старший модератор",
+      "старшие модераторы",
+      "младший модератор",
+      "младшие модераторы",
+      "следящий",
+      "следящие",
+      "старший следящий",
+      "старшие следящие",
+      "старшие следящие за ап",
+      "следящие за ап",
+      "руководство",
+      "куратор",
+      "кураторы",
+      "управление"
+    ];
+
+    if (exact.indexOf(text) !== -1) return true;
+
+    var roleWord =
+      text.indexOf("администратор") !== -1 ||
+      text.indexOf("модератор") !== -1 ||
+      text.indexOf("следящ") !== -1 ||
+      text.indexOf("куратор") !== -1 ||
+      text.indexOf("руковод") !== -1 ||
+      text.indexOf("управлен") !== -1;
+
+    // Категории обычно состоят из слов с пробелами. Никнеймы Black Russia
+    // не должны превращаться в такие названия разделов.
+    if (roleWord && /\s/.test(text)) return true;
+
+    // Английские/смешанные названия разделов, если они когда-нибудь
+    // придут из таблицы.
+    if (
+      compact === "admins" ||
+      compact === "admin" ||
+      compact === "moderators" ||
+      compact === "moderator" ||
+      compact === "seniormoderators" ||
+      compact === "juniormoderators" ||
+      compact === "senioradmins" ||
+      compact === "superadmins"
+    ) return true;
+
+    return false;
+  }
+
+  function isGoogleCategoryRow(item) {
+    var values = item && item.values ? item.values : {};
+    var headers = Array.isArray(values.headers) ? values.headers : [];
+    var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
+    var nicknameIndex = -1;
+
+    for (var i = 0; i < headers.length; i += 1) {
+      if (isGoogleNicknameHeader(headers[i])) {
+        nicknameIndex = i;
+        break;
+      }
+    }
+
+    var nickname = "";
+    if (nicknameIndex >= 0) {
+      nickname = String(raw[nicknameIndex] == null ? "" : raw[nicknameIndex]).trim();
+    } else if (item && item.nickname != null) {
+      nickname = String(item.nickname).trim();
+    }
+
+    if (!nickname || isAdminCategoryLabel(nickname)) return true;
+
+    var nonEmptyCount = 0;
+    for (var j = 0; j < raw.length; j += 1) {
+      if (String(raw[j] == null ? "" : raw[j]).trim() !== "") {
+        nonEmptyCount += 1;
+        if (nonEmptyCount > 1) return false;
+      }
+    }
+
+    // Одно заполненное поле + название роли = заголовок раздела, не админ.
+    return nonEmptyCount === 1 && isAdminCategoryLabel(nickname);
+  }
+
+  function isValidAdminRosterItem(item) {
+    var nickname = item && itemNicknameForRoster
+      ? itemNicknameForRoster(item)
+      : "";
+
+    return !!nickname && !isAdminCategoryLabel(nickname) && !isGoogleCategoryRow(item);
+  }
+
+  function itemNicknameForRoster(item) {
+    if (!item) return "";
+
+    if (item.nickname != null && String(item.nickname).trim()) {
+      return String(item.nickname).trim();
+    }
+
+    var values = item.values || {};
+    var headers = Array.isArray(values.headers) ? values.headers : [];
+    var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
+
+    for (var i = 0; i < headers.length; i += 1) {
+      if (isGoogleNicknameHeader(headers[i])) {
+        return String(raw[i] == null ? "" : raw[i]).trim();
+      }
+    }
+
+    return "";
+  }
+
   function dashboard(user) {
     return {
       title: user.role === "management" ? "Панель руководства" : "Главная",
@@ -384,6 +517,24 @@
         var rowNumbers = Array.isArray(result.row_numbers) ? result.row_numbers : [];
         if (!headers.length && statistics.length && statistics[0] && statistics[0].values) headers = Array.isArray(statistics[0].values.headers) ? statistics[0].values.headers : [];
         if (!rows.length && statistics.length) rows = statistics.map(function (item) { return item && item.values && Array.isArray(item.values.raw_row) ? item.values.raw_row : []; });
+
+        // Убираем строки-заголовки разделов Google Таблицы из состава администрации.
+        var filteredAdminRows = [];
+        var filteredAdminRowNumbers = [];
+        rows.forEach(function (row, index) {
+          var sourceItem = statistics[index] || {
+            values: {
+              headers: headers,
+              raw_row: row
+            }
+          };
+          if (isGoogleCategoryRow(sourceItem)) return;
+          filteredAdminRows.push(row);
+          filteredAdminRowNumbers.push(rowNumbers[index] || (sourceItem.row_number || (sourceItem.values && sourceItem.values.row_number)) || 0);
+        });
+        rows = filteredAdminRows;
+        rowNumbers = filteredAdminRowNumbers;
+
         if (!headers.length) {
           root.innerHTML = '<div class="box"><div class="empty">В первом листе не найдены столбцы.</div></div>';
           return;
@@ -1056,7 +1207,10 @@
         buildStatsEntries(
           lastData.filter(function (item) {
             var nickname = itemNickname(item);
-            return nickname && !isStatsColumnHeader(item);
+            return nickname &&
+              !isStatsColumnHeader(item) &&
+              !isAdminCategoryLabel(nickname) &&
+              !isGoogleCategoryRow(item);
           })
         )
       );
@@ -2845,7 +2999,10 @@
 
         state.candidates =
           Array.isArray(result.candidates)
-            ? result.candidates
+            ? result.candidates.filter(function (nickname) {
+                return !!String(nickname == null ? "" : nickname).trim() &&
+                  !isAdminCategoryLabel(nickname);
+              })
             : [];
 
         if (!state.candidates.length) {
