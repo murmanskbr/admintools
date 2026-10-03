@@ -975,3 +975,30 @@ body{font-size:16px}
   background:#fff1f3;
   color:#bf3347;
 }
+
+
+/* Local normative review UI */
+.normative-result-stack{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.review-current{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--surface2);
+  color:var(--muted);
+  font-size:11px;
+}
+.review-current .badge{
+  margin:0;
+}
+.theme-light .review-current{
+  background:#f7f8fa;
+}
