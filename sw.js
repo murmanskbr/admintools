@@ -1,4 +1,4 @@
-var CACHE_NAME = "br-admin-v8";
+var CACHE_NAME = "br-admin-cache";
 
 self.addEventListener("install", function(event) {
     event.waitUntil(self.skipWaiting());
