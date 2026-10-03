@@ -570,6 +570,52 @@
                 );
             },
 
+        accessCandidates:
+            function (token) {
+                return request(
+                    {
+                        action: "access_candidates"
+                    },
+                    token
+                );
+            },
+
+        accessList:
+            function (token) {
+                return request(
+                    {
+                        action: "access_list"
+                    },
+                    token
+                );
+            },
+
+        accessGrant:
+            function (token, payload) {
+                return request(
+                    Object.assign(
+                        {
+                            action: "access_grant"
+                        },
+                        payload || {}
+                    ),
+                    token
+                );
+            },
+
+        accessManage:
+            function (token, payload) {
+                return request(
+                    Object.assign(
+                        {
+                            action: "access_manage"
+                        },
+                        payload || {}
+                    ),
+                    token
+                );
+            },
+
         adminsGoogleList:
             function (token) {
                 return requestStatistics(
