@@ -99,28 +99,51 @@
       .replace(/ё/g, "е")
       .replace(/\s+/g, " ");
 
-    var isDayOnly =
+    var isDateField =
       key === "last_promotion" ||
       key === "последнее повышение" ||
       key === "дата заполнения" ||
       key === "дата";
 
-    if (isDayOnly) {
+    if (isDateField) {
       var text = String(value).trim();
 
+      function formatParts(day, month, year) {
+        return String(day).padStart(2, "0") + "." +
+          String(month).padStart(2, "0") + "." +
+          String(year);
+      }
+
+      // ISO: 2026-10-03, 2026-10-03T12:34:56...
       var iso = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:t|\s|$)/i);
       if (iso) {
-        return String(Number(iso[3]));
+        return formatParts(Number(iso[3]), Number(iso[2]), Number(iso[1]));
       }
 
-      var dmy = text.match(/^(\d{1,2})[.\-/]\d{1,2}[.\-/]\d{4}/);
+      // Russian / common table formats: 3.10.2026, 03/10/2026, 3-10-2026.
+      var dmy = text.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})/);
       if (dmy) {
-        return String(Number(dmy[1]));
+        return formatParts(Number(dmy[1]), Number(dmy[2]), Number(dmy[3]));
       }
 
-      var numeric = Number(text);
-      if (Number.isFinite(numeric)) {
-        return String(Math.trunc(numeric));
+      // Google Sheets / Excel serial date, when the source returns a number.
+      var numericDate = Number(text);
+      if (Number.isFinite(numericDate) && numericDate >= 20000 && numericDate <= 70000) {
+        var serialDate = new Date(Date.UTC(1899, 11, 30) + Math.trunc(numericDate) * 86400000);
+        return formatParts(
+          serialDate.getUTCDate(),
+          serialDate.getUTCMonth() + 1,
+          serialDate.getUTCFullYear()
+        );
+      }
+
+      var parsedDate = new Date(text);
+      if (!Number.isNaN(parsedDate.getTime())) {
+        return formatParts(
+          parsedDate.getDate(),
+          parsedDate.getMonth() + 1,
+          parsedDate.getFullYear()
+        );
       }
     }
 
@@ -430,6 +453,7 @@
 
   function allStatistics() {
     var selectedDate = dateIso(0);
+    var statsSortMode = "seniority";
     var lastData = [];
     var lastNormatives = [];
     var lastMarks = [];
@@ -729,15 +753,113 @@
       ["last_promotion", "Последнее повышение"]
     ];
 
-    // Состав отображается по старшинству: от руководства и старших администраторов к младшим должностям.
-    var STATS_POSITION_GROUPS = [
-      { key:"management", title:"Руководство", match:["руководство","руководитель","заместитель","следящий","старший следящий","куратор","главный администратор","management","leader"] },
-      { key:"senior_administrators", title:"Старшие администраторы", match:["старший администратор","старшие администраторы","ст администратор","senior administrator","senior admin"] },
-      { key:"administrators", title:"Администраторы", match:["администратор","администраторы","admin","administrator"] },
-      { key:"senior_moderators", title:"Старшие модераторы", match:["старший модератор","старшие модераторы","ст модератор","ст модер","senior moderator"] },
-      { key:"moderators", title:"Модераторы", match:["модератор","модераторы","moderator","moderators"] },
-      { key:"junior_moderators", title:"Младшие модераторы", match:["младший модератор","младшие модераторы","мл модератор","мл модер","junior moderator"] }
-    ];
+    function normalizeStatsPosition(value) {
+      return String(value == null ? "" : value)
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .replace(/[.]+/g, " ")
+        .replace(/[_\-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function statsPositionTitle(item) {
+      var value = String(statDisplayValue(item, "position") || "").trim();
+      return value === "—" ? "" : value;
+    }
+
+    function statsPositionScore(value) {
+      var position = normalizeStatsPosition(value);
+      if (!position) return 0;
+
+      var compact = position.replace(/[^a-zа-я0-9]/gi, "");
+
+      // Чем выше число, тем выше должность. Неизвестные должности получают 0.
+      if (position.indexOf("руковод") !== -1) return 1000;
+      if (position.indexOf("куратор") !== -1) return 980;
+      if (position.indexOf("главн") !== -1 && (position.indexOf("админ") !== -1 || compact.indexOf("admin") !== -1)) return 960;
+
+      var seniorController = position.indexOf("старш") !== -1 && (position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1);
+      var controller = position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1;
+      if (seniorController) return 940;
+      if (controller) return 900;
+
+      var seniorAdmin = position.indexOf("старш") !== -1 && position.indexOf("админ") !== -1;
+      if (seniorAdmin || (compact.indexOf("стадмин") === 0)) return 850;
+      if (position.indexOf("админ") !== -1 || compact.indexOf("admin") !== -1) return 800;
+
+      var juniorModerator =
+        position.indexOf("младш") !== -1 ||
+        compact.indexOf("млмодер") !== -1 ||
+        compact.indexOf("млмод") !== -1;
+
+      var seniorModerator =
+        position.indexOf("старш") !== -1 && position.indexOf("модер") !== -1 ||
+        compact.indexOf("стмодер") !== -1 ||
+        compact.indexOf("стмод") !== -1;
+
+      if (seniorModerator) return 700;
+      if (position.indexOf("модер") !== -1 && !juniorModerator) return 600;
+      if (juniorModerator) return 500;
+
+      return 0;
+    }
+
+    function statsPositionMeta(item) {
+      var title = statsPositionTitle(item) || "Без должности";
+      var key = normalizeStatsPosition(title);
+      return {
+        key: key || "__empty__",
+        title: title,
+        score: statsPositionScore(title)
+      };
+    }
+
+    function statsName(item) {
+      return itemNickname(item).trim();
+    }
+
+    function compareStatsText(a, b) {
+      return String(a || "").localeCompare(
+        String(b || ""),
+        "ru",
+        {sensitivity:"base", numeric:true}
+      );
+    }
+
+    function sortStatsItems(items) {
+      return items.map(function (item, originalIndex) {
+        return {
+          item: item,
+          meta: statsPositionMeta(item),
+          originalIndex: originalIndex
+        };
+      }).sort(function (a, b) {
+        var result = 0;
+
+        if (statsSortMode === "alphabet") {
+          result = compareStatsText(statsName(a.item), statsName(b.item));
+        } else if (statsSortMode === "position") {
+          result = compareStatsText(a.meta.title, b.meta.title);
+          if (result === 0) result = compareStatsText(statsName(a.item), statsName(b.item));
+        } else {
+          result = b.meta.score - a.meta.score;
+          if (result === 0) result = compareStatsText(a.meta.title, b.meta.title);
+          if (result === 0) result = compareStatsText(statsName(a.item), statsName(b.item));
+        }
+
+        return result === 0 ? a.originalIndex - b.originalIndex : result;
+      });
+    }
+
+    function statsSortLabel() {
+      return {
+        seniority: "По старшинству",
+        alphabet: "По алфавиту",
+        position: "По должности"
+      }[statsSortMode] || "По старшинству";
+    }
 
     function statDisplayValue(item, key) {
       if (key === "nickname") return itemNickname(item) || "—";
@@ -804,7 +926,7 @@
       var root = document.getElementById("allStatsRoot");
       if (!root) return;
 
-      var sortedItems = sortStatsItemsByPosition(
+      var sortedItems = sortStatsItems(
         lastData.filter(function (item) {
           var nickname = itemNickname(item);
           return nickname && !isStatsColumnHeader(item);
@@ -821,15 +943,15 @@
         var group = entry.group;
         var nickname = itemNickname(item);
 
-        if (group.key !== previousGroupKey) {
+        if (statsSortMode !== "alphabet" && entry.meta.key !== previousGroupKey) {
           groupedRows.push(
             '<tr class="stats-section-row">' +
               '<td colspan="' + columnCount + '">' +
-                '<b>' + E(group.title) + '</b>' +
+                '<b>' + E(entry.meta.title) + '</b>' +
               '</td>' +
             '</tr>'
           );
-          previousGroupKey = group.key;
+          previousGroupKey = entry.meta.key;
         }
 
         var norm = norms[nickname.toLowerCase()] || {};
@@ -881,7 +1003,7 @@
             '<small>ПОЛНАЯ СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
             '<b>' + E(String(sortedItems.length)) + ' сотрудников</b>' +
           '</div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
-          '<div class="admins-source-row"><span>Единый порядок показателей</span><span>Источник: Google Таблица</span></div>' +
+          '<div class="admins-source-row"><span>Сортировка: ' + E(statsSortLabel()) + ' • должности берутся из Google Таблицы</span><span>Источник: Google Таблица</span></div>' +
           '<table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
@@ -1050,6 +1172,7 @@
         return '<div class="page-toolbar stats-all-toolbar">' +
           '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Состояние администрации и норматив за выбранную дату</b></div>' +
           '<div class="stats-toolbar-actions">' +
+            '<label class="stats-sort-wrap"><span class="stats-sort-label">Сортировка</span><select id="statsSortMode" class="form-select stats-sort-select"><option value="seniority">По старшинству</option><option value="alphabet">По алфавиту</option><option value="position">По должности</option></select></label>' +
             '<button class="small-button" id="statsDatePrev" type="button">←</button>' +
             '<input id="allStatsDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
             '<button class="small-button" id="statsDateNext" type="button">→</button>' +
@@ -1061,6 +1184,7 @@
       },
       bind: function (user) {
         var date = document.getElementById("allStatsDate");
+        var sort = document.getElementById("statsSortMode");
         var prev = document.getElementById("statsDatePrev");
         var next = document.getElementById("statsDateNext");
         var today = document.getElementById("statsDateToday");
@@ -1074,6 +1198,13 @@
         }
 
         if (date) date.onchange = function () { setDate(date.value); };
+        if (sort) {
+          sort.value = statsSortMode;
+          sort.onchange = function () {
+            statsSortMode = sort.value || "seniority";
+            renderTable(user);
+          };
+        }
         if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
         if (next) next.onclick = function () { setDate(dateIso(1)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
