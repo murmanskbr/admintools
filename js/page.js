@@ -776,13 +776,35 @@
       });
 
       document.querySelectorAll("[data-edit-admin]").forEach(function (button) {
-        button.onclick = function () {
+        button.onclick = async function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
           var nickname = button.dataset.editAdmin || "";
-          var item = lastData.find(function (entry) {
-            return itemNickname(entry).trim().toLowerCase() === nickname.toLowerCase();
-          });
+          if (!nickname) return;
+
           closeMenus();
-          openEditModal(user, item || {values:{nickname:nickname}});
+          button.disabled = true;
+
+          try {
+            /*
+             * Always read the selected administrator again from Google Sheets.
+             * This keeps the edit form synchronized with the source table.
+             */
+            var fresh = await window.BR_API.getStatisticsAdmin(
+              user.token,
+              nickname
+            );
+
+            openEditModal(user, fresh);
+          } catch (error) {
+            alert(
+              error.message ||
+              "Не удалось загрузить данные администратора из Google Sheets."
+            );
+          } finally {
+            button.disabled = false;
+          }
         };
       });
     }
