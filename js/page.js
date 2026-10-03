@@ -642,7 +642,6 @@
       cache.version = 1;
       cache.nickname = String(user && user.nickname || "");
       cache.selectedDate = date;
-      cache.sortMode = statsSortMode;
       cache.statistics = Array.isArray(statistics) ? statistics : [];
       cache.dates = cache.dates && typeof cache.dates === "object" ? cache.dates : {};
       cache.dates[date] = {
@@ -663,12 +662,6 @@
       sameUserCache && initialCache.selectedDate
         ? String(initialCache.selectedDate)
         : dateIso(0);
-
-    var statsSortMode =
-      sameUserCache && ["seniority", "alphabet", "position"].indexOf(initialCache.sortMode) !== -1
-        ? initialCache.sortMode
-        : "seniority";
-
     var lastData = [];
     var lastNormatives = [];
     var lastMarks = [];
@@ -1080,11 +1073,21 @@
 
     function statsPositionMeta(title, order) {
       var value = String(title == null ? "" : title).trim();
+      var normalized = normalizeStatsPosition(value);
+      var isSeniorAp =
+        normalized.indexOf("старш") !== -1 &&
+        (normalized.indexOf("следящ") !== -1 || normalized.indexOf("сидящ") !== -1) &&
+        normalized.indexOf("ап") !== -1;
+      var isJuniorModerator =
+        normalized.indexOf("младш") !== -1 &&
+        normalized.indexOf("модер") !== -1;
+
       return {
-        key: normalizeStatsPosition(value) || "__other__",
+        key: normalized || "__other__",
         title: value || "Другие",
         order: Number.isFinite(order) ? order : 0,
-        score: statsGroupScore(value)
+        seniorAp: isSeniorAp,
+        juniorModerator: isJuniorModerator
       };
     }
 
@@ -1133,45 +1136,24 @@
       return entries;
     }
 
-    function statsName(item) {
-      return itemNickname(item).trim();
-    }
-
-    function compareStatsText(a, b) {
-      return String(a || "").localeCompare(
-        String(b || ""),
-        "ru",
-        {sensitivity:"base", numeric:true}
-      );
-    }
-
     function sortStatsEntries(entries) {
       return entries.slice().sort(function (a, b) {
-        var result = 0;
-
-        if (statsSortMode === "alphabet") {
-          result = compareStatsText(statsName(a.item), statsName(b.item));
-        } else if (statsSortMode === "position") {
-          result = compareStatsText(a.meta.title, b.meta.title);
-          if (result === 0) result = a.originalIndex - b.originalIndex;
-        } else {
-          // По умолчанию сохраняем точный порядок Google Таблицы:
-          // сначала группа, которая пришла первой, затем следующая,
-          // а внутри группы — исходный порядок строк.
-          result = a.meta.order - b.meta.order;
-          if (result === 0) result = a.originalIndex - b.originalIndex;
+        // Специальная группа «Старшие следящие за АП» всегда сверху.
+        if (a.meta.seniorAp !== b.meta.seniorAp) {
+          return a.meta.seniorAp ? -1 : 1;
         }
 
-        return result;
-      });
-    }
+        // «Младшие модераторы» всегда последняя группа.
+        if (a.meta.juniorModerator !== b.meta.juniorModerator) {
+          return a.meta.juniorModerator ? 1 : -1;
+        }
 
-    function statsSortLabel() {
-      return {
-        seniority: "По порядку таблицы",
-        alphabet: "По алфавиту",
-        position: "По должности"
-      }[statsSortMode] || "По порядку таблицы";
+        // Все остальные группы идут ровно в порядке Google Таблицы.
+        var result = a.meta.order - b.meta.order;
+        return result === 0
+          ? a.originalIndex - b.originalIndex
+          : result;
+      });
     }
 
     function statDisplayValue(item, key) {
@@ -1224,7 +1206,7 @@
         var item = entry.item;
         var nickname = itemNickname(item);
 
-        if (statsSortMode !== "alphabet" && entry.meta.key !== previousGroupKey) {
+        if (entry.meta.key !== previousGroupKey) {
           groupedRows.push(
             '<tr class="stats-section-row">' +
               '<td colspan="' + columnCount + '">' +
@@ -1284,7 +1266,7 @@
             '<small>ПОЛНАЯ СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
             '<b>' + E(String(sortedItems.length)) + ' сотрудников</b>' +
           '</div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
-          '<div class="admins-source-row"><span>Сортировка: ' + E(statsSortLabel()) + ' • порядок групп берётся из Google Таблицы</span><span>Источник: Google Таблица</span></div>' +
+          '<div class="admins-source-row"><span>Порядок групп: старшие следящие за АП сверху, младшие модераторы снизу</span><span>Источник: Google Таблица</span></div>' +
           '<table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
@@ -1455,7 +1437,6 @@
         return '<div class="page-toolbar stats-all-toolbar">' +
           '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Состояние администрации и норматив за выбранную дату</b></div>' +
           '<div class="stats-toolbar-actions">' +
-            '<label class="stats-sort-wrap"><span class="stats-sort-label">Сортировка</span><select id="statsSortMode" class="form-select stats-sort-select"><option value="seniority">По порядку таблицы</option><option value="alphabet">По алфавиту</option><option value="position">По должности</option></select></label>' +
             '<button class="small-button" id="statsDatePrev" type="button">←</button>' +
             '<input id="allStatsDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
             '<button class="small-button" id="statsDateNext" type="button">→</button>' +
@@ -1467,7 +1448,6 @@
       },
       bind: function (user) {
         var date = document.getElementById("allStatsDate");
-        var sort = document.getElementById("statsSortMode");
         var prev = document.getElementById("statsDatePrev");
         var next = document.getElementById("statsDateNext");
         var today = document.getElementById("statsDateToday");
@@ -1481,23 +1461,6 @@
         }
 
         if (date) date.onchange = function () { setDate(date.value); };
-        if (sort) {
-          sort.value = statsSortMode;
-          sort.onchange = function () {
-            statsSortMode = sort.value || "seniority";
-            var cache = readStatsCache();
-            if (
-              cache &&
-              String(cache.nickname || "").toLowerCase() ===
-                String(user && user.nickname || "").toLowerCase()
-            ) {
-              cache.sortMode = statsSortMode;
-              cache.selectedDate = selectedDate;
-              writeStatsCache(cache);
-            }
-            renderTable(user);
-          };
-        }
         if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
         if (next) next.onclick = function () { setDate(dateIso(1)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
