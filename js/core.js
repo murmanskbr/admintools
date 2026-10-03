@@ -228,8 +228,9 @@
           '<button class="logout" id="logout" type="button">Выйти</button>' +
         '</div>' +
       '</aside>' +
+      '<div class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-hidden="true"></div>' +
       '<main class="main">' +
-        '<header class="top"><button class="mobile-menu" id="mobileMenu" type="button">☰</button>' +
+        '<header class="top"><button class="mobile-menu" id="mobileMenu" type="button" aria-label="Открыть меню">☰</button>' +
           '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span><div class="top-right"><span id="sessionTimer">Сессия</span></div>' +
         '</header>' +
         '<section class="content"><div class="head"><h1>' + esc(title) + '</h1><p>' +
@@ -292,7 +293,58 @@
 
     var menu = document.getElementById("mobileMenu");
     var sidebar = document.getElementById("sidebar");
-    if (menu && sidebar) menu.onclick = function () { sidebar.classList.toggle("open"); };
+    var menuBackdrop = document.getElementById("mobileMenuBackdrop");
+
+    function setMobileMenu(open) {
+      if (!menu || !sidebar) return;
+
+      sidebar.classList.toggle("open", open);
+
+      if (menuBackdrop) {
+        menuBackdrop.classList.toggle("open", open);
+        menuBackdrop.setAttribute("aria-hidden", open ? "false" : "true");
+      }
+
+      menu.textContent = open ? "×" : "☰";
+      menu.setAttribute(
+        "aria-label",
+        open ? "Закрыть меню" : "Открыть меню"
+      );
+    }
+
+    if (menu && sidebar) {
+      menu.onclick = function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        setMobileMenu(!sidebar.classList.contains("open"));
+      };
+    }
+
+    if (menuBackdrop) {
+      menuBackdrop.onclick = function () {
+        setMobileMenu(false);
+      };
+    }
+
+    if (sidebar) {
+      sidebar.querySelectorAll("a").forEach(function (link) {
+        link.addEventListener("click", function () {
+          setMobileMenu(false);
+        });
+      });
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        setMobileMenu(false);
+      }
+    });
+
+    window.addEventListener("resize", function () {
+      if (window.innerWidth > 800) {
+        setMobileMenu(false);
+      }
+    });
 
     function updateTimer() {
       var current = getSession();
