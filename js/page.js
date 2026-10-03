@@ -474,62 +474,55 @@
     }
 
     function normalizeHeaderKey(header) {
-      var key = String(
-        header == null ? "" : header
-      )
+      var key = String(header == null ? "" : header)
         .trim()
         .toLowerCase()
         .replace(/ё/g, "е")
+        .replace(/[_\-]+/g, " ")
         .replace(/\s+/g, " ");
 
+      var compact = key.replace(/[^a-zа-я0-9]/gi, "");
+
       var map = {
-        "никнейм": "nickname",
-        "ник": "nickname",
-        "nickname": "nickname",
-        "nick": "nickname",
-        "логин": "nickname",
-        "login": "nickname",
-
-        "возраст": "age",
-        "age": "age",
-
-        "доступ с пк": "pc_access",
-        "доступ с пк": "pc_access",
-        "pc access": "pc_access",
-        "pc_access": "pc_access",
-
-        "должность": "position",
-        "position": "position",
-
-        "уровни": "levels",
-        "уровень": "levels",
-        "levels": "levels",
-
-        "баллы активности": "activity_points",
-        "activity points": "activity_points",
-        "activity_points": "activity_points",
-
-        "неактивы": "inactives",
-        "неактив": "inactives",
-        "inactives": "inactives",
-
-        "страйки": "strikes",
-        "страйк": "strikes",
-        "strikes": "strikes",
-
-        "предупреждения": "warnings",
-        "предупреждение": "warnings",
-        "warnings": "warnings",
-
-        "баллы": "points",
-        "points": "points",
-
-        "последнее повышение": "last_promotion",
-        "last promotion": "last_promotion",
-        "last_promotion": "last_promotion"
+        "никнейм":"nickname","ник":"nickname","nickname":"nickname","nick":"nickname","логин":"nickname","login":"nickname","username":"nickname",
+        "возраст":"age","лет":"age","age":"age",
+        "доступ с пк":"pc_access","доступ пк":"pc_access","доступ к пк":"pc_access","доступ к компьютеру":"pc_access","пк":"pc_access","pc access":"pc_access","pcaccess":"pc_access","pc":"pc_access",
+        "должность":"position","позиция":"position","position":"position","rank":"position",
+        "уровни":"levels","уровень":"levels","левел":"levels","lvl":"levels","level":"levels","levels":"levels",
+        "баллы активности":"activity_points","очки активности":"activity_points","очки за активность":"activity_points","баллы за активность":"activity_points","активность":"activity_points","activity points":"activity_points","activitypoints":"activity_points","activity":"activity_points",
+        "неактивы":"inactives","неактив":"inactives","неактивные":"inactives","неактивность":"inactives","inactive":"inactives","inactives":"inactives",
+        "страйки":"strikes","страйк":"strikes","выговоры":"strikes","выговор":"strikes","strikes":"strikes","strike":"strikes",
+        "предупреждения":"warnings","предупреждение":"warnings","варны":"warnings","варн":"warnings","warnings":"warnings","warning":"warnings",
+        "баллы":"points","очки":"points","points":"points","score":"points",
+        "последнее повышение":"last_promotion","дата последнего повышения":"last_promotion","повышение":"last_promotion","дата повышения":"last_promotion","last promotion":"last_promotion","last_promotion":"last_promotion","lastpromotion":"last_promotion",
+        "дни на посте":"post_days","дни на посту":"post_days","дней на посте":"post_days","дней на посту":"post_days","дни на пост":"post_days","дни поста":"post_days","дней поста":"post_days","дни напасти":"post_days","дней напасти":"post_days","напасти":"post_days","напасту":"post_days","стаж на посте":"post_days","стаж на посту":"post_days","post days":"post_days","post day":"post_days","postdays":"post_days","days on post":"post_days","daysonpost":"post_days",
+        "норматив":"normative","нормативы":"normative","норма":"normative","нормы":"normative","норм":"normative","статус норматива":"normative","результат норматива":"normative","norm":"normative","normative":"normative","normatives":"normative",
+        "статус":"status","статус нормы":"status","статус норматива":"status","результат":"status","status":"status","result":"status",
+        "дата":"date","дата норматива":"date","дата нормы":"date","день":"date","дата проверки":"date","дата сдачи":"date","date":"date","submission date":"date","submissiondate":"date",
+        "комментарий":"comment","примечание":"comment","примечания":"comment","коммент":"comment","comment":"comment","comments":"comment","note":"comment"
       };
 
-      return map[key] || key;
+      if (map[key]) return map[key];
+
+      if (compact.indexOf("ник") === 0 || compact.indexOf("nick") === 0 || compact.indexOf("username") === 0) return "nickname";
+      if (compact.indexOf("возраст") !== -1 || compact === "age") return "age";
+      if (compact.indexOf("доступ") !== -1 && (compact.indexOf("пк") !== -1 || compact.indexOf("комп") !== -1)) return "pc_access";
+      if (compact.indexOf("долж") !== -1 || compact.indexOf("позици") !== -1 || compact === "position") return "position";
+      if (compact.indexOf("уров") !== -1 || compact.indexOf("левел") !== -1 || compact === "lvl" || compact === "level") return "levels";
+      if (compact.indexOf("актив") !== -1 && (compact.indexOf("балл") !== -1 || compact.indexOf("очк") !== -1 || compact === "activity")) return "activity_points";
+      if (compact.indexOf("неактив") !== -1 || compact.indexOf("inactive") !== -1) return "inactives";
+      if (compact.indexOf("выговор") !== -1 || compact.indexOf("страйк") !== -1 || compact.indexOf("strike") !== -1) return "strikes";
+      if (compact.indexOf("предупреж") !== -1 || compact.indexOf("варн") !== -1 || compact.indexOf("warning") !== -1) return "warnings";
+      if (compact.indexOf("балл") !== -1 || compact.indexOf("очк") !== -1 || compact === "points" || compact === "score") return "points";
+      if (compact.indexOf("повыш") !== -1 || compact.indexOf("promotion") !== -1) return "last_promotion";
+      if ((compact.indexOf("дни") !== -1 || compact.indexOf("дней") !== -1 || compact.indexOf("дня") !== -1) && (compact.indexOf("пост") !== -1 || compact.indexOf("напаст") !== -1)) return "post_days";
+      if (compact === "напасти" || compact === "напасту" || compact.indexOf("postday") !== -1 || compact.indexOf("daysonpost") !== -1) return "post_days";
+      if (compact.indexOf("норматив") !== -1 || compact.indexOf("нормат") !== -1 || compact === "норма" || compact === "норм" || compact === "norm") return "normative";
+      if (compact.indexOf("статус") !== -1 || compact.indexOf("результат") !== -1 || compact === "status" || compact === "result") return "status";
+      if (compact.indexOf("дата") !== -1 || compact.indexOf("date") !== -1) return "date";
+      if (compact.indexOf("коммент") !== -1 || compact.indexOf("примеч") !== -1 || compact.indexOf("comment") !== -1 || compact.indexOf("note") !== -1) return "comment";
+
+      return key;
     }
 
     function valueOf(item, key) {
@@ -722,84 +715,187 @@
       });
     }
 
+    var STATS_DISPLAY_COLUMNS = [
+      ["nickname", "Никнейм"],
+      ["age", "Возраст"],
+      ["pc_access", "Доступ с ПК"],
+      ["position", "Должность"],
+      ["inactives", "Неактивы"],
+      ["activity_points", "Баллы активности"],
+      ["post_days", "Дни на посту"],
+      ["strikes", "Страйки"],
+      ["warnings", "Предупреждения"],
+      ["points", "Баллы"],
+      ["last_promotion", "Последнее повышение"]
+    ];
+
+    var STATS_POSITION_GROUPS = [
+      { key:"junior_moderators", title:"Младшие модераторы", match:["младший модератор","младшие модераторы","мл модератор","мл модер","junior moderator"] },
+      { key:"moderators", title:"Модераторы", match:["модератор","модераторы","moderator","moderators"] },
+      { key:"senior_moderators", title:"Старшие модераторы", match:["старший модератор","старшие модераторы","ст модератор","ст модер","senior moderator"] },
+      { key:"administrators", title:"Администраторы", match:["администратор","администраторы","admin","administrator"] },
+      { key:"senior_administrators", title:"Старшие администраторы", match:["старший администратор","старшие администраторы","ст администратор","senior administrator","senior admin"] },
+      { key:"management", title:"Руководство", match:["руководство","руководитель","заместитель","следящий","старший следящий","куратор","главный администратор","management","leader"] }
+    ];
+
+    function statDisplayValue(item, key) {
+      if (key === "nickname") return itemNickname(item) || "—";
+      if (key === "normative") {
+        var nickname = itemNickname(item);
+        var map = normMap();
+        return normativeStatus((map[nickname.toLowerCase()] || {}).status || "not_submitted");
+      }
+
+      var value = valueOf(item, key);
+
+      if (key === "post_days" && (value == null || value === "")) {
+        var values = item && item.values ? item.values : {};
+        var headers = Array.isArray(values.headers) ? values.headers : [];
+        var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
+        for (var i = 0; i < headers.length; i += 1) {
+          if (normalizeHeaderKey(headers[i]) === "post_days") {
+            value = raw[i];
+            break;
+          }
+        }
+      }
+
+      return formatStatisticsCellValue(key, value);
+    }
+
+    function statsPositionGroup(item) {
+      var position = String(statDisplayValue(item, "position") || "")
+        .trim().toLowerCase().replace(/ё/g, "е").replace(/[.]/g, "").replace(/\s+/g, " ");
+
+      if (!position) return { index: STATS_POSITION_GROUPS.length, key:"other", title:"Другие" };
+
+      for (var i = 0; i < STATS_POSITION_GROUPS.length; i += 1) {
+        var group = STATS_POSITION_GROUPS[i];
+        for (var j = 0; j < group.match.length; j += 1) {
+          var candidate = group.match[j].toLowerCase().replace(/ё/g, "е").replace(/[.]/g, "").replace(/\s+/g, " ").trim();
+          if (position === candidate || position.indexOf(candidate) !== -1) {
+            return { index:i, key:group.key, title:group.title };
+          }
+        }
+      }
+
+      if (position.indexOf("младш") !== -1 && position.indexOf("модер") !== -1) return { index:0, key:"junior_moderators", title:"Младшие модераторы" };
+      if (position.indexOf("старш") !== -1 && position.indexOf("модер") !== -1) return { index:2, key:"senior_moderators", title:"Старшие модераторы" };
+      if (position.indexOf("модер") !== -1) return { index:1, key:"moderators", title:"Модераторы" };
+      if (position.indexOf("старш") !== -1 && position.indexOf("админ") !== -1) return { index:4, key:"senior_administrators", title:"Старшие администраторы" };
+      if (position.indexOf("админ") !== -1) return { index:3, key:"administrators", title:"Администраторы" };
+      if (position.indexOf("руковод") !== -1 || position.indexOf("следящ") !== -1 || position.indexOf("куратор") !== -1) return { index:5, key:"management", title:"Руководство" };
+
+      return { index:STATS_POSITION_GROUPS.length, key:"other", title:"Другие" };
+    }
+
+    function sortStatsItemsByPosition(items) {
+      return items.map(function (item, originalIndex) {
+        return { item:item, group:statsPositionGroup(item), originalIndex:originalIndex };
+      }).sort(function (a, b) {
+        return a.group.index !== b.group.index
+          ? a.group.index - b.group.index
+          : a.originalIndex - b.originalIndex;
+      });
+    }
+
     function renderTable(user) {
       var root = document.getElementById("allStatsRoot");
       if (!root) return;
+
+      var sortedItems = sortStatsItemsByPosition(
+        lastData.filter(function (item) {
+          var nickname = itemNickname(item);
+          return nickname && !isStatsColumnHeader(item);
+        })
+      );
+
+      var columnCount = STATS_DISPLAY_COLUMNS.length + 2;
+      var groupedRows = [];
+      var previousGroupKey = null;
       var norms = normMap();
-      var googleHeaders = googleStatisticsColumns(lastData);
-      var googleCount = googleHeaders.length;
 
-      var nicknameIndex = -1;
-      for (var headerIndex = 0; headerIndex < googleHeaders.length; headerIndex += 1) {
-        if (isGoogleNicknameHeader(googleHeaders[headerIndex])) {
-          nicknameIndex = headerIndex;
-          break;
+      sortedItems.forEach(function (entry) {
+        var item = entry.item;
+        var group = entry.group;
+        var nickname = itemNickname(item);
+
+        if (group.key !== previousGroupKey) {
+          groupedRows.push(
+            '<tr class="stats-section-row">' +
+              '<td colspan="' + columnCount + '">' +
+                '<b>' + E(group.title) + '</b>' +
+              '</td>' +
+            '</tr>'
+          );
+          previousGroupKey = group.key;
         }
-      }
 
-      function rowNickname(item) {
-        return itemNickname(item);
-      }
-
-      var rows = lastData.map(function (item) {
-        var nickname = rowNickname(item);
-        if (!nickname || isStatsColumnHeader(item)) return "";
-        if (isStatsSectionRow(item)) {
-          return '<tr class="stats-section-row"><td colspan="' + (googleCount + 2) + '"><b>' + E(nickname) + '</b></td></tr>';
-        }
         var norm = norms[nickname.toLowerCase()] || {};
         var status = norm.status || "not_submitted";
-        var raw = googleStatisticsRaw(item, googleCount);
-        var valuesCells = googleHeaders.map(function (header, index) {
-          var value = formatStatisticsCellValue(
-            normalizeHeaderKey(header),
-            raw[index]
-          );
 
-          var cellClass = index === nicknameIndex ? "stats-nickname-sticky" : "";
-          return '<td class="' + cellClass + '">' +
-            (isGoogleNicknameHeader(header) ? '<b>' + E(value) + '</b>' : E(value)) +
+        var cells = STATS_DISPLAY_COLUMNS.map(function (column) {
+          var key = column[0];
+          var label = column[1];
+          var value = statDisplayValue(item, key);
+          var className = key === "nickname" ? "stats-nickname-sticky" : "";
+
+          return '<td class="' + className + '" data-stat-field="' + E(key) + '" data-stat-label="' + E(label) + '">' +
+            (key === "nickname" ? '<b>' + E(value) + '</b>' : E(value)) +
           '</td>';
         }).join("");
-        return '<tr>' + valuesCells +
-          '<td class="stats-norm-cell"><span>' + normativeStatus(status) + '</span><div class="stats-norm-actions">' +
-            '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
-            '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
-            '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
-            '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
-          '</div></td>' +
-          '<td class="admin-actions-cell"><button class="admin-edit-inline" type="button" data-edit-admin="' + E(nickname) + '">Изменить</button></td></tr>';
-      }).filter(Boolean).join("");
 
-      var realRows = lastData.filter(function (item) {
-        var nickname = rowNickname(item);
-        return nickname && !isStatsColumnHeader(item) && !isStatsSectionRow(item);
-      }).length;
+        groupedRows.push(
+          '<tr>' +
+            cells +
+            '<td class="stats-norm-cell"><span>' + normativeStatus(status) + '</span>' +
+              '<div class="stats-norm-actions">' +
+                '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
+                '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
+                '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
+                '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
+              '</div>' +
+            '</td>' +
+            '<td class="admin-actions-cell"><button class="admin-edit-inline" type="button" data-edit-admin="' + E(nickname) + '">Изменить</button></td>' +
+          '</tr>'
+        );
+      });
 
-      if (!rows) rows = '<tr><td colspan="' + (googleCount + 2) + '" class="table-empty">Данных администрации нет.</td></tr>';
+      var rows = groupedRows.join("");
 
-      var headerCells = googleHeaders.map(function (header, index) {
-        var classes = index === nicknameIndex ? "stats-nickname-sticky" : "";
-        return '<th class="' + classes + '">' + E(russianAdminHeader(header)) + '</th>';
+      if (!rows) {
+        rows = '<tr><td colspan="' + columnCount + '" class="table-empty">Данных администрации нет.</td></tr>';
+      }
+
+      var headerCells = STATS_DISPLAY_COLUMNS.map(function (column) {
+        var key = column[0];
+        var label = column[1];
+        var classes = key === "nickname" ? "stats-nickname-sticky" : "";
+        return '<th class="' + classes + '">' + E(label) + '</th>';
       }).join("");
+
       root.innerHTML =
-        '<div class="box table-box"><div class="stats-table-head"><div><small>ПОЛНАЯ СТАТИСТИКА ИЗ GOOGLE ТАБЛИЦА</small><b>' + E(String(realRows)) + ' сотрудников</b></div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
-        '<div class="admins-source-row"><span>Все столбцы строки Google Sheets</span><span>Источник: Google Таблица</span></div>' +
-        '<table id="allStatsTable"><thead><tr>' + headerCells + '<th>Норматив</th><th>Действия</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-        '<div id="adminEditModal"></div>';
+        '<div class="box table-box">' +
+          '<div class="stats-table-head"><div>' +
+            '<small>ПОЛНАЯ СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
+            '<b>' + E(String(sortedItems.length)) + ' сотрудников</b>' +
+          '</div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
+          '<div class="admins-source-row"><span>Единый порядок показателей</span><span>Источник: Google Таблица</span></div>' +
+          '<table id="allStatsTable"><thead><tr>' +
+            headerCells +
+            '<th>Норматив</th><th>Действия</th>' +
+          '</tr></thead><tbody>' + rows + '</tbody></table>' +
+        '</div><div id="adminEditModal"></div>';
 
       document.querySelectorAll("#allStatsTable tbody tr").forEach(function (row) {
         row.addEventListener("click", function (event) {
-          if (event.target.closest("button, a, input, select, textarea")) {
-            return;
+          if (event.target.closest("button, a, input, select, textarea")) return;
+          document.querySelectorAll("#allStatsTable tbody tr.stats-row-selected").forEach(function (selected) {
+            selected.classList.remove("stats-row-selected");
+          });
+          if (!row.classList.contains("stats-section-row")) {
+            row.classList.add("stats-row-selected");
           }
-
-          document.querySelectorAll("#allStatsTable tbody tr.stats-row-selected")
-            .forEach(function (selected) {
-              selected.classList.remove("stats-row-selected");
-            });
-
-          row.classList.add("stats-row-selected");
         });
       });
 
@@ -811,42 +907,17 @@
           if (!confirm("Выставить «" + label + "» для " + nickname + " за " + formatDateOnly(selectedDate) + "?")) return;
           button.disabled = true;
           try {
-            var result = await window.BR_API.normativeMark(
-              user.token,
-              nickname,
-              selectedDate,
-              status,
-              ""
-            );
-
-            var google = result && result.google_sheet
-              ? result.google_sheet
-              : {};
-
-            var cellText = google.cell
-              ? " • ячейка " + google.cell
-              : "";
-
-            var postDaysText = google.post_days_updated
-              ? " • Дни на посте: " + String(google.post_days_value)
-              : "";
-
+            var result = await window.BR_API.normativeMark(user.token, nickname, selectedDate, status, "");
+            var google = result && result.google_sheet ? result.google_sheet : {};
+            var cellText = google.cell ? " • ячейка " + google.cell : "";
+            var postDaysText = google.post_days_updated ? " • Дни на посте: " + String(google.post_days_value) : "";
             showNormativeResult(
-              "✅ " + label + " проставлена для " +
-              nickname +
-              " за " +
-              formatDateOnly(selectedDate) +
-              cellText +
-              postDaysText,
+              "✅ " + label + " проставлена для " + nickname + " за " + formatDateOnly(selectedDate) + cellText + postDaysText,
               "success"
             );
-
             await load(user);
           } catch (error) {
-            showNormativeResult(
-              normativeErrorMessage(error),
-              "error"
-            );
+            showNormativeResult(normativeErrorMessage(error), "error");
             button.disabled = false;
           }
         };
@@ -863,8 +934,7 @@
           closeMenus();
 
           var item = lastData.find(function (entry) {
-            return itemNickname(entry).trim().toLowerCase() ===
-              nickname.trim().toLowerCase();
+            return itemNickname(entry).trim().toLowerCase() === nickname.trim().toLowerCase();
           });
 
           if (!item) {
