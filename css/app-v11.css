@@ -2496,3 +2496,84 @@ body{font-size:16px}
 .theme-light .access-row-menu{
   background:#fff!important;
 }
+
+
+/* Final visual cleanup: normative and actions are normal cells, not separate blocks. */
+#allStatsRoot #allStatsTable .stats-norm-cell,
+#allStatsRoot #allStatsTable .stats-actions-sticky,
+#allStatsRoot #allStatsTable .admin-actions-cell{
+  background:transparent!important;
+  box-shadow:none!important;
+  border-left:0!important;
+  border-right:0!important;
+  position:static!important;
+}
+
+#allStatsRoot #allStatsTable .admin-edit-inline{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:auto!important;
+  min-width:84px!important;
+  height:32px!important;
+  padding:0 11px!important;
+  border:1px solid var(--line)!important;
+  border-radius:9px!important;
+  background:var(--surface2)!important;
+  color:var(--text)!important;
+  font-size:10px!important;
+  font-weight:750!important;
+  white-space:nowrap!important;
+  cursor:pointer!important;
+}
+
+#allStatsRoot #allStatsTable .admin-edit-inline:hover{
+  background:var(--surface3)!important;
+  border-color:#465165!important;
+}
+
+#allStatsRoot #allStatsTable .admin-edit-inline:disabled{
+  opacity:.55!important;
+  cursor:wait!important;
+}
+
+#allStatsRoot #allStatsTable tbody tr > td{
+  border-bottom:1px solid rgba(255,255,255,.055)!important;
+}
+
+#allStatsRoot #allStatsTable tbody tr > td:nth-last-child(2),
+#allStatsRoot #allStatsTable tbody tr > td:last-child{
+  background:transparent!important;
+}
+
+#allStatsRoot #allStatsTable thead tr > th:nth-last-child(2),
+#allStatsRoot #allStatsTable thead tr > th:last-child{
+  background:var(--surface3)!important;
+}
+
+.theme-light #allStatsRoot #allStatsTable .admin-edit-inline{
+  background:#f4f6f8!important;
+  color:#252c38!important;
+}
+
+.theme-light #allStatsRoot #allStatsTable .admin-edit-inline:hover{
+  background:#e9edf2!important;
+}
+
+@media(max-width:900px){
+  #allStatsRoot #allStatsTable .admin-edit-inline{
+    min-width:76px!important;
+    height:29px!important;
+    padding:0 8px!important;
+    font-size:9px!important;
+  }
+}
+
+@media(max-width:560px){
+  #allStatsRoot #allStatsTable .admin-edit-inline{
+    min-width:66px!important;
+    height:27px!important;
+    padding:0 6px!important;
+    font-size:9px!important;
+  }
+}
