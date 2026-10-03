@@ -603,7 +603,7 @@
   }
 
   function allStatistics(user) {
-    var STATS_CACHE_KEY = "br_all_stats_cache_v2";
+    var STATS_CACHE_KEY = "br_all_stats_cache_v3";
 
     function readStatsCache() {
       try {
@@ -1207,16 +1207,6 @@
       }
 
       var value = valueOf(item, key);
-
-      if (
-        key === "inactives" &&
-        (value == null || String(value).trim() === "")
-      ) {
-        var googleStatusForInactives = googleNormativeStatus(item);
-        if (googleStatusForInactives.present && googleStatusForInactives.status === "inactive") {
-          return "Неактив";
-        }
-      }
 
       if (key === "post_days" && (value == null || value === "")) {
         var values = item && item.values ? item.values : {};
