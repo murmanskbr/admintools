@@ -729,13 +729,14 @@
       ["last_promotion", "Последнее повышение"]
     ];
 
+    // Состав отображается по старшинству: от руководства и старших администраторов к младшим должностям.
     var STATS_POSITION_GROUPS = [
-      { key:"junior_moderators", title:"Младшие модераторы", match:["младший модератор","младшие модераторы","мл модератор","мл модер","junior moderator"] },
-      { key:"moderators", title:"Модераторы", match:["модератор","модераторы","moderator","moderators"] },
-      { key:"senior_moderators", title:"Старшие модераторы", match:["старший модератор","старшие модераторы","ст модератор","ст модер","senior moderator"] },
-      { key:"administrators", title:"Администраторы", match:["администратор","администраторы","admin","administrator"] },
+      { key:"management", title:"Руководство", match:["руководство","руководитель","заместитель","следящий","старший следящий","куратор","главный администратор","management","leader"] },
       { key:"senior_administrators", title:"Старшие администраторы", match:["старший администратор","старшие администраторы","ст администратор","senior administrator","senior admin"] },
-      { key:"management", title:"Руководство", match:["руководство","руководитель","заместитель","следящий","старший следящий","куратор","главный администратор","management","leader"] }
+      { key:"administrators", title:"Администраторы", match:["администратор","администраторы","admin","administrator"] },
+      { key:"senior_moderators", title:"Старшие модераторы", match:["старший модератор","старшие модераторы","ст модератор","ст модер","senior moderator"] },
+      { key:"moderators", title:"Модераторы", match:["модератор","модераторы","moderator","moderators"] },
+      { key:"junior_moderators", title:"Младшие модераторы", match:["младший модератор","младшие модераторы","мл модератор","мл модер","junior moderator"] }
     ];
 
     function statDisplayValue(item, key) {
