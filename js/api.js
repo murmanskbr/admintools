@@ -971,6 +971,7 @@
                         action: "normative_mark",
                         nickname: nickname || "",
                         date: date || "",
+                        selected_date: date || "",
                         status: status,
                         review_comment: reviewComment || ""
                     },
