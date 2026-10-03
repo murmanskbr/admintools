@@ -1972,36 +1972,668 @@
     };
   }
 
-  function access() {
+  function access(user) {
+    var state = {
+      candidates: [],
+      accounts: []
+    };
+
+    function roleLabel(role) {
+      return role === "management"
+        ? "Руководство"
+        : "Администратор";
+    }
+
+    function statusLabel(item) {
+      if (item.blocked_at) {
+        return '<span class="badge badge-red">Заблокирован</span>';
+      }
+
+      if (item.is_active) {
+        return '<span class="badge badge-green">Активен</span>';
+      }
+
+      return '<span class="badge">Доступ удалён</span>';
+    }
+
+    function bindingLabel(item) {
+      return item.device_bound
+        ? '<span class="badge badge-blue">Привязано</span>'
+        : '<span class="badge">Нет привязки</span>';
+    }
+
+    function generatePassword() {
+      var alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+      var length = 10;
+      var bytes = new Uint8Array(length);
+
+      if (window.crypto && window.crypto.getRandomValues) {
+        window.crypto.getRandomValues(bytes);
+      } else {
+        for (var i = 0; i < length; i += 1) {
+          bytes[i] = Math.floor(Math.random() * alphabet.length);
+        }
+      }
+
+      var result = "";
+      for (var j = 0; j < bytes.length; j += 1) {
+        result += alphabet[bytes[j] % alphabet.length];
+      }
+
+      return result;
+    }
+
+    function setPassword(inputId) {
+      var input = document.getElementById(inputId);
+      if (!input) return;
+      input.value = generatePassword();
+      input.type = "text";
+      input.focus();
+      input.select();
+    }
+
+    function renderCredentials(result, targetId) {
+      var root = document.getElementById(targetId);
+      if (!root) return;
+
+      var granted = Array.isArray(result && result.granted)
+        ? result.granted
+        : [];
+
+      if (!granted.length) {
+        root.hidden = true;
+        root.innerHTML = "";
+        return;
+      }
+
+      var password = granted[0].password || "—";
+
+      var rows = granted.map(function (item) {
+        return '<div class="access-credential-row">' +
+          '<b>' + E(item.nickname) + '</b>' +
+          '<span>' + E(roleLabel(item.role)) + '</span>' +
+        '</div>';
+      }).join("");
+
+      root.hidden = false;
+      root.innerHTML =
+        '<div class="access-credentials-head">' +
+          '<div><small>ДАННЫЕ ДОСТУПА</small><b>Доступ выдан</b></div>' +
+          '<button class="small-button" id="' + targetId + 'Copy" type="button">Копировать</button>' +
+        '</div>' +
+        '<div class="access-password-result"><span>Пароль</span><code>' + E(password) + '</code></div>' +
+        '<div class="access-credential-list">' + rows + '</div>' +
+        '<p class="settings-hint">Пароль показывается здесь один раз. В базе хранится только его хэш.</p>';
+
+      var copy = document.getElementById(targetId + "Copy");
+      if (copy) {
+        copy.onclick = async function () {
+          var text = granted.map(function (item) {
+            return item.nickname + ": " + item.password;
+          }).join("\n");
+
+          try {
+            await navigator.clipboard.writeText(text);
+            copy.textContent = "Скопировано";
+          } catch (_) {
+            copy.textContent = "Не удалось скопировать";
+          }
+
+          window.setTimeout(function () {
+            copy.textContent = "Копировать";
+          }, 1800);
+        };
+      }
+    }
+
+    async function loadAccounts(root) {
+      if (!root) return;
+
+      root.innerHTML =
+        '<div class="box"><div class="empty">Загрузка выданных доступов...</div></div>';
+
+      try {
+        var result = await window.BR_API.accessList(user.token);
+
+        state.accounts =
+          Array.isArray(result.administrators)
+            ? result.administrators
+            : [];
+
+        if (!state.accounts.length) {
+          root.innerHTML =
+            '<div class="box"><div class="empty">Выданных доступов пока нет.</div></div>';
+          return;
+        }
+
+        var rows = state.accounts.map(function (item) {
+          return '<tr>' +
+            '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
+            '<td>' + E(roleLabel(item.role)) + '</td>' +
+            '<td>' + E(item.position || "—") + '</td>' +
+            '<td>' + statusLabel(item) + '</td>' +
+            '<td>' + bindingLabel(item) + '</td>' +
+            '<td>' + E(item.last_login_ip || "—") + '</td>' +
+            '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
+            '<td>' + E(String(item.active_sessions || 0)) + '</td>' +
+            '<td class="access-actions-cell">' +
+              '<div class="admin-menu-wrap access-menu-wrap">' +
+                '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
+                '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
+                  '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
+                  (item.device_bound ? '<button type="button" data-access-action="unbind" data-admin-id="' + E(item.id) + '">Сбросить привязку</button>' : '') +
+                  (item.blocked_at
+                    ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
+                    : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
+                  '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button>' +
+                '</div>' +
+              '</div>' +
+            '</td>' +
+          '</tr>';
+        }).join("");
+
+        root.innerHTML =
+          '<div class="box table-box access-registry">' +
+            '<div class="stats-table-head access-registry-head">' +
+              '<div><small>РЕЕСТР ДОСТУПОВ</small><b>' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
+              '<span class="muted">IP и время берутся с сервера при входе</span>' +
+            '</div>' +
+            '<div class="admins-source-row"><span>Текущие доступы из Supabase</span><span>Привязка устройства • сессии</span></div>' +
+            '<table id="accessRegistryTable"><thead><tr>' +
+              '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>Привязка</th><th>IP</th><th>Последний вход</th><th>Сессии</th><th>Действия</th>' +
+            '</tr></thead><tbody>' + rows + '</tbody></table>' +
+          '</div>';
+
+        bindAccessMenus();
+      } catch (error) {
+        root.innerHTML =
+          '<div class="box"><div class="empty">' +
+          E(error.message || "Не удалось загрузить реестр доступов.") +
+          '</div></div>';
+      }
+    }
+
+    function positionMenu(button, menu) {
+      var rect = button.getBoundingClientRect();
+      var width = Math.max(menu.offsetWidth || 190, 190);
+      var height = Math.max(menu.offsetHeight || 48, 48);
+      var margin = 10;
+
+      var left = rect.right - width;
+      var top = rect.bottom + 6;
+
+      if (left < margin) left = margin;
+      if (left + width > window.innerWidth - margin) {
+        left = window.innerWidth - width - margin;
+      }
+
+      if (top + height > window.innerHeight - margin) {
+        top = rect.top - height - 6;
+      }
+
+      if (top < margin) top = margin;
+
+      menu.style.left = Math.round(left) + "px";
+      menu.style.top = Math.round(top) + "px";
+    }
+
+    function closeMenus() {
+      document.querySelectorAll(".access-row-menu.open").forEach(function (menu) {
+        menu.classList.remove("open");
+        menu.style.left = "";
+        menu.style.top = "";
+      });
+    }
+
+    function bindAccessMenus() {
+      document.querySelectorAll("[data-access-menu]").forEach(function (button) {
+        button.onclick = function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          var id = button.dataset.accessMenu || "";
+          var menu = document.querySelector(
+            '[data-access-row-menu="' + CSS.escape(id) + '"]'
+          );
+
+          if (!menu) return;
+
+          var wasOpen = menu.classList.contains("open");
+          closeMenus();
+
+          if (!wasOpen) {
+            menu.classList.add("open");
+            positionMenu(button, menu);
+          }
+        };
+      });
+
+      document.querySelectorAll("[data-access-action]").forEach(function (button) {
+        button.onclick = async function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          var id = Number(button.dataset.adminId || 0);
+          var action = button.dataset.accessAction || "";
+          var item = state.accounts.find(function (entry) {
+            return Number(entry.id) === id;
+          });
+
+          closeMenus();
+
+          if (!item) return;
+
+          if (action === "details") {
+            openAccessEdit(item);
+            return;
+          }
+
+          var messages = {
+            unbind: "Сбросить привязку устройства у " + item.nickname + "?",
+            block: "Заблокировать " + item.nickname + "?",
+            unblock: "Разблокировать " + item.nickname + "?",
+            remove: "Удалить доступ у " + item.nickname + "?"
+          };
+
+          if (!confirm(messages[action] || "Выполнить действие?")) {
+            return;
+          }
+
+          button.disabled = true;
+
+          try {
+            var result = await window.BR_API.accessManage(
+              user.token,
+              {
+                admin_id: id,
+                operation: action
+              }
+            );
+
+            showAccessStatus(
+              result.message || "Изменения сохранены.",
+              true
+            );
+
+            await loadAccounts(
+              document.getElementById("accessRegistryRoot")
+            );
+          } catch (error) {
+            showAccessStatus(
+              error.message || "Не удалось выполнить действие.",
+              false
+            );
+            button.disabled = false;
+          }
+        };
+      });
+    }
+
+    function showAccessStatus(message, ok) {
+      var root = document.getElementById("accessPageStatus");
+      if (!root) return;
+
+      root.hidden = false;
+      root.className =
+        "settings-status " +
+        (ok ? "settings-status-ok" : "settings-status-error");
+      root.textContent = message;
+
+      window.setTimeout(function () {
+        root.hidden = true;
+      }, 4500);
+    }
+
+    function openAccessEdit(item) {
+      var root = document.getElementById("accessModalRoot");
+      if (!root) return;
+
+      root.innerHTML =
+        '<div class="modal-backdrop" id="accessEditBackdrop">' +
+          '<div class="modal-card access-edit-card">' +
+            '<div class="modal-head">' +
+              '<div class="admin-edit-title"><small>УПРАВЛЕНИЕ ДОСТУПОМ</small><h2>' + E(item.nickname) + '</h2><span>Серверные данные аккаунта</span></div>' +
+              '<button class="modal-close" id="accessEditClose" type="button">×</button>' +
+            '</div>' +
+            '<div class="access-details-grid">' +
+              '<div><small>IP</small><b>' + E(item.last_login_ip || "—") + '</b></div>' +
+              '<div><small>ПОСЛЕДНИЙ ВХОД</small><b>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</b></div>' +
+              '<div><small>ПРИВЯЗКА</small><b>' + (item.device_bound ? "Привязано" : "Не привязано") + '</b></div>' +
+              '<div><small>АКТИВНЫЕ СЕССИИ</small><b>' + E(item.active_sessions || 0) + '</b></div>' +
+            '</div>' +
+            '<form id="accessEditForm">' +
+              '<div class="form-grid">' +
+                '<div class="form-field"><label>Роль</label><select id="accessEditRole" class="form-select"><option value="admin"' + (item.role === "admin" ? " selected" : "") + '>Администратор</option><option value="management"' + (item.role === "management" ? " selected" : "") + '>Руководство</option></select></div>' +
+                '<div class="form-field"><label>Должность</label>' + positionSelect("accessEditPosition", "position", item.position || "") + '</div>' +
+                '<div class="form-field form-full"><label>Новый пароль <span class="muted">необязательно</span></label><div class="access-password-field"><input id="accessEditPassword" class="form-input" type="text" autocomplete="new-password" placeholder="Оставьте пустым, чтобы не менять"><button id="accessEditGenerate" class="small-button" type="button">Сгенерировать</button></div></div>' +
+              '</div>' +
+              '<div class="form-actions admin-edit-actions">' +
+                '<button class="button button-secondary" id="accessEditCancel" type="button">Отмена</button>' +
+                '<button class="button button-primary" type="submit">Сохранить</button>' +
+              '</div>' +
+            '</form>' +
+          '</div>' +
+        '</div>';
+
+      document.getElementById("accessEditClose").onclick = function () {
+        root.innerHTML = "";
+      };
+      document.getElementById("accessEditCancel").onclick = function () {
+        root.innerHTML = "";
+      };
+      document.getElementById("accessEditGenerate").onclick = function () {
+        setPassword("accessEditPassword");
+      };
+
+      document.getElementById("accessEditForm").onsubmit = async function (event) {
+        event.preventDefault();
+
+        var saveButton = this.querySelector('button[type="submit"]');
+        if (saveButton) {
+          saveButton.disabled = true;
+          saveButton.textContent = "Сохранение…";
+        }
+
+        try {
+          var newPassword = document.getElementById("accessEditPassword").value.trim();
+
+          await window.BR_API.accessManage(
+            user.token,
+            {
+              admin_id: Number(item.id),
+              operation: "update",
+              role: document.getElementById("accessEditRole").value,
+              position: document.getElementById("accessEditPosition").value,
+              password: newPassword
+            }
+          );
+
+          root.innerHTML = "";
+          showAccessStatus("Данные доступа " + item.nickname + " изменены.", true);
+          await loadAccounts(document.getElementById("accessRegistryRoot"));
+        } catch (error) {
+          showAccessStatus(
+            error.message || "Не удалось изменить доступ.",
+            false
+          );
+
+          if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = "Сохранить";
+          }
+        }
+      };
+    }
+
+    function bindManualForm() {
+      var form = document.getElementById("accessManualForm");
+      if (!form) return;
+
+      document.getElementById("accessManualGenerate").onclick = function () {
+        setPassword("accessManualPassword");
+      };
+
+      form.onsubmit = async function (event) {
+        event.preventDefault();
+
+        var nickname = document.getElementById("accessManualNickname").value.trim();
+        var password = document.getElementById("accessManualPassword").value.trim();
+
+        if (!nickname) return;
+
+        if (!password) {
+          password = generatePassword();
+          document.getElementById("accessManualPassword").value = password;
+          document.getElementById("accessManualPassword").type = "text";
+        }
+
+        var button = form.querySelector('button[type="submit"]');
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Выдача…";
+        }
+
+        try {
+          var result = await window.BR_API.accessGrant(
+            user.token,
+            {
+              nickname: nickname,
+              password: password,
+              role: document.getElementById("accessManualRole").value,
+              position: document.getElementById("accessManualPosition").value
+            }
+          );
+
+          renderCredentials(result, "manualCredentials");
+          form.reset();
+
+          showAccessStatus(
+            "Доступ выдан для " + nickname + ".",
+            true
+          );
+
+          await loadAccounts(
+            document.getElementById("accessRegistryRoot")
+          );
+        } catch (error) {
+          showAccessStatus(
+            error.message || "Не удалось выдать доступ.",
+            false
+          );
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.textContent = "Выдать доступ";
+          }
+        }
+      };
+    }
+
+    async function loadCandidates() {
+      var root = document.getElementById("accessCandidatesRoot");
+      if (!root) return;
+
+      root.hidden = false;
+      root.innerHTML =
+        '<div class="access-candidates-loading">Загрузка списка администраторов…</div>';
+
+      try {
+        var result =
+          await window.BR_API.accessCandidates(
+            user.token
+          );
+
+        state.candidates =
+          Array.isArray(result.candidates)
+            ? result.candidates
+            : [];
+
+        if (!state.candidates.length) {
+          root.innerHTML =
+            '<div class="access-candidates-empty">Все администраторы из Google Sheets уже имеют доступ или находятся в заблокированных.</div>';
+          return;
+        }
+
+        root.innerHTML =
+          '<div class="access-select-toolbar">' +
+            '<label class="access-select-all"><input id="accessSelectAll" type="checkbox"> <span>Выбрать всех</span></label>' +
+            '<span id="accessSelectedCount">0 выбрано</span>' +
+          '</div>' +
+          '<div class="access-candidate-grid">' +
+            state.candidates.map(function (nickname, index) {
+              return '<label class="access-candidate">' +
+                '<input type="checkbox" data-candidate-index="' + index + '">' +
+                '<span class="access-candidate-box"></span>' +
+                '<b>' + E(nickname) + '</b>' +
+              '</label>';
+            }).join("") +
+          '</div>';
+
+        var count = document.getElementById("accessSelectedCount");
+        var all = document.getElementById("accessSelectAll");
+
+        function updateSelected() {
+          var selected =
+            Array.from(
+              document.querySelectorAll("[data-candidate-index]:checked")
+            );
+
+          if (count) {
+            count.textContent = selected.length + " выбрано";
+          }
+        }
+
+        document.querySelectorAll("[data-candidate-index]").forEach(function (input) {
+          input.onchange = updateSelected;
+        });
+
+        if (all) {
+          all.onchange = function () {
+            document.querySelectorAll("[data-candidate-index]").forEach(function (input) {
+              input.checked = all.checked;
+            });
+            updateSelected();
+          };
+        }
+
+      } catch (error) {
+        root.innerHTML =
+          '<div class="access-candidates-empty">' +
+          E(error.message || "Не удалось загрузить список администраторов.") +
+          '</div>';
+      }
+    }
+
+    function bindBulkForm() {
+      var form = document.getElementById("accessBulkForm");
+      if (!form) return;
+
+      document.getElementById("accessBulkGenerate").onclick = function () {
+        setPassword("accessBulkPassword");
+      };
+
+      form.onsubmit = async function (event) {
+        event.preventDefault();
+
+        var selected = Array.from(
+          document.querySelectorAll("[data-candidate-index]:checked")
+        ).map(function (input) {
+          return state.candidates[
+            Number(input.dataset.candidateIndex)
+          ];
+        }).filter(Boolean);
+
+        if (!selected.length) {
+          showAccessStatus("Выберите хотя бы один никнейм.", false);
+          return;
+        }
+
+        var password =
+          document.getElementById("accessBulkPassword").value.trim();
+
+        if (!password) {
+          password = generatePassword();
+          document.getElementById("accessBulkPassword").value = password;
+        }
+
+        var button = form.querySelector('button[type="submit"]');
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Выдача…";
+        }
+
+        try {
+          var result = await window.BR_API.accessGrant(
+            user.token,
+            {
+              nicknames: selected,
+              password: password,
+              role: document.getElementById("accessBulkRole").value,
+              position: document.getElementById("accessBulkPosition").value
+            }
+          );
+
+          renderCredentials(result, "bulkCredentials");
+          showAccessStatus(
+            "Доступ выдан для " + selected.length + " администраторов.",
+            true
+          );
+
+          await loadCandidates();
+          await loadAccounts(
+            document.getElementById("accessRegistryRoot")
+          );
+
+        } catch (error) {
+          showAccessStatus(
+            error.message || "Не удалось выдать доступ.",
+            false
+          );
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.textContent = "Выдать доступ выбранным";
+          }
+        }
+      };
+    }
+
     return {
       managementOnly: true,
       title: "Выдать доступ",
-      subtitle: "Управление списком доступа",
+      subtitle: "Ручная и массовая выдача доступа к панели",
       render: function () {
-        return '<div class="box"><form id="accessForm"><div class="form-grid">' +
-          '<div class="form-field form-full"><label>Никнейм</label><input id="accessNickname" class="form-input" required></div>' +
-          '<div class="form-field form-full"><label>Пароль</label><input id="accessPassword" class="form-input" required></div>' +
-          '<div class="form-field"><label>Роль</label><select id="accessRole" class="form-select"><option value="admin">Администратор</option><option value="management">Руководство</option></select></div>' +
-          '<div class="form-field"><label>Должность</label>' +
-  positionSelect("accessPosition", "position", "") +
-'</div>' +
-          '</div><button class="button button-primary" type="submit">Сохранить</button></form></div>';
+        return '<div class="access-page">' +
+          '<div class="access-page-status settings-status" id="accessPageStatus" hidden></div>' +
+
+          '<div class="access-grid">' +
+
+            '<section class="box access-card">' +
+              '<div class="access-card-head"><div><small>РУЧНАЯ ВЫДАЧА</small><h2>Новый доступ</h2></div><span>Укажите никнейм или сгенерируйте пароль автоматически</span></div>' +
+              '<form id="accessManualForm">' +
+                '<div class="form-grid">' +
+                  '<div class="form-field form-full"><label>Никнейм</label><input id="accessManualNickname" class="form-input" required placeholder="Например: Nikita_Zvezda"></div>' +
+                  '<div class="form-field"><label>Роль</label><select id="accessManualRole" class="form-select"><option value="admin">Администратор</option><option value="management">Руководство</option></select></div>' +
+                  '<div class="form-field"><label>Должность</label>' + positionSelect("accessManualPosition", "position", "") + '</div>' +
+                  '<div class="form-field form-full"><label>Пароль</label><div class="access-password-field"><input id="accessManualPassword" class="form-input" type="text" required autocomplete="new-password" placeholder="Сгенерируйте безопасный пароль"><button id="accessManualGenerate" class="small-button" type="button">Сгенерировать</button></div></div>' +
+                '</div>' +
+                '<div class="form-actions"><button class="button button-primary" type="submit">Выдать доступ</button></div>' +
+              '</form>' +
+              '<div id="manualCredentials" class="access-credentials" hidden></div>' +
+            '</section>' +
+
+            '<section class="box access-card">' +
+              '<div class="access-card-head"><div><small>МАССОВАЯ ВЫДАЧА</small><h2>Найти администраторов</h2></div><button class="button button-secondary" id="loadAccessCandidates" type="button">Загрузить никнеймы</button></div>' +
+              '<p class="access-description">Получаем список из Google Sheets, сравниваем его с Supabase и показываем только тех, у кого нет активного доступа.</p>' +
+              '<div id="accessCandidatesRoot" class="access-candidates-root" hidden></div>' +
+              '<form id="accessBulkForm" class="access-bulk-form">' +
+                '<div class="form-grid">' +
+                  '<div class="form-field"><label>Роль для выбранных</label><select id="accessBulkRole" class="form-select"><option value="admin">Администратор</option><option value="management">Руководство</option></select></div>' +
+                  '<div class="form-field"><label>Должность</label>' + positionSelect("accessBulkPosition", "position", "") + '</div>' +
+                  '<div class="form-field form-full"><label>Пароль для выбранных</label><div class="access-password-field"><input id="accessBulkPassword" class="form-input" type="text" autocomplete="new-password" placeholder="Один пароль для выбранных"><button id="accessBulkGenerate" class="small-button" type="button">Сгенерировать</button></div></div>' +
+                '</div>' +
+                '<div class="form-actions"><button class="button button-primary" type="submit">Выдать доступ выбранным</button></div>' +
+              '</form>' +
+              '<div id="bulkCredentials" class="access-credentials" hidden></div>' +
+            '</section>' +
+
+          '</div>' +
+
+          '<div id="accessRegistryRoot" class="access-registry-root"></div>' +
+          '<div id="accessModalRoot"></div>' +
+        '</div>';
       },
+
       bind: function () {
-        document.getElementById("accessForm").onsubmit = function (event) {
-          event.preventDefault();
-          var users = localObject("br_users");
-          var nickname = document.getElementById("accessNickname").value.trim();
-          users[nickname.toLowerCase()] = {
-            login: nickname,
-            password: document.getElementById("accessPassword").value,
-            nickname: nickname,
-            role: document.getElementById("accessRole").value,
-            position: document.getElementById("accessPosition").value
-          };
-          save("br_users", users);
-          alert("Данные сохранены.");
-        };
+        bindManualForm();
+        bindBulkForm();
+
+        document.getElementById("loadAccessCandidates").onclick =
+          loadCandidates;
+
+        loadAccounts(
+          document.getElementById("accessRegistryRoot")
+        );
       }
     };
   }
