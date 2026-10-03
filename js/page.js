@@ -135,8 +135,17 @@
     var rows = data.headers.map(function (header, index) {
       return '<tr><td><b>' + E(columnLetter(index)) + '</b></td><td>' + E(header || "Без названия") + '</td><td>' + E(data.raw[index] == null || data.raw[index] === "" ? "—" : data.raw[index]) + '</td></tr>';
     }).join("");
+    var mobileRows = data.headers.map(function (header, index) {
+      var value = data.raw[index] == null || data.raw[index] === "" ? "—" : data.raw[index];
+      return '<div class="mobile-data-card">' +
+        '<div class="mobile-data-label">' + E(header || ("Колонка " + columnLetter(index))) + '</div>' +
+        '<div class="mobile-data-value">' + E(value) + '</div>' +
+      '</div>';
+    }).join("");
+
     return '<div class="page-toolbar"><div><small>GOOGLE ТАБЛИЦА</small><b>' + E(caption || "Полные данные строки") + '</b></div><span class="muted">' + E(rangeText) + '</span></div>' +
-      '<div class="box table-box"><table class="google-row-table"><thead><tr><th>Колонка</th><th>Заголовок</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+      '<div class="box table-box google-row-desktop"><table class="google-row-table"><thead><tr><th>Колонка</th><th>Заголовок</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="mobile-data-list google-row-mobile">' + mobileRows + '</div>';
   }
 
   function googleStatisticsColumns(statistics) {
@@ -241,7 +250,7 @@
   function profile(user) {
     return {
       title: "Мой профиль",
-      subtitle: "Полные данные из реестра администрации Google Sheets",
+      subtitle: "Полные данные из реестра администрации",
       render: function () {
         return '<div id="profileRoot"><div class="box"><div class="empty">Поиск администратора в Google Sheets...</div></div></div>';
       },
@@ -1210,11 +1219,27 @@
     return map[normalized] || key || "Колонка";
   }
 
+  function formatDateNumeric(value) {
+    if (!value) return "—";
+    var date = new Date(String(value) + "T00:00:00");
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString("ru-RU", {
+      day:"2-digit",
+      month:"2-digit",
+      year:"numeric"
+    });
+  }
+
   function formatDateOnly(value) {
     if (!value) return "—";
     var date = new Date(String(value) + "T00:00:00");
     if (Number.isNaN(date.getTime())) return String(value);
-    return date.toLocaleDateString("ru-RU", {weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
+    return date.toLocaleDateString("ru-RU", {
+      weekday:"long",
+      day:"2-digit",
+      month:"2-digit",
+      year:"numeric"
+    });
   }
 
   function normativeStatus(status) {
@@ -1343,8 +1368,27 @@
                 '</tr>';
               }).join("");
 
-              return '<section class="date-section"><div class="date-section-head"><h2>' + E(date) + '</h2><span>' + E(new Date(date + "T00:00:00").toLocaleDateString("ru-RU", {weekday:"long", day:"numeric", month:"long", year:"numeric"})) + '</span></div>' +
-                '<div class="box table-box"><table><thead><tr><th>№</th><th>Статус</th><th>Файлы</th><th>Отправлен</th><th>Решение</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+              var weekday = new Date(date + "T00:00:00").toLocaleDateString("ru-RU", {weekday:"long"});
+              var mobileItems = groups[date].map(function (item) {
+                var reviewed = !!item.reviewed_at;
+                var status = normativeStatus(item.status);
+                return '<article class="normative-mobile-card">' +
+                  '<div class="normative-mobile-top">' +
+                    '<span class="normative-mobile-index">#' + E(item.id == null ? "—" : item.id) + '</span>' +
+                    '<span>' + (reviewed ? '<span class="badge badge-green">Проверено</span> ' : '') + status + '</span>' +
+                  '</div>' +
+                  '<div class="normative-mobile-meta">' +
+                    '<div><small>Файлы</small><b>' + E(item.file_count || 0) + '</b></div>' +
+                    '<div><small>Отправлен</small><b>' + E(formatDateTime(item.created_at)) + '</b></div>' +
+                  '</div>' +
+                  '<div class="normative-mobile-comment"><small>Решение</small><p>' + E(item.review_comment || "—") + '</p></div>' +
+                  (item.id ? '<button class="button button-secondary normative-mobile-open" data-own-norm="' + E(item.id) + '">Открыть</button>' : '') +
+                '</article>';
+              }).join("");
+
+              return '<section class="date-section"><div class="date-section-head"><div><h2>' + E(formatDateNumeric(date)) + '</h2><span>' + E(weekday) + '</span></div><span class="date-section-count">' + E(String(groups[date].length)) + ' ' + (groups[date].length === 1 ? 'норматив' : 'нормативов') + '</span></div>' +
+                '<div class="box table-box normative-table-desktop"><table><thead><tr><th>№</th><th>Статус</th><th>Файлы</th><th>Отправлен</th><th>Решение</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+                '<div class="mobile-data-list normative-mobile-list">' + mobileItems + '</div></section>';
             }).join("");
 
             root.innerHTML = html || '<div class="box"><div class="empty">Нормативы ещё не отправлялись.</div></div>';
