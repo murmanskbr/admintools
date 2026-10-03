@@ -1257,6 +1257,16 @@
           sort.value = statsSortMode;
           sort.onchange = function () {
             statsSortMode = sort.value || "seniority";
+            var cache = readStatsCache();
+            if (
+              cache &&
+              String(cache.nickname || "").toLowerCase() ===
+                String(user && user.nickname || "").toLowerCase()
+            ) {
+              cache.sortMode = statsSortMode;
+              cache.selectedDate = selectedDate;
+              writeStatsCache(cache);
+            }
             renderTable(user);
           };
         }
