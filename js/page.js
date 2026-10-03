@@ -1247,7 +1247,7 @@
       var root = document.getElementById("normRoot");
       var dateInput = document.getElementById("controlDate");
       if (dateInput) selectedDate = dateInput.value;
-      return window.BR_API.normativesDaily(user.token, selectedDate).then(function (result) {
+      return window.BR_API.normativesDailyLocal(user.token, selectedDate).then(function (result) {
         var list = Array.isArray(result.administrators) ? result.administrators : [];
 
         var rows = list.map(function (item) {
@@ -1371,8 +1371,10 @@
           return '<a class="norm-image" href="' + E(file.url) + '" target="_blank" rel="noopener noreferrer"><img src="' + E(file.url) + '" alt="' + E(file.original_filename) + '"><span>' + E(file.original_filename) + '</span></a>';
         }).join("");
 
+        var currentStatus = s && s.status ? s.status : (result.status || "pending");
         var controls = options.management
           ? '<div class="review-panel">' +
+              '<div class="review-current">Текущий результат: ' + normativeStatus(currentStatus) + '</div>' +
               '<textarea id="reviewComment" class="form-textarea" placeholder="Комментарий проверки"></textarea>' +
               '<div class="review-actions">' +
                 '<button class="button button-secondary" data-review="rework">Перенорма</button>' +
@@ -1381,7 +1383,7 @@
                 '<button class="button button-secondary" data-review="inactive">Неактив</button>' +
               '</div>' +
             '</div>'
-          : '<div class="notice">Результат проверки: ' + normativeStatus(result.status) + '</div>';
+          : '<div class="notice">Результат проверки: ' + normativeStatus(currentStatus) + (s && s.reviewed_at ? '<br><small>Проверено: ' + E(formatDateTime(s.reviewed_at)) + '</small>' : '') + '</div>';
 
         document.getElementById("normativeDetailRoot").innerHTML =
           '<div class="detail-grid">' +
@@ -1401,9 +1403,10 @@
               var comment = document.getElementById("reviewComment").value.trim();
               button.disabled = true;
               try {
-                await window.BR_API.normativeMark(
+                var reviewResult = await window.BR_API.normativeReview(
                   options.token,
-                  options.nickname || (s && s.nickname) || "",
+                  options.submissionId,
+                  options.adminId,
                   options.date,
                   button.dataset.review,
                   comment
