@@ -198,6 +198,120 @@ button{cursor:pointer}
 .admin-edit-hint{margin-top:9px}
 @media(max-width:900px){.stats-norm-cell{min-width:220px}.stats-toolbar-actions{width:100%;justify-content:flex-start}.stats-all-toolbar{align-items:stretch}.stats-all-toolbar .date-control{flex:1}}
 
+/* Statistics table: keep identity and action controls visible while data scrolls. */
+#allStatsRoot .table-box{
+  position:relative;
+  overflow:auto;
+  max-width:100%;
+}
+
+#allStatsTable{
+  width:max-content;
+  min-width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:auto;
+}
+
+#allStatsTable th,
+#allStatsTable td{
+  white-space:nowrap;
+}
+
+#allStatsTable .stats-nickname-sticky{
+  position:sticky;
+  left:0;
+  z-index:6;
+  min-width:180px;
+  max-width:240px;
+  background:var(--surface);
+  box-shadow:8px 0 16px -14px rgba(0,0,0,.8);
+}
+
+#allStatsTable thead .stats-nickname-sticky{
+  z-index:12;
+  background:var(--surface2);
+}
+
+#allStatsTable .stats-norm-sticky{
+  position:sticky;
+  right:58px;
+  z-index:8;
+  min-width:280px;
+  background:var(--surface);
+  box-shadow:-8px 0 16px -14px rgba(0,0,0,.8);
+}
+
+#allStatsTable .stats-actions-sticky{
+  position:sticky;
+  right:0;
+  z-index:9;
+  width:58px;
+  min-width:58px;
+  max-width:58px;
+  background:var(--surface);
+  box-shadow:-8px 0 16px -14px rgba(0,0,0,.8);
+}
+
+#allStatsTable thead .stats-norm-sticky,
+#allStatsTable thead .stats-actions-sticky{
+  z-index:13;
+  background:var(--surface2);
+}
+
+#allStatsTable .stats-norm-cell{
+  min-width:280px;
+  white-space:nowrap;
+}
+
+#allStatsTable .stats-norm-actions{
+  display:inline-flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:4px;
+  white-space:nowrap;
+}
+
+#allStatsTable .admin-actions-cell{
+  width:58px;
+  min-width:58px;
+  max-width:58px;
+  white-space:nowrap;
+}
+
+.theme-light #allStatsTable .stats-nickname-sticky,
+.theme-light #allStatsTable .stats-norm-sticky,
+.theme-light #allStatsTable .stats-actions-sticky{
+  box-shadow:none;
+}
+
+@media(max-width:900px){
+  #allStatsTable .stats-nickname-sticky{
+    min-width:165px;
+    max-width:210px;
+  }
+  #allStatsTable .stats-norm-sticky,
+  #allStatsTable .stats-norm-cell{
+    min-width:270px;
+  }
+}
+
+@media(max-width:520px){
+  #allStatsRoot .table-box{
+    margin-left:-2px;
+    margin-right:-2px;
+  }
+  #allStatsTable .stats-nickname-sticky{
+    min-width:150px;
+    max-width:190px;
+  }
+  #allStatsTable .stats-norm-sticky,
+  #allStatsTable .stats-norm-cell{
+    min-width:265px;
+  }
+}
+
+
 .stats-section-row td{padding:10px 13px!important;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025);color:#9fc2ff;font-size:10px!important;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .stats-section-row b{display:block}
 
