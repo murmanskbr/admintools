@@ -704,6 +704,21 @@
         '<table id="allStatsTable"><thead><tr>' + headerCells + '<th class="stats-norm-sticky">Норматив</th><th class="stats-actions-sticky">Действия</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
         '<div id="adminEditModal"></div>';
 
+      document.querySelectorAll("#allStatsTable tbody tr").forEach(function (row) {
+        row.addEventListener("click", function (event) {
+          if (event.target.closest("button, a, input, select, textarea")) {
+            return;
+          }
+
+          document.querySelectorAll("#allStatsTable tbody tr.stats-row-selected")
+            .forEach(function (selected) {
+              selected.classList.remove("stats-row-selected");
+            });
+
+          row.classList.add("stats-row-selected");
+        });
+      });
+
       document.querySelectorAll("[data-stat-norm]").forEach(function (button) {
         button.onclick = async function () {
           var nickname = button.dataset.nickname || "";
