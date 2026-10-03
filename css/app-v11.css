@@ -859,3 +859,87 @@ body{font-size:16px}
 .theme-light .demo{background:#f7f8fa;border-color:#d7dde6;color:#5f6978}
 .theme-light .settings-status-ok{background:rgba(22,155,85,.08)}
 .theme-light .settings-status-error{background:rgba(220,64,83,.08)}
+
+
+/* Final statistics sticky/action fix */
+#allStatsRoot #allStatsTable .stats-norm-sticky{
+  position:sticky!important;
+  right:76px!important;
+  width:300px!important;
+  min-width:300px!important;
+  max-width:300px!important;
+  z-index:20!important;
+  background:var(--surface)!important;
+}
+#allStatsRoot #allStatsTable .stats-actions-sticky{
+  position:sticky!important;
+  right:0!important;
+  width:76px!important;
+  min-width:76px!important;
+  max-width:76px!important;
+  z-index:22!important;
+  background:var(--surface)!important;
+  padding:8px 10px!important;
+}
+#allStatsRoot #allStatsTable thead .stats-norm-sticky{
+  z-index:30!important;
+  background:var(--surface3)!important;
+}
+#allStatsRoot #allStatsTable thead .stats-actions-sticky{
+  z-index:31!important;
+  background:var(--surface3)!important;
+}
+#allStatsRoot #allStatsTable .stats-norm-cell{
+  width:300px!important;
+  min-width:300px!important;
+  max-width:300px!important;
+}
+#allStatsRoot #allStatsTable .stats-norm-actions{
+  display:inline-flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:5px!important;
+}
+#allStatsRoot #allStatsTable .admin-menu-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+#allStatsRoot #allStatsTable .admin-menu-trigger{
+  flex:0 0 auto;
+}
+.normative-action-toast{
+  z-index:2000!important;
+}
+@media(max-width:900px){
+  #allStatsRoot #allStatsTable .stats-norm-sticky,
+  #allStatsRoot #allStatsTable .stats-norm-cell{
+    width:260px!important;
+    min-width:260px!important;
+    max-width:260px!important;
+  }
+  #allStatsRoot #allStatsTable .stats-norm-sticky{
+    right:70px!important;
+  }
+  #allStatsRoot #allStatsTable .stats-actions-sticky{
+    width:70px!important;
+    min-width:70px!important;
+    max-width:70px!important;
+  }
+}
+@media(max-width:520px){
+  #allStatsRoot #allStatsTable .stats-norm-sticky,
+  #allStatsRoot #allStatsTable .stats-norm-cell{
+    width:250px!important;
+    min-width:250px!important;
+    max-width:250px!important;
+  }
+  #allStatsRoot #allStatsTable .stats-norm-sticky{
+    right:68px!important;
+  }
+  #allStatsRoot #allStatsTable .stats-actions-sticky{
+    width:68px!important;
+    min-width:68px!important;
+    max-width:68px!important;
+  }
+}
