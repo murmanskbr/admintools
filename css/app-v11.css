@@ -943,3 +943,35 @@ body{font-size:16px}
     max-width:68px!important;
   }
 }
+
+
+/* Normative action result */
+.normative-action-toast{
+  bottom:28px;
+  max-width:min(680px,calc(100vw - 30px));
+  padding:12px 16px;
+  border-radius:12px;
+  font-size:12px;
+  line-height:1.45;
+  text-align:center;
+  pointer-events:none;
+  z-index:2000!important;
+}
+.normative-toast-success{
+  border-color:rgba(54,212,125,.35);
+  background:#102218;
+  color:#82efae;
+}
+.normative-toast-error{
+  border-color:rgba(255,100,116,.35);
+  background:#241117;
+  color:#ff9aa7;
+}
+.theme-light .normative-toast-success{
+  background:#effaf3;
+  color:#167742;
+}
+.theme-light .normative-toast-error{
+  background:#fff1f3;
+  color:#bf3347;
+}
