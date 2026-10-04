@@ -1252,6 +1252,50 @@
                 );
             },
 
+        gamePresenceSet:
+            function (
+                token,
+                status
+            ) {
+                return request(
+                    {
+                        action: "game_presence_set",
+                        status: status,
+                        client_event_id:
+                            window.crypto && crypto.randomUUID
+                                ? crypto.randomUUID()
+                                : String(Date.now()) + "-" + Math.random()
+                    },
+                    token
+                );
+            },
+
+        gamePresenceMine:
+            function (
+                token
+            ) {
+                return request(
+                    {
+                        action: "game_presence_mine"
+                    },
+                    token
+                );
+            },
+
+        gamePresenceControl:
+            function (
+                token,
+                limit
+            ) {
+                return request(
+                    {
+                        action: "game_presence_control",
+                        limit: Number(limit || 250)
+                    },
+                    token
+                );
+            },
+
         auditLog:
             function (
                 token,
