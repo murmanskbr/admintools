@@ -251,7 +251,7 @@
         '<div class="section-title">КОНТРОЛЬ</div>' + link("game-activity") + link("logs") + link("rules") +
         '<div class="section-title">СИСТЕМА</div>' + link("settings")
       : link("notifications") + link("normatives") + link("requests") +
-        link("statistics") + link("rules") +
+        link("statistics") + link("game-activity") + link("rules") +
         '<div class="section-title">СИСТЕМА</div>' + link("settings");
 
     return '<div class="panel">' +
