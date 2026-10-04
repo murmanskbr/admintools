@@ -1329,14 +1329,17 @@
               details.push("Страйки: " + String(google.strikes_value));
             }
 
-            // The mutation response already contains a fresh Google snapshot.
-            // Render it immediately so the operator sees the new state even if
-            // a subsequent refresh request fails.
-            if (
+            // normative_mark теперь возвращает свежий снимок Google Sheets
+            // непосредственно в ответе. Поэтому второй запрос load() не нужен:
+            // он только добавлял лишнюю задержку и мог заменить успешное
+            // уведомление ошибкой повторного обновления.
+            var hasFreshSnapshot =
               result &&
               Array.isArray(result.headers) &&
-              Array.isArray(result.rows)
-            ) {
+              Array.isArray(result.rows) &&
+              Array.isArray(result.statistics);
+
+            if (hasFreshSnapshot) {
               lastResult = result;
               renderTable();
             }
@@ -1355,26 +1358,24 @@
               "success"
             );
 
-            try {
-              await load(user, true);
-              showNormativeResult(
-                "✅ " + (labels[status] || status) +
-                " проставлен для " + nickname +
-                ". Данные обновлены.",
-                "success"
-              );
-            } catch (refreshError) {
-              console.warn(
-                "[BR AdminTools] Статус сохранён, но повторное обновление статистики не удалось:",
-                refreshError
-              );
+            // Для совместимости со старыми ответами без снимка таблицы
+            // выполняем один обычный refresh как резервный путь.
+            if (!hasFreshSnapshot) {
+              try {
+                await load(user, true);
+              } catch (refreshError) {
+                console.warn(
+                  "[BR AdminTools] Статус сохранён, но резервное обновление статистики не удалось:",
+                  refreshError
+                );
 
-              showNormativeResult(
-                "✅ " + (labels[status] || status) +
-                " проставлен для " + nickname +
-                ". Текущие данные сохранены на экране, повторное обновление не удалось.",
-                "error"
-              );
+                showNormativeResult(
+                  "✅ " + (labels[status] || status) +
+                  " проставлен для " + nickname +
+                  ". Данные на экране не удалось обновить.",
+                  "error"
+                );
+              }
             }
           } catch (error) {
             showNormativeResult(
