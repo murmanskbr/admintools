@@ -1417,7 +1417,7 @@
                     },
                     token
                 );
-            }
+            },
 
         auditLogsClear:
             function (
