@@ -471,36 +471,7 @@
     };
   }
 
-  function myStatistics() {
-    return {
-      title: "Моя статистика",
-      subtitle: "Полная строка администратора из Google Таблица",
-      render: function () {
-        return '<div id="statsRoot"><div class="box"><div class="empty">Поиск администратора в Google Sheets...</div></div></div>';
-      },
-      load: async function (user) {
-        var root = document.getElementById("statsRoot");
-        if (!root) return;
-
-        root.innerHTML =
-          '<div class="box"><div class="empty">Обновление статистики из Google Sheets...</div></div>';
-
-        try {
-          var result = await window.BR_API.myStatistics(user.token);
-          root.innerHTML =
-            '<div class="box"><div class="stats-table-head"><div><small>ЛИЧНАЯ СТАТИСТИКА</small><b>' + E(user.nickname) + '</b></div><span class="muted">Свежие данные из Google Sheets</span></div></div>' +
-            googleRowTable(result, "Статистика " + user.nickname);
-        } catch (error) {
-          if (error.code === "STATISTICS_NOT_FOUND") {
-            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в реестре Google Sheets. Личная статистика не найдена.</div></div>';
-            return;
-          }
-          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить личную статистику.") + '</div></div>';
-        }
-      }
-    };
-  }
-
+  
   function allStatistics(user) {
     var selectedDate = dateIso(0);
     var lastResult = null;
@@ -3725,7 +3696,6 @@
     dashboard: dashboard,
     profile: profile,
     admins: admins,
-    statistics: myStatistics,
     "statistics-all": allStatistics,
     notifications: notifications,
     requests: requests,
