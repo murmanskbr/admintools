@@ -173,7 +173,12 @@
           }
         }
       })
-      .catch(function () {});
+      .catch(function (error) {
+        console.warn(
+          "[BR AdminTools] Не удалось синхронизировать сессию:",
+          error
+        );
+      });
   }
 
   function goToLogin() {
@@ -396,11 +401,50 @@
     document.addEventListener("keydown", touchActivity, { passive: true });
     document.addEventListener("touchstart", touchActivity, { passive: true });
 
-    if (options.bind) options.bind(session.user);
-    if (options.load) Promise.resolve(options.load(session.user)).catch(function (e) {
-      console.error("[BR AdminTools]", e);
-    });
+    if (options.bind) {
+      try {
+        options.bind(session.user);
+      } catch (error) {
+        console.error(
+          "[BR AdminTools] Ошибка привязки обработчиков страницы:",
+          error
+        );
+        throw error;
+      }
+    }
+
+    if (options.load) {
+      Promise.resolve(options.load(session.user)).catch(function (error) {
+        console.error(
+          "[BR AdminTools] Ошибка загрузки страницы:",
+          {
+            page: options.active || document.body.getAttribute("data-page") || "unknown",
+            error: error
+          }
+        );
+      });
+    }
   }
+
+  window.addEventListener("error", function (event) {
+    console.error(
+      "[BR AdminTools] Необработанная ошибка JavaScript:",
+      {
+        message: event && event.message,
+        source: event && event.filename,
+        line: event && event.lineno,
+        column: event && event.colno,
+        error: event && event.error
+      }
+    );
+  });
+
+  window.addEventListener("unhandledrejection", function (event) {
+    console.error(
+      "[BR AdminTools] Необработанное отклонение Promise:",
+      event && event.reason
+    );
+  });
 
   window.BRApp = {
     esc: esc,
