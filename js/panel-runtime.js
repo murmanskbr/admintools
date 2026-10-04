@@ -475,6 +475,31 @@
   function allStatistics(user) {
     var selectedDate = dateIso(0);
     var lastResult = null;
+
+    // Сдвигаем именно выбранную дату, а не сегодняшнюю.
+    // Раньше стрелки брали dateIso(±1), из-за чего каждый клик
+    // перескакивал относительно сегодняшнего дня и пропускал даты.
+    function shiftSelectedDate(days) {
+      var parts = String(selectedDate || "").split("-");
+      if (parts.length !== 3) return dateIso(days);
+
+      var year = Number(parts[0]);
+      var month = Number(parts[1]);
+      var day = Number(parts[2]);
+
+      if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+        return dateIso(days);
+      }
+
+      var date = new Date(year, month - 1, day);
+      if (Number.isNaN(date.getTime())) return dateIso(days);
+
+      date.setDate(date.getDate() + days);
+
+      return date.getFullYear() + "-" +
+        String(date.getMonth() + 1).padStart(2, "0") + "-" +
+        String(date.getDate()).padStart(2, "0");
+    }
     var lastData = [];
     var lastHeaders = [];
     var lastNicknameIndex = -1;
@@ -1580,8 +1605,8 @@
         }
 
         if (date) date.onchange = function () { setDate(date.value); };
-        if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
-        if (next) next.onclick = function () { setDate(dateIso(1)); };
+        if (prev) prev.onclick = function () { setDate(shiftSelectedDate(-1)); };
+        if (next) next.onclick = function () { setDate(shiftSelectedDate(1)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
 
         if (refresh) {
