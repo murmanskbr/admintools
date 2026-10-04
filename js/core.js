@@ -123,6 +123,10 @@
     try { localStorage.removeItem("br_session"); } catch (_) {}
     try { sessionStorage.removeItem("br_session"); } catch (_) {}
 
+    try {
+      document.cookie = COOKIE + "=; Max-Age=0; Path=/; Secure; SameSite=Lax";
+    } catch (_) {}
+
     if (session.remember === true) {
       saveCookie(COOKIE, data, REMEMBER_DAYS * 86400);
     } else {
