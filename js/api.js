@@ -1104,6 +1104,49 @@
                 );
             },
 
+        generalRequestsMine:
+            function (token) {
+                return request(
+                    { action: "general_requests_mine" },
+                    token
+                );
+            },
+
+        generalRequestCreate:
+            function (token, requestType, message) {
+                return request(
+                    {
+                        action: "general_request_create",
+                        request_type: requestType || "question",
+                        message: message || ""
+                    },
+                    token
+                );
+            },
+
+        generalRequestsAll:
+            function (token, status) {
+                return request(
+                    {
+                        action: "general_requests_all",
+                        status: status || ""
+                    },
+                    token
+                );
+            },
+
+        generalRequestReply:
+            function (token, requestId, comment) {
+                return request(
+                    {
+                        action: "general_request_reply",
+                        request_id: Number(requestId),
+                        comment: comment || ""
+                    },
+                    token
+                );
+            },
+
         inactiveRequestsMine:
             function (token) {
                 return request(
