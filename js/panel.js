@@ -1134,7 +1134,6 @@
       if (approvedInactiveForSelectedDate(nickname)) {
         return "Неактив";
       }
-      if (!nickname) return "";
 
       var value = externalGoogleNormative(
         normatives,
