@@ -11,7 +11,7 @@
 </head>
 <body data-page="requests-all">
 <div id="app"></div>
-<script src="../js/api.js?v=20261004-2145"></script>
+<script src="../js/api.js?v=20261004-2200"></script>
 <script src="../js/core.js?v=20261004-2125"></script>
 <script>
 (function () {
@@ -251,8 +251,9 @@
 
           if (status === "approved") {
             if (!window.confirm("Одобрить этот неактив? Период будет сохранён и автоматически учтён системой.")) return;
+            comment = window.prompt("Комментарий руководства при одобрении (необязательно):", "") || "";
           } else {
-            comment = window.prompt("Причина отказа (необязательно):", "") || "";
+            comment = window.prompt("Комментарий руководства при отказе (необязательно):", "") || "";
           }
 
           try {
