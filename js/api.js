@@ -1293,7 +1293,63 @@
                         limit: Number(limit || 250)
                     },
                     token
-                );
+                ).catch(function (error) {
+                    // Совместимость со старыми версиями Edge Function:
+                    // обычный администратор не должен получать 403 при
+                    // открытии личной страницы «Вход в игру».
+                    if (
+                        error &&
+                        error.code === "FORBIDDEN"
+                    ) {
+                        return request(
+                            {
+                                action: "game_presence_mine"
+                            },
+                            token
+                        ).then(function (mine) {
+                            var history =
+                                mine &&
+                                Array.isArray(mine.history)
+                                    ? mine.history
+                                    : [];
+
+                            var lastEvent =
+                                mine &&
+                                mine.last_event
+                                    ? mine.last_event
+                                    : null;
+
+                            return {
+                                success: true,
+                                personal_only: true,
+                                summary: {
+                                    in_game:
+                                        lastEvent &&
+                                        lastEvent.status === "in_game"
+                                            ? 1
+                                            : 0,
+                                    total_active: 1,
+                                    out_game:
+                                        lastEvent &&
+                                        lastEvent.status === "in_game"
+                                            ? 0
+                                            : 1
+                                },
+                                current: [],
+                                recent: [],
+                                history: history,
+                                state:
+                                    mine &&
+                                    mine.state
+                                        ? mine.state
+                                        : "out_game",
+                                last_event: lastEvent
+                            };
+                        });
+                    }
+
+                    throw error;
+                });
             },
 
         auditLog:
