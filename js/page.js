@@ -12,15 +12,6 @@
     }
   }
 
-  function localObject(key) {
-    try {
-      var data = JSON.parse(localStorage.getItem(key) || "{}");
-      return data && typeof data === "object" && !Array.isArray(data) ? data : {};
-    } catch (_) {
-      return {};
-    }
-  }
-
   function save(key, value) {
     try {
       localStorage.setItem(
@@ -58,14 +49,6 @@
     }
     return null;
   }
-
-  var ADMINS = [
-    ["Nikita_Zvezda", "Руководство"],
-    ["Test_Admin", "Модератор"],
-    ["Alex_Murmansk", "Старший модератор"],
-    ["Max_Admin", "Администратор"],
-    ["Rus_Leader", "Следящий"]
-  ];
 
   var POSITIONS = [
     "Младший модератор",
@@ -906,13 +889,6 @@
       lastData = [];
       lastNormatives = [];
       lastMarks = [];
-
-      root.innerHTML =
-        '<div class="box"><div class="empty">' +
-        (forceRefresh
-          ? "Обновление статистики и нормативов из Google Sheets..."
-          : "Загрузка актуальной статистики и нормативов...") +
-        '</div></div>';
 
       if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(String(dateInput.value || ""))) {
         selectedDate = String(dateInput.value);
