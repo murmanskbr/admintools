@@ -627,257 +627,488 @@
 
   function allStatistics(user) {
     var selectedDate = dateIso(0);
+    var lastResult = null;
     var lastData = [];
-    var lastNormatives = [];
-    var lastMarks = [];
+    var lastHeaders = [];
+    var lastNicknameIndex = -1;
 
-    var EDIT_FIELDS = [
-      ["Никнейм", "nickname", "text"],
-      ["Должность", "position", "text"],
-      ["Возраст", "age", "text"],
-      ["Доступ с ПК", "pc_access", "text"],
-      ["Уровни", "levels", "text"],
-      ["Баллы активности", "activity_points", "text"],
-      ["Неактивы", "inactives", "text"],
-      ["Страйки", "strikes", "text"],
-      ["Предупреждения", "warnings", "text"],
-      ["Баллы", "points", "text"],
-      ["Последнее повышение", "last_promotion", "text"]
-    ];
-
-    var STATUS_LABELS = {
-      norm: "Норма",
-      rework: "Перенорма",
-      no_norm: "Нет нормы",
-      inactive: "Неактив",
-      pending: "На проверке",
-      not_submitted: "Не сдан"
-    };
-
-    function normMap() {
-      var map = {};
-
-      lastNormatives.forEach(function (item) {
-        var nickname = String(item.nickname || "").trim().toLowerCase();
-        if (nickname) map[nickname] = item;
-      });
-
-      lastMarks.forEach(function (item) {
-        var nickname = String(item.nickname || "").trim().toLowerCase();
-        if (nickname) map[nickname] = item;
-      });
-
-      return map;
-    }
-
-    function normalizeHeaderKey(header) {
-      var key = String(header == null ? "" : header)
+    function normalizeHeader(header) {
+      return String(header == null ? "" : header)
         .trim()
         .toLowerCase()
         .replace(/ё/g, "е")
         .replace(/[_\-]+/g, " ")
         .replace(/\s+/g, " ");
-
-      var compact = key.replace(/[^a-zа-я0-9]/gi, "");
-
-      var map = {
-        "никнейм":"nickname","ник":"nickname","nickname":"nickname","nick":"nickname","логин":"nickname","login":"nickname","username":"nickname",
-        "возраст":"age","лет":"age","age":"age",
-        "доступ с пк":"pc_access","доступ пк":"pc_access","доступ к пк":"pc_access","доступ к компьютеру":"pc_access","пк":"pc_access","pc access":"pc_access","pcaccess":"pc_access","pc":"pc_access",
-        "должность":"position","позиция":"position","position":"position","rank":"position",
-        "уровни":"levels","уровень":"levels","левел":"levels","lvl":"levels","level":"levels","levels":"levels",
-        "баллы активности":"activity_points","очки активности":"activity_points","очки за активность":"activity_points","баллы за активность":"activity_points","активность":"activity_points","activity points":"activity_points","activitypoints":"activity_points","activity":"activity_points",
-        "неактивы":"inactives","неактив":"inactives","неактивные":"inactives","неактивность":"inactives","inactive":"inactives","inactives":"inactives",
-        "страйки":"strikes","страйк":"strikes","выговоры":"strikes","выговор":"strikes","strikes":"strikes","strike":"strikes",
-        "предупреждения":"warnings","предупреждение":"warnings","варны":"warnings","варн":"warnings","warnings":"warnings","warning":"warnings",
-        "баллы":"points","очки":"points","points":"points","score":"points",
-        "последнее повышение":"last_promotion","дата последнего повышения":"last_promotion","повышение":"last_promotion","дата повышения":"last_promotion","last promotion":"last_promotion","last_promotion":"last_promotion","lastpromotion":"last_promotion",
-        "дни на посте":"post_days","дни на посту":"post_days","дней на посте":"post_days","дней на посту":"post_days","дни на пост":"post_days","дни поста":"post_days","дней поста":"post_days","дни напасти":"post_days","дней напасти":"post_days","напасти":"post_days","напасту":"post_days","стаж на посте":"post_days","стаж на посту":"post_days","post days":"post_days","post day":"post_days","postdays":"post_days","days on post":"post_days","daysonpost":"post_days",
-        "норматив":"normative","нормативы":"normative","норма":"normative","нормы":"normative","норм":"normative","статус норматива":"normative","результат норматива":"normative","norm":"normative","normative":"normative","normatives":"normative",
-        "статус":"status","статус нормы":"status","статус норматива":"status","результат":"status","status":"status","result":"status",
-        "дата":"date","дата норматива":"date","дата нормы":"date","день":"date","дата проверки":"date","дата сдачи":"date","date":"date","submission date":"date","submissiondate":"date",
-        "комментарий":"comment","примечание":"comment","примечания":"comment","коммент":"comment","comment":"comment","comments":"comment","note":"comment"
-      };
-
-      if (map[key]) return map[key];
-
-      if (compact.indexOf("ник") === 0 || compact.indexOf("nick") === 0 || compact.indexOf("username") === 0) return "nickname";
-      if (compact.indexOf("возраст") !== -1 || compact === "age") return "age";
-      if (compact.indexOf("доступ") !== -1 && (compact.indexOf("пк") !== -1 || compact.indexOf("комп") !== -1)) return "pc_access";
-      if (compact.indexOf("долж") !== -1 || compact.indexOf("позици") !== -1 || compact === "position") return "position";
-      if (compact.indexOf("уров") !== -1 || compact.indexOf("левел") !== -1 || compact === "lvl" || compact === "level") return "levels";
-      if (compact.indexOf("актив") !== -1 && (compact.indexOf("балл") !== -1 || compact.indexOf("очк") !== -1 || compact === "activity")) return "activity_points";
-      if (compact.indexOf("неактив") !== -1 || compact.indexOf("inactive") !== -1) return "inactives";
-      if (compact.indexOf("выговор") !== -1 || compact.indexOf("страйк") !== -1 || compact.indexOf("strike") !== -1) return "strikes";
-      if (compact.indexOf("предупреж") !== -1 || compact.indexOf("варн") !== -1 || compact.indexOf("warning") !== -1) return "warnings";
-      if (compact.indexOf("балл") !== -1 || compact.indexOf("очк") !== -1 || compact === "points" || compact === "score") return "points";
-      if (compact.indexOf("повыш") !== -1 || compact.indexOf("promotion") !== -1) return "last_promotion";
-      if ((compact.indexOf("дни") !== -1 || compact.indexOf("дней") !== -1 || compact.indexOf("дня") !== -1) && (compact.indexOf("пост") !== -1 || compact.indexOf("напаст") !== -1)) return "post_days";
-      if (compact === "напасти" || compact === "напасту" || compact.indexOf("postday") !== -1 || compact.indexOf("daysonpost") !== -1) return "post_days";
-      if (compact.indexOf("норматив") !== -1 || compact.indexOf("нормат") !== -1 || compact === "норма" || compact === "норм" || compact === "norm") return "normative";
-      if (compact.indexOf("статус") !== -1 || compact.indexOf("результат") !== -1 || compact === "status" || compact === "result") return "status";
-      if (compact.indexOf("дата") !== -1 || compact.indexOf("date") !== -1) return "date";
-      if (compact.indexOf("коммент") !== -1 || compact.indexOf("примеч") !== -1 || compact.indexOf("comment") !== -1 || compact.indexOf("note") !== -1) return "comment";
-
-      return key;
     }
 
-    function valueOf(item, key) {
-      if (!item) return "";
+    function findNicknameIndex(headers) {
+      var aliases = [
+        "никнейм", "ник", "nickname", "nick",
+        "логин", "login", "username"
+      ];
 
-      if (item[key] != null && item[key] !== "") {
-        return item[key];
+      for (var i = 0; i < headers.length; i += 1) {
+        if (aliases.indexOf(normalizeHeader(headers[i])) !== -1) {
+          return i;
+        }
       }
 
-      var values = item.values || {};
+      return -1;
+    }
 
-      if (values[key] != null && values[key] !== "") {
-        return values[key];
-      }
-
-      var headers = Array.isArray(values.headers)
-        ? values.headers
+    function sourceData(result) {
+      var headers = Array.isArray(result && result.headers)
+        ? result.headers.slice()
         : [];
 
-      var raw = Array.isArray(values.raw_row)
-        ? values.raw_row
+      var rows = Array.isArray(result && result.rows)
+        ? result.rows.map(function (row) {
+            return Array.isArray(row) ? row.slice() : [];
+          })
         : [];
 
-      for (var i = 0; i < headers.length; i += 1) {
-        var mappedKey = normalizeHeaderKey(headers[i]);
+      var statistics = Array.isArray(result && result.statistics)
+        ? result.statistics
+        : [];
 
-        if (mappedKey === key) {
-          return raw[i] != null ? raw[i] : "";
+      if (!headers.length && statistics.length) {
+        var firstValues = statistics[0] && statistics[0].values;
+        if (firstValues && Array.isArray(firstValues.headers)) {
+          headers = firstValues.headers.slice();
         }
       }
 
-      return "";
-    }
+      if (!rows.length && statistics.length) {
+        rows = statistics.map(function (item) {
+          var values = item && item.values ? item.values : {};
+          return Array.isArray(values.raw_row)
+            ? values.raw_row.slice()
+            : [];
+        });
+      }
 
-    function displayValue(value) {
-      return value == null || value === "" ? "—" : value;
-    }
+      var count = headers.length;
 
-    function showNormativeResult(message, type) {
-      var existing = document.getElementById("normativeActionToast");
-      if (existing) existing.remove();
+      rows.forEach(function (row) {
+        if (row.length > count) count = row.length;
+      });
 
-      var toast = document.createElement("div");
-      toast.id = "normativeActionToast";
-      toast.className = "toast normative-action-toast " +
-        (type === "success" ? "normative-toast-success" : "normative-toast-error");
-      toast.textContent = message;
-      document.body.appendChild(toast);
+      while (headers.length < count) {
+        headers.push("");
+      }
 
-      window.setTimeout(function () {
-        if (toast.parentNode) toast.remove();
-      }, 4500);
-    }
-
-    function normativeErrorMessage(error) {
-      var code = error && error.code ? error.code : "";
-
-      var messages = {
-        NORMATIVE_ADMIN_NOT_FOUND: "❌ Никнейм не найден ни на одном подходящем листе Google Sheets.",
-        NORMATIVE_DATE_NOT_FOUND: "❌ Указанная дата не найдена ни на одном подходящем листе.",
-        NORMATIVE_CELL_NOT_FOUND: "❌ Не удалось определить ячейку для норматива.",
-        POST_DAYS_FIELD_NOT_FOUND: "❌ В Google Таблице не найдена колонка «Дни на посту».",
-        INACTIVES_FIELD_NOT_FOUND: "❌ В Google Таблице не найдена колонка «Неактивы».",
-        NORMATIVE_MARK_STATUS_REQUIRED: "❌ Передан неизвестный статус норматива.",
-        APPS_SCRIPT_UNAUTHORIZED: "❌ Google Apps Script отклонил запрос. Проверьте секрет скрипта.",
-        APPS_SCRIPT_TIMEOUT: "❌ Google Apps Script не ответил вовремя.",
-        APPS_SCRIPT_HTTP_404: "❌ Google Apps Script вернул 404. Проверьте последнее веб-развёртывание и доступ «Все».",
-        APPS_SCRIPT_HTTP_403: "❌ Google Apps Script отклонил доступ. Веб-приложение должно быть доступно всем.",
-        APPS_SCRIPT_HTTP_ERROR: "❌ Google Apps Script вернул HTTP-ошибку.",
-        APPS_SCRIPT_NOT_CONFIGURED: "❌ Не настроена ссылка на Google Apps Script.",
-        APPS_SCRIPT_SECRET_NOT_CONFIGURED: "❌ Не настроен секрет Google Apps Script.",
-        APPS_SCRIPT_INVALID_RESPONSE: "❌ Google Apps Script вернул некорректный ответ.",
-        STATISTICS_DISABLED: "❌ Модуль статистики отключён.",
-        FORBIDDEN: "❌ Недостаточно прав для выставления норматива."
+      return {
+        headers: headers,
+        rows: rows,
+        statistics: statistics,
+        count: count
       };
-
-      return messages[code] ||
-        (error && error.message) ||
-        "❌ Не удалось сохранить норматив.";
     }
 
-    function itemNickname(item) {
-      var direct = String(
-        valueOf(item, "nickname") ||
-        item.nickname ||
-        ""
-      ).trim();
+    function sourceRowNumber(result, rowIndex) {
+      var statistics = Array.isArray(result && result.statistics)
+        ? result.statistics
+        : [];
 
-      if (direct) {
-        return direct;
+      var item = statistics[rowIndex];
+
+      var value = item && item.row_number != null
+        ? item.row_number
+        : result && Array.isArray(result.row_numbers)
+          ? result.row_numbers[rowIndex]
+          : 0;
+
+      var rowNumber = Number(value);
+      return Number.isFinite(rowNumber) ? rowNumber : 0;
+    }
+
+    function sourceNormativeHeaderIndex(headers) {
+      var aliases = [
+        "норматив", "нормативы", "норма", "нормы", "норм",
+        "статус норматива", "результат норматива",
+        "norm", "normative", "normatives"
+      ];
+
+      for (var i = 0; i < headers.length; i += 1) {
+        if (aliases.indexOf(normalizeHeader(headers[i])) !== -1) {
+          return i;
+        }
       }
+
+      return -1;
+    }
+
+    function externalGoogleNormative(data, nickname) {
+      if (!data || !nickname) return "";
+
+      var target = String(nickname).trim().toLowerCase();
+      var date = String(selectedDate || "").trim();
+      var nicknameKeys = ["nickname", "nick", "username", "login", "никнейм", "ник", "логин"];
+      var valueKeys = ["normative_status", "status", "normative", "norm", "result", "value", "статус", "норматив", "норма", "результат"];
+      var dateKeys = ["date", "selected_date", "normative_date", "дата", "дата норматива"];
+
+      function getKey(object, keys) {
+        if (!object || typeof object !== "object") return null;
+
+        for (var i = 0; i < keys.length; i += 1) {
+          if (Object.prototype.hasOwnProperty.call(object, keys[i])) {
+            return object[keys[i]];
+          }
+        }
+
+        var normalizedKeys = Object.keys(object);
+        for (var j = 0; j < normalizedKeys.length; j += 1) {
+          var normalizedObjectKey = normalizeHeader(normalizedKeys[j]);
+          for (var k = 0; k < keys.length; k += 1) {
+            if (normalizedObjectKey === normalizeHeader(keys[k])) {
+              return object[normalizedKeys[j]];
+            }
+          }
+        }
+
+        return null;
+      }
+
+      function scan(value) {
+        if (!value) return "";
+
+        if (Array.isArray(value)) {
+          for (var i = 0; i < value.length; i += 1) {
+            var found = scan(value[i]);
+            if (found !== "") return found;
+          }
+          return "";
+        }
+
+        if (typeof value !== "object") return "";
+
+        var nicknameValue = getKey(value, nicknameKeys);
+        if (
+          nicknameValue != null &&
+          String(nicknameValue).trim().toLowerCase() === target
+        ) {
+          var dateValue = getKey(value, dateKeys);
+          if (
+            dateValue == null ||
+            String(dateValue).trim() === "" ||
+            String(dateValue).trim() === date
+          ) {
+            var direct = getKey(value, valueKeys);
+            if (direct != null) return String(direct);
+          }
+        }
+
+        var nestedKeys = ["normatives", "marks", "administrators", "rows", "data", "items", "results"];
+        for (var j = 0; j < nestedKeys.length; j += 1) {
+          if (value[nestedKeys[j]] != null) {
+            var nested = scan(value[nestedKeys[j]]);
+            if (nested !== "") return nested;
+          }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(value, nickname)) {
+          var byNickname = value[nickname];
+          if (typeof byNickname === "object" && byNickname !== null) {
+            var byNicknameValue = getKey(byNickname, valueKeys);
+            if (byNicknameValue != null) return String(byNicknameValue);
+          } else if (byNickname != null) {
+            return String(byNickname);
+          }
+        }
+
+        return "";
+      }
+
+      return scan(data);
+    }
+
+    function rawCellValue(value) {
+      return value == null ? "" : String(value);
+    }
+
+    function renderTable() {
+      var root = document.getElementById("allStatsRoot");
+      if (!root) return;
+
+      var data = sourceData(lastResult || {});
+      lastHeaders = data.headers.slice();
+      lastNicknameIndex = findNicknameIndex(lastHeaders);
+
+      var normativeHeaderIndex = sourceNormativeHeaderIndex(lastHeaders);
+      var hasSourceNormativeColumn = normativeHeaderIndex >= 0;
+
+      lastData = data.rows.map(function (row, rowIndex) {
+        var sourceItem = data.statistics[rowIndex] || {};
+        return {
+          row_number: sourceRowNumber(lastResult || {}, rowIndex),
+          sheet_name: sourceItem.sheet_name || (lastResult && lastResult.source && lastResult.source.sheet_name) || "",
+          values: {
+            headers: lastHeaders.slice(),
+            raw_row: row.slice()
+          }
+        };
+      });
+
+      var headerCells = lastHeaders.map(function (header) {
+        return '<th>' + E(header == null ? "" : header) + '</th>';
+      }).join("");
+
+      if (hasSourceNormativeColumn) {
+        // The normative value already belongs to the Google Sheets source row.
+        // Do not add or rewrite it.
+      }
+
+      var rows = data.rows.map(function (row, rowIndex) {
+        var cells = lastHeaders.map(function (_, columnIndex) {
+          var value = rawCellValue(row[columnIndex]);
+          return '<td data-stat-column="' + columnIndex + '">' + E(value) + '</td>';
+        }).join("");
+
+        var nickname = lastNicknameIndex >= 0
+          ? rawCellValue(row[lastNicknameIndex]).trim()
+          : "";
+
+        var normativeCell = "";
+        if (!hasSourceNormativeColumn && nickname) {
+          var externalNormative = externalGoogleNormative(
+            lastResult && lastResult.normatives,
+            nickname
+          );
+          normativeCell =
+            '<td class="stats-norm-cell">' +
+              '<span>' + E(externalNormative) + '</span>' +
+              '<div class="stats-norm-actions">' +
+                '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
+                '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
+                '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
+                '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
+              '</div>' +
+            '</td>';
+        } else if (nickname) {
+          normativeCell =
+            '<td class="stats-norm-cell">' +
+              '<div class="stats-norm-actions">' +
+                '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
+                '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
+                '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
+                '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
+              '</div>' +
+            '</td>';
+        } else {
+          normativeCell = '<td class="stats-norm-cell"></td>';
+        }
+
+        var actionCell = nickname
+          ? '<td class="admin-actions-cell"><button class="admin-edit-inline" type="button" data-edit-row-index="' + rowIndex + '">Изменить</button></td>'
+          : '<td class="admin-actions-cell"></td>';
+
+        return '<tr>' + cells + normativeCell + actionCell + '</tr>';
+      }).join("");
+
+      if (!rows) {
+        rows = '<tr><td colspan="' + (lastHeaders.length + 2) + '" class="table-empty">В Google Таблице нет строк данных.</td></tr>';
+      }
+
+      root.innerHTML =
+        '<div class="box table-box">' +
+          '<div class="stats-table-head"><div>' +
+            '<small>СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
+            '<b>' + E(String(data.rows.length)) + ' строк</b>' +
+          '</div><span class="muted">Источник: Google Таблица</span></div>' +
+          '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
+            E(lastResult && lastResult.source && lastResult.source.sheet_name ? lastResult.source.sheet_name : "Google Sheets") +
+          '</span></div>' +
+          '<table id="allStatsTable"><thead><tr>' +
+            headerCells +
+            (hasSourceNormativeColumn ? '<th></th>' : '<th>Норматив</th>') +
+            '<th>Действия</th>' +
+          '</tr></thead><tbody>' + rows + '</tbody></table>' +
+        '</div><div id="adminEditModal"></div>';
+
+      document.querySelectorAll("#allStatsTable tbody tr").forEach(function (row) {
+        row.addEventListener("click", function (event) {
+          if (event.target.closest("button, a, input, select, textarea")) return;
+          document.querySelectorAll("#allStatsTable tbody tr.stats-row-selected").forEach(function (selected) {
+            selected.classList.remove("stats-row-selected");
+          });
+          row.classList.add("stats-row-selected");
+        });
+      });
+
+      document.querySelectorAll("[data-stat-norm]").forEach(function (button) {
+        button.onclick = async function () {
+          var nickname = button.dataset.nickname || "";
+          var status = button.dataset.statNorm || "";
+          var labels = {
+            norm: "Норма",
+            rework: "Перенорма",
+            no_norm: "Нет нормы",
+            inactive: "Неактив"
+          };
+          if (!nickname) return;
+
+          if (!confirm(
+            "Выставить «" + (labels[status] || status) +
+            "» для " + nickname +
+            " за " + formatDateOnly(selectedDate) + "?"
+          )) return;
+
+          button.disabled = true;
+
+          try {
+            var result = await window.BR_API.normativeMark(
+              user.token,
+              nickname,
+              selectedDate,
+              status,
+              ""
+            );
+
+            var google = result && result.google_sheet
+              ? result.google_sheet
+              : {};
+
+            var details = [];
+            if (google.cell) details.push("ячейка " + String(google.cell));
+            if (google.post_days_updated) {
+              details.push("Дни на посту: " + String(google.post_days_value));
+            }
+            if (google.inactives_updated) {
+              details.push("Неактивы: " + String(google.inactives_value));
+            }
+
+            showNormativeResult(
+              "✅ " + (labels[status] || status) +
+              " проставлена для " + nickname +
+              " за " + formatDateOnly(selectedDate) +
+              (details.length ? " • " + details.join(" • ") : ""),
+              "success"
+            );
+
+            await load(user, true);
+          } catch (error) {
+            showNormativeResult(
+              normativeErrorMessage(error),
+              "error"
+            );
+            button.disabled = false;
+          }
+        };
+      });
+
+      document.querySelectorAll("[data-edit-row-index]").forEach(function (button) {
+        button.onclick = function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          var rowIndex = Number(button.dataset.editRowIndex);
+          var item = lastData[rowIndex];
+
+          if (!item) {
+            alert("Выбранная строка больше не существует в загруженной таблице.");
+            return;
+          }
+
+          openEditModal(user, item);
+        };
+      });
+    }
+
+    function openEditModal(user, item) {
+      var root = document.getElementById("adminEditModal");
+      if (!root) return;
 
       var values = item && item.values ? item.values : {};
       var headers = Array.isArray(values.headers) ? values.headers : [];
       var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
 
-      for (var i = 0; i < headers.length; i += 1) {
-        if (isGoogleNicknameHeader(headers[i])) {
-          return String(raw[i] == null ? "" : raw[i]).trim();
+      if (!headers.length) {
+        alert("В Google Таблице не найдены заголовки столбцов.");
+        return;
+      }
+
+      var fields = headers.map(function (header, index) {
+        var title = rawCellValue(header);
+        if (!title.trim()) return "";
+
+        return '<div class="form-field">' +
+          '<label>' + E(title) + '</label>' +
+          '<input class="form-input" data-google-field-index="' + index + '" value="' +
+            E(rawCellValue(raw[index])) + '">' +
+        '</div>';
+      }).join("");
+
+      root.innerHTML =
+        '<div class="modal-backdrop" id="adminEditBackdrop">' +
+          '<div class="modal-card admin-edit-modal-card">' +
+            '<div class="modal-head">' +
+              '<div class="admin-edit-title"><small>GOOGLE ТАБЛИЦА</small><h2>Редактирование строки</h2><span>Изменяются только существующие столбцы</span></div>' +
+              '<button class="modal-close" id="adminEditClose" type="button">×</button>' +
+            '</div>' +
+            '<form id="adminEditForm">' +
+              '<div class="form-grid">' + fields + '</div>' +
+              '<div class="form-actions admin-edit-actions">' +
+                '<button class="button button-secondary" id="adminEditCancel" type="button">Отмена</button>' +
+                '<button class="button button-primary" type="submit">Сохранить изменения</button>' +
+              '</div>' +
+            '</form>' +
+          '</div>' +
+        '</div>';
+
+      function close() {
+        root.innerHTML = "";
+      }
+
+      document.getElementById("adminEditClose").onclick = close;
+      document.getElementById("adminEditCancel").onclick = close;
+
+      document.getElementById("adminEditForm").onsubmit = async function (event) {
+        event.preventDefault();
+
+        var changes = {};
+        document.querySelectorAll("[data-google-field-index]").forEach(function (input) {
+          var index = Number(input.dataset.googleFieldIndex);
+          var header = rawCellValue(headers[index]).trim();
+          if (!header) return;
+
+          var currentValue = rawCellValue(raw[index]);
+          var nextValue = String(input.value);
+
+          if (nextValue !== currentValue) {
+            changes[header] = nextValue;
+          }
+        });
+
+        if (!Object.keys(changes).length) {
+          close();
+          return;
         }
-      }
 
-      return "";
-    }
-
-    function isStatsColumnHeader(item) {
-      var nickname = itemNickname(item).toLowerCase();
-
-      var values = item && item.values ? item.values : {};
-      var headers = Array.isArray(values.headers) ? values.headers : [];
-      var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
-      var position = "";
-
-      for (var i = 0; i < headers.length; i += 1) {
-        if (String(headers[i] || "").trim().toLowerCase() === "должность") {
-          position = String(raw[i] == null ? "" : raw[i]).trim().toLowerCase();
-          break;
+        var saveButton = document.querySelector("#adminEditForm button[type=submit]");
+        if (saveButton) {
+          saveButton.disabled = true;
+          saveButton.textContent = "Сохранение…";
         }
-      }
 
-      return (
-        nickname === "никнейм" ||
-        nickname === "nickname" ||
-        nickname === "nick" ||
-        (nickname === "ник" && position === "должность")
-      );
-    }
+        try {
+          await window.BR_API.updateAdminStatistics(
+            user.token,
+            lastNicknameIndex >= 0
+              ? rawCellValue(raw[lastNicknameIndex]).trim()
+              : "",
+            changes
+          );
 
-    function isStatsSectionRow(item) {
-      var nickname = itemNickname(item);
-
-      if (!nickname || nickname.length < 3 || isStatsColumnHeader(item)) {
-        return false;
-      }
-
-      var values = item && item.values ? item.values : {};
-      var headers = Array.isArray(values.headers) ? values.headers : [];
-      var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
-      var nicknameIndex = -1;
-
-      for (var i = 0; i < headers.length; i += 1) {
-        if (isGoogleNicknameHeader(headers[i])) {
-          nicknameIndex = i;
-          break;
+          close();
+          await load(user, true);
+        } catch (error) {
+          alert(error.message || "Не удалось сохранить изменения.");
+          if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = "Сохранить изменения";
+          }
         }
-      }
-
-      var hasOtherData = false;
-
-      for (var j = 0; j < raw.length; j += 1) {
-        if (j === nicknameIndex) continue;
-        if (String(raw[j] == null ? "" : raw[j]).trim() !== "") {
-          hasOtherData = true;
-          break;
-        }
-      }
-
-      return !hasOtherData && nickname === nickname.toUpperCase();
+      };
     }
 
     function load(user, forceRefresh) {
@@ -886,15 +1117,10 @@
       var dateInput = document.getElementById("allStatsDate");
       if (!root) return Promise.resolve();
 
-      lastData = [];
-      lastNormatives = [];
-      lastMarks = [];
-
       if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(String(dateInput.value || ""))) {
         selectedDate = String(dateInput.value);
       }
 
-      // Дата из верхнего календаря — единственный источник даты запроса.
       if (!/^\d{4}-\d{2}-\d{2}$/.test(String(selectedDate || ""))) {
         selectedDate = dateIso(0);
         if (dateInput) dateInput.value = selectedDate;
@@ -912,29 +1138,22 @@
           : "Загрузка актуальной статистики...") +
         '</div></div>';
 
-      return Promise.all([
-        window.BR_API.allStatistics(user.token, selectedDate),
-        window.BR_API.normativesDaily(user.token, selectedDate)
-      ]).then(function (results) {
-        var statisticsResult = results[0] || {};
-        var normativesResult = results[1] || {};
-        lastData = Array.isArray(statisticsResult.statistics) ? statisticsResult.statistics : [];
-        lastNormatives = Array.isArray(normativesResult.administrators) ? normativesResult.administrators : [];
-        lastMarks = Array.isArray(normativesResult.marks) ? normativesResult.marks : [];
-
-        renderTable(user);
+      return window.BR_API.allStatistics(
+        user.token,
+        selectedDate
+      ).then(function (result) {
+        lastResult = result || {};
+        renderTable();
       }).catch(function (error) {
-        console.error(
-          "[BR AdminTools] Ошибка общей статистики:",
-          error
-        );
-
+        console.error("[BR AdminTools] Ошибка общей статистики:", error);
+        lastResult = null;
         lastData = [];
-        lastNormatives = [];
-        lastMarks = [];
+        lastHeaders = [];
+        lastNicknameIndex = -1;
 
-        root.innerHTML = '<div class="box"><div class="empty">' +
-          E(error.message || "Не удалось загрузить актуальную статистику администрации.") +
+        root.innerHTML =
+          '<div class="box"><div class="empty">' +
+          E(error.message || "Не удалось загрузить актуальную статистику из Google Таблицы.") +
           '</div></div>';
       }).finally(function () {
         if (refresh) {
@@ -944,510 +1163,13 @@
       });
     }
 
-    var STATS_DISPLAY_COLUMNS = [
-      ["nickname", "Никнейм"],
-      ["age", "Возраст"],
-      ["pc_access", "Доступ с ПК"],
-      ["position", "Должность"],
-      ["inactives", "Неактивы"],
-      ["activity_points", "Баллы активности"],
-      ["post_days", "Дни на посту"],
-      ["strikes", "Страйки"],
-      ["warnings", "Предупреждения"],
-      ["points", "Баллы"],
-      ["last_promotion", "Последнее повышение"]
-    ];
-
-    function normalizeStatsPosition(value) {
-      return String(value == null ? "" : value)
-        .trim()
-        .toLowerCase()
-        .replace(/ё/g, "е")
-        .replace(/[.]+/g, " ")
-        .replace(/[_\-]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    }
-
-    function statsPositionTitle(item) {
-      var value = String(valueOf(item, "position") || "").trim();
-      return value === "—" ? "" : value;
-    }
-
-    function statsGroupTitleFromRow(item) {
-      var nickname = itemNickname(item).trim();
-      if (!nickname || isStatsColumnHeader(item)) return "";
-
-      var values = item && item.values ? item.values : {};
-      var headers = Array.isArray(values.headers) ? values.headers : [];
-      var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
-      var nonEmptyCount = 0;
-
-      for (var i = 0; i < raw.length; i += 1) {
-        if (String(raw[i] == null ? "" : raw[i]).trim() !== "") {
-          nonEmptyCount += 1;
-          if (nonEmptyCount > 1) return "";
-        }
-      }
-
-      var normalized = normalizeStatsPosition(nickname);
-      var compact = normalized.replace(/[^a-zа-я0-9]/gi, "");
-
-      var looksLikeCategory =
-        normalized.indexOf("младш") !== -1 && normalized.indexOf("модер") !== -1 ||
-        normalized.indexOf("старш") !== -1 && normalized.indexOf("модер") !== -1 ||
-        normalized === "модераторы" ||
-        normalized === "модератор" ||
-        normalized.indexOf("администратор") !== -1 ||
-        compact.indexOf("admin") === 0 ||
-        normalized.indexOf("следящ") !== -1 ||
-        normalized.indexOf("сидящ") !== -1 ||
-        normalized.indexOf("куратор") !== -1 ||
-        normalized.indexOf("руковод") !== -1 ||
-        normalized.indexOf("управлен") !== -1;
-
-      return looksLikeCategory ? nickname : "";
-    }
-
-    function statsGroupScore(value) {
-      var position = normalizeStatsPosition(value);
-      if (!position) return 0;
-
-      var compact = position.replace(/[^a-zа-я0-9]/gi, "");
-
-      // Старшие следящие за АП — самая верхняя группа.
-      if (
-        position.indexOf("старш") !== -1 &&
-        (position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1) &&
-        position.indexOf("ап") !== -1
-      ) return 1300;
-
-      if (position.indexOf("руковод") !== -1 || position.indexOf("управлен") !== -1) return 1200;
-      if (position.indexOf("куратор") !== -1) return 1150;
-
-      if (
-        position.indexOf("старш") !== -1 &&
-        (position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1)
-      ) return 1100;
-
-      if (position.indexOf("следящ") !== -1 || position.indexOf("сидящ") !== -1) return 1050;
-
-      if (position.indexOf("старш") !== -1 && position.indexOf("админ") !== -1) return 1000;
-      if (position.indexOf("админ") !== -1 || compact.indexOf("admin") === 0) return 900;
-
-      if (position.indexOf("старш") !== -1 && position.indexOf("модер") !== -1) return 800;
-      if (position.indexOf("модер") !== -1 && position.indexOf("младш") === -1) return 700;
-      if (position.indexOf("младш") !== -1 && position.indexOf("модер") !== -1) return 600;
-
-      return 0;
-    }
-
-    function statsPositionMeta(title, order) {
-      var value = String(title == null ? "" : title).trim();
-      var normalized = normalizeStatsPosition(value);
-      var isSeniorAp =
-        normalized.indexOf("старш") !== -1 &&
-        (normalized.indexOf("следящ") !== -1 || normalized.indexOf("сидящ") !== -1) &&
-        normalized.indexOf("ап") !== -1;
-      var isJuniorModerator =
-        normalized.indexOf("младш") !== -1 &&
-        normalized.indexOf("модер") !== -1;
-
-      return {
-        key: normalized || "__other__",
-        title: value || "Другие",
-        order: Number.isFinite(order) ? order : 0,
-        seniorAp: isSeniorAp,
-        juniorModerator: isJuniorModerator
-      };
-    }
-
-    function buildStatsEntries(items) {
-      var entries = [];
-      var currentGroup = null;
-      var groupOrders = Object.create(null);
-      var nextGroupOrder = 0;
-
-      function getGroup(title) {
-        var key = normalizeStatsPosition(title) || "__other__";
-        if (groupOrders[key] == null) {
-          groupOrders[key] = nextGroupOrder;
-          nextGroupOrder += 1;
-        }
-        return statsPositionMeta(title, groupOrders[key]);
-      }
-
-      items.forEach(function (item, originalIndex) {
-        var headerTitle = statsGroupTitleFromRow(item);
-
-        if (headerTitle) {
-          currentGroup = getGroup(headerTitle);
-          return;
-        }
-
-        var positionTitle = statsPositionTitle(item);
-        var group = currentGroup;
-
-        // Если в таблице нет отдельного заголовка группы, используем
-        // фактическое название должности из строки как запасной вариант.
-        if (!group && positionTitle) {
-          group = getGroup(positionTitle);
-        }
-
-        // Строки без должности и без категории не показываем.
-        if (!group || !group.title) return;
-
-        entries.push({
-          item: item,
-          meta: group,
-          originalIndex: originalIndex
-        });
-      });
-
-      return entries;
-    }
-
-    function sortStatsEntries(entries) {
-      return entries.slice().sort(function (a, b) {
-        // Специальная группа «Старшие следящие за АП» всегда сверху.
-        if (a.meta.seniorAp !== b.meta.seniorAp) {
-          return a.meta.seniorAp ? -1 : 1;
-        }
-
-        // «Младшие модераторы» всегда последняя группа.
-        if (a.meta.juniorModerator !== b.meta.juniorModerator) {
-          return a.meta.juniorModerator ? 1 : -1;
-        }
-
-        // Все остальные группы идут ровно в порядке Google Таблицы.
-        var result = a.meta.order - b.meta.order;
-        return result === 0
-          ? a.originalIndex - b.originalIndex
-          : result;
-      });
-    }
-
-    function normalizeGoogleNormativeStatus(value) {
-      var text = String(value == null ? "" : value)
-        .trim()
-        .toLowerCase()
-        .replace(/ё/g, "е")
-        .replace(/[_\-]+/g, " ")
-        .replace(/\s+/g, " ");
-
-      if (!text) return "";
-      if (text === "norm" || text === "норма" || text === "сдан" || text === "зачет" || text === "зачёт") return "norm";
-      if (text === "rework" || text === "перенорма" || text === "пересдача" || text === "пересдать") return "rework";
-      if (text === "no_norm" || text === "нет нормы" || text === "не сдан" || text === "не сдал") return "no_norm";
-      if (text === "inactive" || text === "неактив" || text === "неактивен" || text === "неактивна") return "inactive";
-      return "";
-    }
-
-    function googleNormativeStatus(item) {
-      // Статус нормативa теперь приходит непосредственно из Google Таблицы
-      // через Apps Script и хранится в отдельном поле строки.
-      var direct = normalizeGoogleNormativeStatus(
-        item && item.normative_status != null
-          ? item.normative_status
-          : ""
-      );
-
-      return {
-        present: item && item.normative_status != null,
-        status: direct
-      };
-    }
-
-    function statDisplayValue(item, key) {
-      if (key === "nickname") return itemNickname(item) || "—";
-      if (key === "normative") {
-        var googleStatus = googleNormativeStatus(item);
-        return normativeStatus(
-          googleStatus.present
-            ? (googleStatus.status || "not_submitted")
-            : "not_submitted"
-        );
-      }
-
-      var value = valueOf(item, key);
-
-      if (key === "inactives" && /^неактив$/i.test(String(value == null ? "" : value).trim())) {
-        value = "1/14";
-      }
-
-      if (key === "post_days" && (value == null || value === "")) {
-        var values = item && item.values ? item.values : {};
-        var headers = Array.isArray(values.headers) ? values.headers : [];
-        var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
-        for (var i = 0; i < headers.length; i += 1) {
-          if (normalizeHeaderKey(headers[i]) === "post_days") {
-            value = raw[i];
-            break;
-          }
-        }
-      }
-
-      return formatStatisticsCellValue(key, value);
-    }
-
-    function renderTable(user) {
-      var root = document.getElementById("allStatsRoot");
-      if (!root) return;
-
-      var sortedItems = sortStatsEntries(
-        buildStatsEntries(
-          lastData.filter(function (item) {
-            var nickname = itemNickname(item);
-            return nickname &&
-              !isStatsColumnHeader(item) &&
-              !isAdminCategoryLabel(nickname) &&
-              !isGoogleCategoryRow(item);
-          })
-        )
-      );
-
-      var columnCount = STATS_DISPLAY_COLUMNS.length + 2;
-      var groupedRows = [];
-      var previousGroupKey = null;
-      sortedItems.forEach(function (entry) {
-        var item = entry.item;
-        var nickname = itemNickname(item);
-
-        if (entry.meta.key !== previousGroupKey) {
-          groupedRows.push(
-            '<tr class="stats-section-row">' +
-              '<td colspan="' + columnCount + '">' +
-                '<b>' + E(entry.meta.title) + '</b>' +
-              '</td>' +
-            '</tr>'
-          );
-          previousGroupKey = entry.meta.key;
-        }
-
-        var googleStatus = googleNormativeStatus(item);
-        var status = googleStatus.present
-          ? (googleStatus.status || "not_submitted")
-          : "not_submitted";
-
-        var cells = STATS_DISPLAY_COLUMNS.map(function (column) {
-          var key = column[0];
-          var label = column[1];
-          var value = statDisplayValue(item, key);
-          var className = key === "nickname" ? "stats-nickname-sticky" : "";
-
-          return '<td class="' + className + '" data-stat-field="' + E(key) + '" data-stat-label="' + E(label) + '">' +
-            (key === "nickname" ? '<b>' + E(value) + '</b>' : E(value)) +
-          '</td>';
-        }).join("");
-
-        groupedRows.push(
-          '<tr>' +
-            cells +
-            '<td class="stats-norm-cell"><span>' + normativeStatus(status) + '</span>' +
-              '<div class="stats-norm-actions">' +
-                '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
-                '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
-                '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
-                '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
-              '</div>' +
-            '</td>' +
-            '<td class="admin-actions-cell"><button class="admin-edit-inline" type="button" data-edit-admin="' + E(nickname) + '">Изменить</button></td>' +
-          '</tr>'
-        );
-      });
-
-      var rows = groupedRows.join("");
-
-      if (!rows) {
-        rows = '<tr><td colspan="' + columnCount + '" class="table-empty">Данных администрации нет.</td></tr>';
-      }
-
-      var headerCells = STATS_DISPLAY_COLUMNS.map(function (column) {
-        var key = column[0];
-        var label = column[1];
-        var classes = key === "nickname" ? "stats-nickname-sticky" : "";
-        return '<th class="' + classes + '">' + E(label) + '</th>';
-      }).join("");
-
-      root.innerHTML =
-        '<div class="box table-box">' +
-          '<div class="stats-table-head"><div>' +
-            '<small>ПОЛНАЯ СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
-            '<b>' + E(String(sortedItems.length)) + ' сотрудников</b>' +
-          '</div><span class="muted">Дата норматива: ' + E(formatDateOnly(selectedDate)) + '</span></div>' +
-          '<div class="admins-source-row"><span>Порядок групп: старшие следящие за АП сверху, младшие модераторы снизу • норматив из Google Таблицы</span><span>Источник: Google Таблица</span></div>' +
-          '<table id="allStatsTable"><thead><tr>' +
-            headerCells +
-            '<th>Норматив</th><th>Действия</th>' +
-          '</tr></thead><tbody>' + rows + '</tbody></table>' +
-        '</div><div id="adminEditModal"></div>';
-
-      document.querySelectorAll("#allStatsTable tbody tr").forEach(function (row) {
-        row.addEventListener("click", function (event) {
-          if (event.target.closest("button, a, input, select, textarea")) return;
-          document.querySelectorAll("#allStatsTable tbody tr.stats-row-selected").forEach(function (selected) {
-            selected.classList.remove("stats-row-selected");
-          });
-          if (!row.classList.contains("stats-section-row")) {
-            row.classList.add("stats-row-selected");
-          }
-        });
-      });
-
-      document.querySelectorAll("[data-stat-norm]").forEach(function (button) {
-        button.onclick = async function () {
-          var nickname = button.dataset.nickname || "";
-          var status = button.dataset.statNorm || "";
-          var label = STATUS_LABELS[status] || status;
-          if (!confirm("Выставить «" + label + "» для " + nickname + " за " + formatDateOnly(selectedDate) + "?")) return;
-          button.disabled = true;
-          try {
-            var result = await window.BR_API.normativeMark(user.token, nickname, selectedDate, status, "");
-            var google = result && result.google_sheet ? result.google_sheet : {};
-            var cellText = google.cell ? " • ячейка " + google.cell : "";
-            var postDaysText = google.post_days_updated ? " • Дни на посте: " + String(google.post_days_value) : "";
-            var inactivesText = google.inactives_updated ? " • Неактивы: " + String(google.inactives_value) : "";
-            showNormativeResult(
-              "✅ " + label + " проставлена для " + nickname + " за " + formatDateOnly(selectedDate) + cellText + postDaysText + inactivesText,
-              "success"
-            );
-            await load(user, true);
-          } catch (error) {
-            showNormativeResult(normativeErrorMessage(error), "error");
-            button.disabled = false;
-          }
-        };
-      });
-
-      document.querySelectorAll("[data-edit-admin]").forEach(function (button) {
-        button.onclick = function (event) {
-          event.preventDefault();
-          event.stopPropagation();
-
-          var nickname = button.dataset.editAdmin || "";
-          if (!nickname) return;
-
-          closeMenus();
-
-          var item = lastData.find(function (entry) {
-            return itemNickname(entry).trim().toLowerCase() === nickname.trim().toLowerCase();
-          });
-
-          if (!item) {
-            alert("Не удалось определить выбранного администратора в загруженной таблице.");
-            return;
-          }
-
-          openEditModal(user, item);
-        };
-      });
-    }
-
-    function closeMenus() {
-      document.querySelectorAll(".admin-row-menu.open").forEach(function (menu) {
-        menu.classList.remove("open");
-        menu.style.left = "";
-        menu.style.top = "";
-      });
-    }
-
-    function openEditModal(user, item) {
-      var root = document.getElementById("adminEditModal");
-      if (!root) return;
-
-      var nickname = itemNickname(item).trim();
-
-      if (!nickname) {
-        alert("Не удалось определить выбранного администратора.");
-        return;
-      }
-
-      var formFields = EDIT_FIELDS.map(function (field) {
-        var value = valueOf(item, field[1]);
-
-        if (field[1] === "position") {
-          return '<div class="form-field">' +
-            '<label>' + E(field[0]) + '</label>' +
-            positionSelect("", field[1], value) +
-          '</div>';
-        }
-
-        return '<div class="form-field">' +
-          '<label>' + E(field[0]) + '</label>' +
-          '<input class="form-input" name="' + E(field[1]) + '" type="' + E(field[2]) + '" value="' + E(value) + '">' +
-        '</div>';
-      }).join("");
-
-      root.innerHTML =
-        '<div class="modal-backdrop" id="adminEditBackdrop">' +
-          '<div class="modal-card admin-edit-card">' +
-            '<div class="modal-head">' +
-              '<div class="admin-edit-title"><small>РЕДАКТИРОВАНИЕ АДМИНИСТРАТОРА</small><h2>' + E(nickname || "Администратор") + '</h2><span>Данные из Google Sheets</span></div>' +
-              '<button class="modal-close" id="adminEditClose" type="button">×</button>' +
-            '</div>' +
-            '<form id="adminEditForm">' +
-              '<div class="form-grid">' + formFields + '</div>' +
-              '<div class="form-actions admin-edit-actions">' +
-                '<button class="button button-secondary" id="adminEditCancel" type="button">Отмена</button>' +
-                '<button class="button button-primary" type="submit">Сохранить изменения</button>' +
-              '</div>' +
-              '<div class="field-hint admin-edit-hint">Дни и расчётные показатели не вводятся вручную — они рассчитываются системой.</div>' +
-            '</form>' +
-          '</div>' +
-        '</div>';
-
-      function close() {
-        root.innerHTML = "";
-      }
-
-      document.getElementById("adminEditClose").onclick = close;
-      document.getElementById("adminEditCancel").onclick = close;
-
-      document.getElementById("adminEditForm").onsubmit = async function (event) {
-        event.preventDefault();
-        var form = event.currentTarget;
-        var changes = {};
-
-        EDIT_FIELDS.forEach(function (field) {
-          var input = form.querySelector('[name="' + CSS.escape(field[1]) + '"]');
-          if (input) changes[field[1]] = input.value.trim();
-        });
-
-        if (!confirm("Сохранить изменения администратора «" + nickname + "» в Google Таблицу?")) {
-          return;
-        }
-
-        var saveButton = form.querySelector('button[type="submit"]');
-        if (saveButton) {
-          saveButton.disabled = true;
-          saveButton.textContent = "Сохранение…";
-        }
-
-        try {
-          await window.BR_API.updateAdminStatistics(
-            user.token,
-            nickname,
-            changes
-          );
-          close();
-          await load(user, true);
-        } catch (error) {
-          alert(error.message || "Не удалось сохранить изменения администратора.");
-          if (saveButton) {
-            saveButton.disabled = false;
-            saveButton.textContent = "Сохранить изменения";
-          }
-        }
-      };
-    }
-
     return {
       managementOnly: true,
       title: "Статистика администрации",
-      subtitle: "Интерактивный контроль состава, статистики и нормативов",
+      subtitle: "Данные отображаются напрямую из Google Таблицы без локальных подстановок",
       render: function () {
         return '<div class="page-toolbar stats-all-toolbar">' +
-          '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Состояние администрации и норматив за выбранную дату</b></div>' +
+          '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Google Таблица • исходные столбцы и значения</b></div>' +
           '<div class="stats-toolbar-actions">' +
             '<button class="small-button" id="statsDatePrev" type="button">←</button>' +
             '<input id="allStatsDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
@@ -1469,26 +1191,19 @@
           if (!value) return;
           selectedDate = value;
           if (date) date.value = value;
-          load(user);
+          load(user, true);
         }
 
         if (date) date.onchange = function () { setDate(date.value); };
         if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
         if (next) next.onclick = function () { setDate(dateIso(1)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
+
         if (refresh) {
           refresh.onclick = function () {
-            selectedDate = date && /^\d{4}-\d{2}-\d{2}$/.test(String(date.value || ""))
-              ? String(date.value)
-              : dateIso(0);
-
             load(user, true);
           };
         }
-
-        document.addEventListener("click", function () {
-          closeMenus();
-        });
       },
       load: load
     };
