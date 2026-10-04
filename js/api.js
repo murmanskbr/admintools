@@ -1418,6 +1418,22 @@
                     token
                 );
             }
+
+        auditLogsClear:
+            function (
+                token,
+                period
+            ) {
+                return request(
+                    {
+                        action:
+                            "audit_logs_clear",
+                        period:
+                            String(period || "older_180_days")
+                    },
+                    token
+                );
+            }
     };
 
     console.info(
