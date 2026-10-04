@@ -1,0 +1,71 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in js/*.js; do
+            node --check "$file"
+          done
+
+      - name: Validate asset references
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const path = require("path");
+
+          const htmlFiles = [
+            "index.html",
+            ...fs.readdirSync("pages")
+              .filter((name) => name.endsWith(".html"))
+              .map((name) => path.join("pages", name))
+          ];
+
+          for (const file of htmlFiles) {
+            const html = fs.readFileSync(file, "utf8");
+
+            if (/[?&]v=\d+/.test(html)) {
+              throw new Error(`${file}: asset version query found`);
+            }
+
+            const refs = [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/gi)]
+              .map((match) => match[1])
+              .filter((ref) => !/^[a-z][a-z0-9+.-]*:/i.test(ref))
+              .map((ref) => ref.split("#")[0].split("?")[0]);
+
+            for (const ref of refs) {
+              const target = path.normalize(path.join(path.dirname(file), ref));
+              if (!fs.existsSync(target)) {
+                throw new Error(`${file}: missing asset ${ref}`);
+              }
+            }
+          }
+
+          console.log(`Validated ${htmlFiles.length} HTML files.`);
+          NODE
+
+  edge-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check Edge Functions
+        run: |
+          deno check supabase/functions/statistics/index.ts
+          deno check supabase/functions/veb-tools/index.ts
