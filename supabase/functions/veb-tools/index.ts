@@ -1887,7 +1887,7 @@ async function login(request: Request, body: any) {
             role: admin.role,
             position: admin.position,
             is_active: admin.is_active,
-            theme: admin.theme || "dark"
+            theme: (admin as { theme?: string | null }).theme || "dark"
         }
     };
 }
