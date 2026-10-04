@@ -917,11 +917,16 @@
 
           normativeCell =
             '<td class="stats-norm-cell">' +
-              E(externalNormative) +
+              '<span>' + E(externalNormative) + '</span>' +
+              actionButtons +
             '</td>';
         } else {
           // The normative value is already displayed exactly in its Google column.
-          normativeCell = actionButtons;
+          // The appended UI-only cell contains only the action buttons.
+          normativeCell =
+            '<td class="stats-norm-cell">' +
+              actionButtons +
+            '</td>';
         }
 
         var actionCell = nickname
