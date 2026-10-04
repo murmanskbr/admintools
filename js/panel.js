@@ -379,7 +379,7 @@
         var root = document.getElementById("profileRoot");
         if (!root) return;
         try {
-          var profileNickname = String(user.nickname || "").trim().replace(/\s+/g, "_");
+          var profileNickname = String(user.nickname || "").trim();
           var result = await window.BR_API.getStatisticsAdmin(user.token, profileNickname);
           root.innerHTML =
             '<div class="box"><div class="form-grid">' +
