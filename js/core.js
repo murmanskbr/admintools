@@ -3,7 +3,7 @@
 
   var COOKIE = "br_session";
   var REMEMBER_DAYS = 30;
-  var SESSION_IDLE_MS = 180000;
+  var SESSION_IDLE_MS = 1800000;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var timer = null;
   var lastActivitySync = 0;
@@ -323,7 +323,16 @@
 
     // API requests also report an expired server-side session. Redirect
     // immediately instead of waiting for the local countdown.
-    window.addEventListener("br:session-expired", function () {
+    window.addEventListener("br:session-expired", function (event) {
+      console.error(
+        "[BR AdminTools] Сервер завершил сессию:",
+        {
+          code: event && event.detail ? event.detail.code : "unknown",
+          page: document.body && document.body.dataset.page
+            ? document.body.dataset.page
+            : "unknown"
+        }
+      );
       goToLogin();
     }, { once: true });
 
@@ -424,9 +433,9 @@
     if (timer) clearInterval(timer);
     timer = setInterval(updateTimer, 1000);
 
-    document.addEventListener("click", touchActivity, { passive: true });
-    document.addEventListener("keydown", touchActivity, { passive: true });
-    document.addEventListener("touchstart", touchActivity, { passive: true });
+    document.addEventListener("click", touchActivity, { passive: true, capture: true });
+    document.addEventListener("keydown", touchActivity, { passive: true, capture: true });
+    document.addEventListener("touchstart", touchActivity, { passive: true, capture: true });
 
     if (options.bind) {
       try {
@@ -440,6 +449,67 @@
       }
     }
 
+    function syncServerSession() {
+      if (!window.BR_API || typeof window.BR_API.me !== "function") {
+        return Promise.resolve(null);
+      }
+
+      return window.BR_API.me(session.user.token)
+        .then(function (result) {
+          if (
+            result &&
+            result.session &&
+            result.session.last_activity_at
+          ) {
+            var refreshed = getSession();
+
+            if (refreshed) {
+              var activityAt =
+                new Date(
+                  result.session.last_activity_at
+                ).getTime();
+
+              if (Number.isFinite(activityAt)) {
+                refreshed.idle_until =
+                  activityAt +
+                  SESSION_IDLE_MS;
+                persistSession(refreshed);
+              }
+            }
+          }
+
+          return result;
+        })
+        .catch(function (error) {
+          console.error(
+            "[BR AdminTools] Не удалось подтвердить серверную сессию:",
+            {
+              page:
+                options.active ||
+                document.body.getAttribute("data-page") ||
+                "unknown",
+              code:
+                error && error.code
+                  ? error.code
+                  : "SESSION_SYNC_ERROR",
+              status:
+                error && error.status
+                  ? error.status
+                  : null,
+              message:
+                error && error.message
+                  ? error.message
+                  : String(error),
+              details:
+                error && error.details
+                  ? error.details
+                  : null
+            }
+          );
+          throw error;
+        });
+    }
+
     function loadPageData() {
       if (!options.load) return Promise.resolve();
 
@@ -450,13 +520,25 @@
           "[BR AdminTools] Ошибка загрузки страницы:",
           {
             page: options.active || document.body.getAttribute("data-page") || "unknown",
+            code: error && error.code ? error.code : "PAGE_LOAD_ERROR",
+            status: error && error.status ? error.status : null,
+            message: error && error.message ? error.message : String(error),
+            details: error && error.details ? error.details : null,
             error: error
           }
         );
       });
     }
 
-    loadPageData();
+    syncServerSession()
+      .then(function () {
+        return loadPageData();
+      })
+      .catch(function () {
+        if (getSession()) {
+          loadPageData();
+        }
+      });
 
     window.addEventListener("pageshow", function (event) {
       if (!event.persisted) return;
