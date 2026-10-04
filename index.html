@@ -11,8 +11,31 @@
 </head>
 <body>
 <div id="app"></div>
-<script src="js/api.js?v=17"></script>
-<script src="js/core.js?v=7"></script>
-<script src="js/login.js?v=4"></script>
+<script>
+(async function () {
+  try {
+    if ("serviceWorker" in navigator) {
+      var registrations = await navigator.serviceWorker.getRegistrations();
+      for (var i = 0; i < registrations.length; i += 1) {
+        try {
+          await registrations[i].unregister();
+        } catch (_) {}
+      }
+    }
+
+    if ("caches" in window) {
+      var keys = await caches.keys();
+      for (var j = 0; j < keys.length; j += 1) {
+        try {
+          await caches.delete(keys[j]);
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+})();
+</script>
+<script src="js/api.js?v=18"></script>
+<script src="js/core.js?v=8"></script>
+<script src="js/login.js?v=5"></script>
 </body>
 </html>
