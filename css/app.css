@@ -383,6 +383,19 @@ button{cursor:pointer}
   border-bottom:0;
 }
 
+#allStatsTable tbody tr.stats-section-row td{
+  height:38px;
+  padding:9px 13px;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  background:#151923!important;
+  color:#dfe5ee;
+  font-size:12px;
+  font-weight:850;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+
 #allStatsTable .stats-nickname-sticky{
   min-width:185px;
   max-width:240px;
