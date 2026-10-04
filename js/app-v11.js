@@ -8,7 +8,7 @@
         return;
     }
 
-    var SESSION_MS = 1800000;
+    var SESSION_MS = 180000;
     var ACTIVITY_SYNC_MS = 60000;
     var REMEMBER_COOKIE = "br_session";
     var REMEMBER_DAYS = 30;
