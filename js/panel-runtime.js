@@ -1755,16 +1755,6 @@
       }
 
       var personalHtml =
-        '<div class="box game-activity-personal-actions">' +
-          '<div class="game-activity-buttons">' +
-            '<button class="button button-primary" id="gameEnterButton" type="button"' +
-              (mineState === "in_game" ? " disabled" : "") +
-              '>Вошёл в игру</button>' +
-            '<button class="button button-secondary" id="gameExitButton" type="button"' +
-              (mineState !== "in_game" ? " disabled" : "") +
-              '>Вышел из игры</button>' +
-          '</div>' +
-        '</div>' +
         '<div class="page-toolbar game-control-toolbar">' +
           '<div><small>МОЯ ИСТОРИЯ</small><b>Входы и выходы</b></div>' +
         '</div>' +
