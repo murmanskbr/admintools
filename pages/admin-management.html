@@ -12,22 +12,28 @@
 <body data-page="admin-management">
 <div id="app"></div>
 
-<script src="../js/api.js?v=20261004-2205"></script>
-<script src="../js/core.js?v=20261004-2205"></script>
+<script src="../js/api.js?v=20261004-2230"></script>
+<script src="../js/core.js?v=20261004-2230"></script>
 
 <script>
 (function () {
   "use strict";
 
   function esc(value) {
-    return window.BRApp.esc(value);
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   function buildPage(user) {
     var state = {
       section: "create",
       nicknames: [],
-      sections: []
+      sections: [],
+      currentNickname: String(user && user.nickname || "").trim()
     };
 
     function sessionToken() {
@@ -96,6 +102,11 @@
         }).filter(Boolean).sort(function (a, b) {
           return a.localeCompare(b, "ru");
         });
+
+        state.nicknames = state.nicknames.filter(function (nickname) {
+          return nickname.toLowerCase() !== state.currentNickname.toLowerCase();
+        });
+        state.nicknames = Array.from(new Set(state.nicknames));
 
         state.sections = Array.isArray(result && result.sections)
           ? result.sections.map(function (item) {
@@ -240,7 +251,7 @@
                   '<label>Никнейм администратора</label>' +
                   '<input id="adminDeleteNickname" class="form-input" list="adminNicknameList" autocomplete="off" required placeholder="Выберите или введите никнейм">' +
                   '<datalist id="adminNicknameList"></datalist>' +
-                  '<span class="field-hint">Никнейм ищется по всей Google Таблице.</span>' +
+                  '<span class="field-hint">Никнейм ищется по всей Google Таблице. Свою учётную запись удалить нельзя.</span>' +
                 '</div>' +
               '</div>' +
 
@@ -345,6 +356,18 @@
               return;
             }
 
+            if (
+              state.currentNickname &&
+              nickname.toLowerCase() === state.currentNickname.toLowerCase()
+            ) {
+              setStatus(
+                "adminDeleteStatus",
+                "Нельзя удалить самого себя.",
+                false
+              );
+              return;
+            }
+
             if (!state.nicknames.some(function (item) {
               return item.toLowerCase() === nickname.toLowerCase();
             })) {
@@ -418,15 +441,29 @@
   }
 
   function boot() {
-    var session = window.BRApp.getSession();
+    try {
+      var session = window.BRApp.getSession();
 
-    if (!session || !session.user) {
+      if (!session || !session.user) {
       window.BRApp.clearSession();
       location.replace(new URL("../index.html", location.href).href);
       return;
     }
 
-    window.BRApp.init(buildPage(session.user));
+      window.BRApp.init(buildPage(session.user));
+    } catch (error) {
+      console.error("[BR AdminTools] admin-management boot error:", error);
+      var root = document.getElementById("app");
+      if (root) {
+        root.innerHTML =
+          '<div class="box" style="margin:24px">' +
+          '<h2>Не удалось открыть раздел</h2>' +
+          '<p style="margin-top:8px">Произошла ошибка загрузки страницы. Обновите страницу с Ctrl+F5.</p>' +
+          '<p style="margin-top:8px;opacity:.7">' +
+          esc(error && error.message ? error.message : String(error)) +
+          '</p></div>';
+      }
+    }
   }
 
   if (document.readyState === "loading") {
