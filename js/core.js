@@ -426,10 +426,6 @@
         logout();
         return;
       }
-
-      if (Date.now() - lastActivitySync >= 30000) {
-        syncServerSession().catch(function () {});
-      }
     }
 
     updateTimer();
@@ -439,6 +435,9 @@
     document.addEventListener("click", touchActivity, { passive: true, capture: true });
     document.addEventListener("keydown", touchActivity, { passive: true, capture: true });
     document.addEventListener("touchstart", touchActivity, { passive: true, capture: true });
+    document.addEventListener("pointerdown", touchActivity, { passive: true, capture: true });
+    document.addEventListener("wheel", touchActivity, { passive: true, capture: true });
+    document.addEventListener("scroll", touchActivity, { passive: true, capture: true });
 
     if (options.bind) {
       try {
