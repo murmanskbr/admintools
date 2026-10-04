@@ -3199,15 +3199,25 @@
     settings: settings
   };
 
-  document.addEventListener("DOMContentLoaded", function () {
+  function bootPage() {
     var page = document.body.getAttribute("data-page") || "dashboard";
     var builder = pages[page] || dashboard;
+    var session = window.BRApp.getSession();
 
-    window.BRApp.init((function () {
-      var session = window.BRApp.getSession();
-      var config = builder(session.user);
-      config.active = page;
-      return config;
-    })());
-  });
+    if (!session || !session.user) {
+      window.BRApp.clearSession();
+      location.replace(new URL("../index.html", location.href).href);
+      return;
+    }
+
+    var config = builder(session.user);
+    config.active = page;
+    window.BRApp.init(config);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootPage, { once: true });
+  } else {
+    bootPage();
+  }
 })();
