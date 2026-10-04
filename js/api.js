@@ -7,7 +7,7 @@
     var STATISTICS_URL =
         "https://frwajpwzurzokkvhntdl.supabase.co/functions/v1/statistics";
 
-    var REQUEST_TIMEOUT_MS = 30000;
+    var REQUEST_TIMEOUT_MS = 55000;
     var UPLOAD_TIMEOUT_MS = 120000;
 
     function fetchWithTimeout(
