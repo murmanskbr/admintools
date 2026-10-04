@@ -3177,7 +3177,7 @@
     settings: settings
   };
 
-  document.addEventListener("DOMContentLoaded", function () {
+  function bootPage() {
     var page = document.body.getAttribute("data-page") || "dashboard";
     var builder = pages[page] || dashboard;
 
@@ -3187,5 +3187,11 @@
       config.active = page;
       return config;
     })());
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootPage, { once: true });
+  } else {
+    bootPage();
+  }
 })();
