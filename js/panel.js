@@ -1098,7 +1098,42 @@
       return text;
     }
 
+    function approvedInactiveForSelectedDate(nickname) {
+      if (!lastResult || !Array.isArray(lastResult.inactive_periods) || !nickname) {
+        return false;
+      }
+
+      var targetNickname = normalizeHeader(nickname);
+
+      return lastResult.inactive_periods.some(function (period) {
+        if (!period) return false;
+
+        var periodNickname = normalizeHeader(period.nickname);
+        if (!periodNickname || periodNickname !== targetNickname) {
+          return false;
+        }
+
+        var startDate = String(period.start_date || "").trim();
+        var endDate = String(period.end_date || "").trim();
+        var currentDate = String(selectedDate || "").trim();
+
+        return (
+          /^\d{4}-\d{2}-\d{2}$/.test(startDate) &&
+          /^\d{4}-\d{2}-\d{2}$/.test(endDate) &&
+          currentDate >= startDate &&
+          currentDate <= endDate
+        );
+      });
+    }
+
     function normativeDisplayStatus(normatives, nickname) {
+      if (!nickname) return "";
+
+      // Одобренный период неактива является источником истины для выбранной даты.
+      // Он имеет приоритет над значением, пришедшим из недельной таблицы.
+      if (approvedInactiveForSelectedDate(nickname)) {
+        return "Неактив";
+      }
       if (!nickname) return "";
 
       var value = externalGoogleNormative(
