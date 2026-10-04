@@ -1423,7 +1423,6 @@
             changes
           );
           close();
-          clearStatsDateCache(selectedDate);
           await load(user, true);
         } catch (error) {
           alert(error.message || "Не удалось сохранить изменения администратора.");
