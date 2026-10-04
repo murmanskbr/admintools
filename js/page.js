@@ -797,10 +797,14 @@
         POST_DAYS_FIELD_NOT_FOUND: "❌ В Google Таблице не найдена колонка «Дни на посту».",
         INACTIVES_FIELD_NOT_FOUND: "❌ В Google Таблице не найдена колонка «Неактивы».",
         NORMATIVE_MARK_STATUS_REQUIRED: "❌ Передан неизвестный статус норматива.",
-        APPS_SCRIPT_UNAUTHORIZED: "❌ Google Таблица отклонил запрос: проверь секрет.",
-        APPS_SCRIPT_TIMEOUT: "❌ Google Таблица не ответил вовремя.",
-        APPS_SCRIPT_HTTP_404: "❌ Google Таблица вернул 404. Проверь веб-развёртывание.",
-        APPS_SCRIPT_HTTP_403: "❌ Google Таблица отклонил доступ к веб-приложению.",
+        APPS_SCRIPT_UNAUTHORIZED: "❌ Google Apps Script отклонил запрос. Проверьте секрет скрипта.",
+        APPS_SCRIPT_TIMEOUT: "❌ Google Apps Script не ответил вовремя.",
+        APPS_SCRIPT_HTTP_404: "❌ Google Apps Script вернул 404. Проверьте последнее веб-развёртывание и доступ «Все».",
+        APPS_SCRIPT_HTTP_403: "❌ Google Apps Script отклонил доступ. Веб-приложение должно быть доступно всем.",
+        APPS_SCRIPT_HTTP_ERROR: "❌ Google Apps Script вернул HTTP-ошибку.",
+        APPS_SCRIPT_NOT_CONFIGURED: "❌ Не настроена ссылка на Google Apps Script.",
+        APPS_SCRIPT_SECRET_NOT_CONFIGURED: "❌ Не настроен секрет Google Apps Script.",
+        APPS_SCRIPT_INVALID_RESPONSE: "❌ Google Apps Script вернул некорректный ответ.",
         STATISTICS_DISABLED: "❌ Модуль статистики отключён.",
         FORBIDDEN: "❌ Недостаточно прав для выставления норматива."
       };
@@ -909,6 +913,13 @@
         refresh.disabled = true;
         refresh.textContent = forceRefresh ? "Обновление…" : "Загрузка…";
       }
+
+      root.innerHTML =
+        '<div class="box"><div class="empty">' +
+        (forceRefresh
+          ? "Получение актуальной статистики из Google Таблицы..."
+          : "Загрузка актуальной статистики...") +
+        '</div></div>';
 
       return Promise.all([
         window.BR_API.allStatistics(user.token, selectedDate),
