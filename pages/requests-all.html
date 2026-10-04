@@ -11,8 +11,199 @@
 </head>
 <body data-page="requests-all">
 <div id="app"></div>
-<script src="../js/api.js?v=20261004-2125"></script>
+<script src="../js/api.js?v=20261004-2050"></script>
 <script src="../js/core.js?v=20261004-2125"></script>
-<script src="../js/panel.js?v=20261004-2125"></script>
+<script>
+(function () {
+  "use strict";
+
+  var E = window.BRApp.esc;
+
+  function dateOnly(value) {
+    if (!value) return "—";
+    var d = new Date(String(value) + "T00:00:00");
+    return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString("ru-RU");
+  }
+
+  function dateTime(value) {
+    if (!value) return "—";
+    var d = new Date(value);
+    return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString("ru-RU");
+  }
+
+  function badge(status) {
+    var map = {
+      pending: ["На рассмотрении", "badge-yellow"],
+      approved: ["Одобрено", "badge-green"],
+      rejected: ["Отклонено", "badge-red"]
+    };
+    var x = map[String(status || "").toLowerCase()] || ["Неизвестно", ""];
+    return '<span class="badge ' + x[1] + '">' + E(x[0]) + "</span>";
+  }
+
+  function period(item) {
+    var start = String(item && item.start_date || "");
+    var end = String(item && item.end_date || "");
+    if (!start) return "—";
+    return start === end ? dateOnly(start) : dateOnly(start) + " — " + dateOnly(end);
+  }
+
+  function typeLabel(value) {
+    return String(value || "").toLowerCase() === "group" ? "Групповой" : "Одиночный";
+  }
+
+  function buildPage(user) {
+    var list = [];
+    var statusFilter = "";
+
+    function renderTable() {
+      var root = document.getElementById("inactiveRequestsAllRoot");
+      if (!root) return;
+
+      var filtered = statusFilter
+        ? list.filter(function (item) { return item.status === statusFilter; })
+        : list.slice();
+
+      if (!filtered.length) {
+        root.innerHTML = '<div class="box"><div class="empty">Заявок по выбранному фильтру нет.</div></div>';
+        return;
+      }
+
+      var rows = filtered.map(function (item) {
+        var actions = item.status === "pending"
+          ? '<div class="form-actions"><button class="small-button" type="button" data-approve="' + E(item.id) + '">Одобрить</button><button class="small-button" type="button" data-reject="' + E(item.id) + '">Отклонить</button></div>'
+          : '<span class="muted">' + E(item.reviewed_at ? dateTime(item.reviewed_at) : "Рассмотрено") + "</span>";
+
+        return "<tr>" +
+          "<td>" + E(item.nickname || "—") + "</td>" +
+          "<td>" + E(typeLabel(item.inactive_type)) + "</td>" +
+          "<td>" + E(period(item)) + "</td>" +
+          "<td>" + E(item.reason || "—") + "</td>" +
+          "<td>" + badge(item.status) + "</td>" +
+          "<td>" + E(item.review_comment || "—") + "</td>" +
+          "<td>" + actions + "</td>" +
+        "</tr>";
+      }).join("");
+
+      root.innerHTML =
+        '<div class="box table-box"><table><thead><tr>' +
+        "<th>Никнейм</th><th>Тип</th><th>Период</th><th>Причина</th><th>Статус</th><th>Комментарий</th><th>Действие</th>" +
+        "</tr></thead><tbody>" + rows + "</tbody></table></div>";
+
+      root.querySelectorAll("[data-approve]").forEach(function (button) {
+        button.onclick = function () { review(Number(button.dataset.approve), "approved"); };
+      });
+      root.querySelectorAll("[data-reject]").forEach(function (button) {
+        button.onclick = function () { review(Number(button.dataset.reject), "rejected"); };
+      });
+    }
+
+    async function load() {
+      var root = document.getElementById("inactiveRequestsAllRoot");
+      if (root) root.innerHTML = '<div class="box"><div class="empty">Загрузка заявок...</div></div>';
+
+      try {
+        var session = window.BRApp.getSession();
+        if (!session || !session.user || !session.user.token) {
+          throw new Error("Сессия истекла. Войдите в панель заново.");
+        }
+
+        var result = await window.BR_API.inactiveRequestsAll(session.user.token, statusFilter);
+        list = Array.isArray(result && result.requests) ? result.requests : [];
+        renderTable();
+      } catch (error) {
+        if (root) {
+          root.innerHTML = '<div class="box"><div class="empty">' +
+            E(error.message || "Не удалось загрузить заявки.") +
+          "</div></div>";
+        }
+      }
+    }
+
+    async function review(id, status) {
+      var comment = "";
+
+      if (status === "approved") {
+        if (!window.confirm("Одобрить этот неактив? После одобрения период будет сохранён и учтён системой.")) return;
+      } else {
+        comment = window.prompt("Причина отказа (необязательно):", "") || "";
+      }
+
+      try {
+        var session = window.BRApp.getSession();
+        if (!session || !session.user || !session.user.token) {
+          throw new Error("Сессия истекла. Войдите в панель заново.");
+        }
+
+        await window.BR_API.inactiveRequestReview(session.user.token, id, status, comment);
+        alert(status === "approved" ? "Неактив одобрен." : "Заявка отклонена.");
+        await load();
+      } catch (error) {
+        alert(error.message || "Не удалось обработать заявку.");
+      }
+    }
+
+    return {
+      managementOnly: true,
+      title: "Обращения администрации",
+      subtitle: "Заявки на неактив от состава",
+      render: function () {
+        return '<div class="page-toolbar">' +
+          '<div><small>ЗАЯВКИ</small><b>Неактивы</b></div>' +
+          '<div class="stats-toolbar-actions">' +
+          '<button class="small-button is-active" id="inactiveFilterAll" type="button">Все</button>' +
+          '<button class="small-button" id="inactiveFilterPending" type="button">На рассмотрении</button>' +
+          '<button class="small-button" id="inactiveFilterApproved" type="button">Одобрены</button>' +
+          '<button class="small-button" id="inactiveFilterRejected" type="button">Отклонены</button>' +
+          "</div></div>" +
+          '<div id="inactiveRequestsAllRoot"><div class="box"><div class="empty">Загрузка заявок...</div></div></div>';
+      },
+      bind: function () {
+        function setFilter(value) {
+          statusFilter = value;
+          document.querySelectorAll("[data-inactive-filter]").forEach(function (b) {
+            b.classList.toggle("is-active", b.dataset.inactiveFilter === value);
+          });
+          load();
+        }
+
+        var all = document.getElementById("inactiveFilterAll");
+        var pending = document.getElementById("inactiveFilterPending");
+        var approved = document.getElementById("inactiveFilterApproved");
+        var rejected = document.getElementById("inactiveFilterRejected");
+
+        [all, pending, approved, rejected].forEach(function (b, i) {
+          if (b) {
+            b.dataset.inactiveFilter = i === 0 ? "" : i === 1 ? "pending" : i === 2 ? "approved" : "rejected";
+          }
+        });
+
+        if (all) all.onclick = function () { setFilter(""); };
+        if (pending) pending.onclick = function () { setFilter("pending"); };
+        if (approved) approved.onclick = function () { setFilter("approved"); };
+        if (rejected) rejected.onclick = function () { setFilter("rejected"); };
+
+        load();
+      }
+    };
+  }
+
+  function boot() {
+    var session = window.BRApp.getSession();
+    if (!session || !session.user) {
+      window.BRApp.clearSession();
+      location.replace(new URL("../index.html", location.href).href);
+      return;
+    }
+    window.BRApp.init(buildPage(session.user));
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+</script>
 </body>
 </html>
