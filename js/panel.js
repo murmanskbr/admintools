@@ -2273,9 +2273,11 @@
       var fields = document.getElementById("inactiveRequestFields");
       var generic = document.getElementById("genericRequestFields");
       var inactive = type && type.value === "Неактив";
+      var requestText = document.getElementById("requestText");
 
       if (fields) fields.hidden = !inactive;
       if (generic) generic.hidden = inactive;
+      if (requestText) requestText.required = !inactive;
 
       var inactiveType = document.getElementById("inactiveRequestType");
       var endField = document.getElementById("inactiveEndField");
