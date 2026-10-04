@@ -2339,7 +2339,10 @@
 
       var isGroup = inactiveType && inactiveType.value === "group";
 
-      if (endField) {\n        endField.hidden = !isGroup;\n        endField.style.display = isGroup ? "" : "none";\n      }
+      if (endField) {
+        endField.hidden = !isGroup;
+        endField.style.display = isGroup ? "" : "none";
+      }
 
       if (start && end && !isGroup) {
         end.value = start.value;
