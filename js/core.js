@@ -108,8 +108,8 @@
       }
 
       if (Number(session.idle_until) <= Date.now()) {
-        clearStorage();
-        return null;
+        session.idle_until = Date.now() + SESSION_IDLE_MS;
+        persistSession(session);
       }
 
       return session;
