@@ -211,35 +211,10 @@
     var data = googleRowPayload(result);
     if (!data.count) return '<div class="box"><div class="empty">В Google-таблице нет данных этой строки.</div></div>';
     var rangeText = data.rowNumber ? "Строка " + data.rowNumber + " • диапазон " + data.firstColumn + data.rowNumber + ":" + data.lastColumn + data.rowNumber : "Полная строка Google Sheets";
-    function formatGoogleCellValue(header, value) {
-      if (value == null || value === "") return "—";
-
-      var key = String(header || "")
-        .trim()
-        .toLowerCase()
-        .replace(/ё/g, "е")
-        .replace(/\s+/g, " ");
-
-      var rawValue = String(value);
-
-      if (
-        key === "последнее повышение" ||
-        key === "last promotion" ||
-        key === "дата" ||
-        key === "date"
-      ) {
-        var parsedDate = new Date(rawValue);
-
-        if (!Number.isNaN(parsedDate.getTime())) {
-          return parsedDate.toLocaleDateString("ru-RU", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric"
-          });
-        }
-      }
-
-      return rawValue;
+    function formatGoogleCellValue(_header, value) {
+      // Google Sheets is the source of truth: do not parse, rename,
+      // calculate, localize or otherwise alter the returned cell value.
+      return value == null ? "" : String(value);
     }
 
     var rows = data.headers.map(function (header, index) {
@@ -782,6 +757,63 @@
 
         if (typeof value !== "object") return "";
 
+        // Support a raw Google Sheets matrix: { headers: [...], rows: [...] }.
+        if (Array.isArray(value.headers) && Array.isArray(value.rows)) {
+          var headers = value.headers.map(function (header) {
+            return String(header == null ? "" : header).trim();
+          });
+
+          var nickIndex = -1;
+          var statusIndex = -1;
+          var dateIndex = -1;
+
+          for (var h = 0; h < headers.length; h += 1) {
+            var normalized = normalizeHeader(headers[h]);
+            if (
+              nickIndex < 0 &&
+              nicknameKeys.some(function (key) {
+                return normalizeHeader(key) === normalized;
+              })
+            ) {
+              nickIndex = h;
+            }
+
+            if (
+              statusIndex < 0 &&
+              valueKeys.some(function (key) {
+                return normalizeHeader(key) === normalized;
+              })
+            ) {
+              statusIndex = h;
+            }
+
+            if (
+              dateIndex < 0 &&
+              dateKeys.some(function (key) {
+                return normalizeHeader(key) === normalized;
+              })
+            ) {
+              dateIndex = h;
+            }
+          }
+
+          if (nickIndex >= 0 && statusIndex >= 0) {
+            for (var r = 0; r < value.rows.length; r += 1) {
+              var matrixRow = Array.isArray(value.rows[r]) ? value.rows[r] : [];
+              var matrixNickname = String(matrixRow[nickIndex] == null ? "" : matrixRow[nickIndex]).trim().toLowerCase();
+
+              if (matrixNickname !== target) continue;
+
+              if (dateIndex >= 0 && date) {
+                var matrixDate = String(matrixRow[dateIndex] == null ? "" : matrixRow[dateIndex]).trim();
+                if (matrixDate && matrixDate !== date) continue;
+              }
+
+              return String(matrixRow[statusIndex] == null ? "" : matrixRow[statusIndex]);
+            }
+          }
+        }
+
         var nicknameValue = getKey(value, nicknameKeys);
         if (
           nicknameValue != null &&
@@ -869,38 +901,36 @@
           : "";
 
         var normativeCell = "";
-        if (!hasSourceNormativeColumn && nickname) {
-          var externalNormative = externalGoogleNormative(
-            lastResult && lastResult.normatives,
-            nickname
-          );
+        var actionButtons = nickname
+          ? '<div class="stats-norm-actions">' +
+              '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
+              '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
+              '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
+              '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
+            '</div>'
+          : '';
+
+        if (!hasSourceNormativeColumn) {
+          var externalNormative = nickname
+            ? externalGoogleNormative(lastResult && lastResult.normatives, nickname)
+            : "";
+
           normativeCell =
             '<td class="stats-norm-cell">' +
-              '<span>' + E(externalNormative) + '</span>' +
-              '<div class="stats-norm-actions">' +
-                '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
-                '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
-                '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
-                '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
-              '</div>' +
-            '</td>';
-        } else if (nickname) {
-          normativeCell =
-            '<td class="stats-norm-cell">' +
-              '<div class="stats-norm-actions">' +
-                '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
-                '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
-                '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
-                '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
-              '</div>' +
+              E(externalNormative) +
             '</td>';
         } else {
-          normativeCell = '<td class="stats-norm-cell"></td>';
+          // The normative value is already displayed exactly in its Google column.
+          normativeCell = actionButtons;
         }
 
         var actionCell = nickname
           ? '<td class="admin-actions-cell"><button class="admin-edit-inline" type="button" data-edit-row-index="' + rowIndex + '">Изменить</button></td>'
           : '<td class="admin-actions-cell"></td>';
+
+        if (hasSourceNormativeColumn) {
+          return '<tr>' + cells + normativeCell + actionCell + '</tr>';
+        }
 
         return '<tr>' + cells + normativeCell + actionCell + '</tr>';
       }).join("");
@@ -920,8 +950,7 @@
           '</span></div>' +
           '<table id="allStatsTable"><thead><tr>' +
             headerCells +
-            (hasSourceNormativeColumn ? '<th></th>' : '<th>Норматив</th>') +
-            '<th>Действия</th>' +
+            (hasSourceNormativeColumn ? '<th>Действия</th>' : '<th>Норматив</th><th>Действия</th>') +
           '</tr></thead><tbody>' + rows + '</tbody></table>' +
         '</div><div id="adminEditModal"></div>';
 
