@@ -399,7 +399,10 @@ async function verifyPassword(
         return { valid: false, legacy: false };
     }
 
-    const salt = fromHex(parts[0]);
+    const salt =
+        new Uint8Array(
+            fromHex(parts[0])
+        );
     const expected = fromHex(parts[1]);
 
     const key = await crypto.subtle.importKey(
@@ -414,8 +417,10 @@ async function verifyPassword(
         await crypto.subtle.deriveBits(
             {
                 name: "PBKDF2",
-                salt,
-                iterations: PASSWORD_ITERATIONS,
+                salt:
+                    salt as unknown as BufferSource,
+                iterations:
+                    PASSWORD_ITERATIONS,
                 hash: "SHA-256"
             },
             key,
@@ -555,7 +560,7 @@ async function authenticate(request: Request) {
         }
     }
 
-    const { data: admin, error: adminError } = await db()
+    const { data: rawAdmin, error: adminError } = await db()
         .from("admins")
         .select(
             "id,login,nickname,password_hash,device_id,auth_token_hash,is_active,role,position,theme,created_at"
@@ -567,6 +572,11 @@ async function authenticate(request: Request) {
         console.error("ADMIN QUERY ERROR", adminError);
         throw new Error("ADMIN_DATABASE_ERROR");
     }
+
+    const admin =
+        rawAdmin as (typeof rawAdmin & {
+            theme?: string | null;
+        });
 
     if (!admin) {
         throw new Error("ADMIN_NOT_FOUND");
@@ -2905,7 +2915,8 @@ async function normativesMine(request: Request) {
         throw new Error("NORMATIVES_DATABASE_ERROR");
     }
 
-    const list = [...(submissions ?? [])];
+    const list: Array<any> =
+        [...(submissions ?? [])];
     const byDate = new Map<string, any>();
 
     for (const submission of list) {
@@ -3709,8 +3720,13 @@ async function fetchServerStats() {
             servers: normalized
         };
     } catch (error) {
-        if (error?.name === "AbortError") {
-            throw new Error("SERVER_STATS_TIMEOUT");
+        if (
+            error instanceof Error &&
+            error.name === "AbortError"
+        ) {
+            throw new Error(
+                "SERVER_STATS_TIMEOUT"
+            );
         }
 
         throw error;
