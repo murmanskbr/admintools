@@ -13,6 +13,7 @@
     dashboard: ["pages/dashboard.html", "⌂", "Главная"],
     profile: ["pages/profile.html", "◉", "Мой профиль"],
     notifications: ["pages/notifications.html", "!", "Уведомления"],
+    "game-activity": ["pages/game-activity.html", "◉", "Вход в игру"],
     normatives: ["pages/normatives.html", "↑", "Нормативы"],
     requests: ["pages/requests.html", "✦", "Мои обращения"],
     statistics: ["pages/statistics.html", "▥", "Моя статистика"],
@@ -247,7 +248,7 @@
       ? '<div class="section-title">УПРАВЛЕНИЕ</div>' +
         link("access") + link("statistics-all") +
         link("notifications") + link("normatives-all") + link("requests-all") +
-        '<div class="section-title">КОНТРОЛЬ</div>' + link("logs") + link("rules") +
+        '<div class="section-title">КОНТРОЛЬ</div>' + link("game-activity") + link("logs") + link("rules") +
         '<div class="section-title">СИСТЕМА</div>' + link("settings")
       : link("notifications") + link("normatives") + link("requests") +
         link("statistics") + link("rules") +
