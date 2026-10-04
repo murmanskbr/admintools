@@ -569,10 +569,45 @@
         headers.push("");
       }
 
+      var sections = [];
+      if (statistics.length) {
+        var currentSection = "";
+        statistics.forEach(function (item) {
+          var title = item && item.section_title
+            ? String(item.section_title).trim()
+            : "";
+          if (title && title !== currentSection) {
+            sections.push({
+              title: title,
+              row_number: item.row_number || 0
+            });
+            currentSection = title;
+          }
+        });
+      }
+
+      if (!sections.length && result && Array.isArray(result.sections)) {
+        sections = result.sections
+          .map(function (section) {
+            return {
+              title: section && section.title
+                ? String(section.title).trim()
+                : "",
+              row_number: section && section.row_number
+                ? Number(section.row_number)
+                : 0
+            };
+          })
+          .filter(function (section) {
+            return !!section.title;
+          });
+      }
+
       return {
         headers: headers,
         rows: rows,
         statistics: statistics,
+        sections: sections,
         count: count
       };
     }
@@ -643,6 +678,29 @@
 
       function scan(value) {
         if (!value) return "";
+
+        if (Array.isArray(value.marks)) {
+          for (var m = 0; m < value.marks.length; m += 1) {
+            var mark = value.marks[m];
+            if (!mark || typeof mark !== "object") continue;
+
+            var markNickname = getKey(mark, nicknameKeys);
+            var markDate = getKey(mark, dateKeys);
+            var markStatus = getKey(mark, valueKeys);
+
+            if (
+              markNickname != null &&
+              String(markNickname).trim().toLowerCase() === target &&
+              (
+                markDate == null ||
+                String(markDate).trim() === "" ||
+                String(markDate).trim() === date
+              )
+            ) {
+              return markStatus == null ? "" : String(markStatus);
+            }
+          }
+        }
 
         if (Array.isArray(value)) {
           for (var i = 0; i < value.length; i += 1) {
@@ -787,7 +845,25 @@
         // Do not add or rewrite it.
       }
 
+      var lastRenderedSection = "";
       var rows = data.rows.map(function (row, rowIndex) {
+        var sourceItem = data.statistics[rowIndex] || {};
+        var sectionTitle = sourceItem.section_title
+          ? String(sourceItem.section_title).trim()
+          : "";
+
+        var sectionRow = "";
+        if (
+          sectionTitle &&
+          sectionTitle !== lastRenderedSection
+        ) {
+          lastRenderedSection = sectionTitle;
+          sectionRow =
+            '<tr class="stats-section-row"><td colspan="' +
+            String(lastHeaders.length + (hasSourceNormativeColumn ? 2 : 2)) +
+            '"><strong>' + E(sectionTitle) + '</strong></td></tr>';
+        }
+
         var cells = lastHeaders.map(function (_, columnIndex) {
           var value = rawCellValue(row[columnIndex]);
           return '<td data-stat-column="' + columnIndex + '">' + E(value) + '</td>';
@@ -814,12 +890,10 @@
 
           normativeCell =
             '<td class="stats-norm-cell">' +
-              '<span>' + E(externalNormative) + '</span>' +
+              '<span class="stats-norm-value">' + E(externalNormative) + '</span>' +
               actionButtons +
             '</td>';
         } else {
-          // The normative value is already displayed exactly in its Google column.
-          // The appended UI-only cell contains only the action buttons.
           normativeCell =
             '<td class="stats-norm-cell">' +
               actionButtons +
@@ -830,11 +904,7 @@
           ? '<td class="admin-actions-cell"><button class="admin-edit-inline" type="button" data-edit-row-index="' + rowIndex + '">Изменить</button></td>'
           : '<td class="admin-actions-cell"></td>';
 
-        if (hasSourceNormativeColumn) {
-          return '<tr>' + cells + normativeCell + actionCell + '</tr>';
-        }
-
-        return '<tr>' + cells + normativeCell + actionCell + '</tr>';
+        return sectionRow + '<tr>' + cells + normativeCell + actionCell + '</tr>';
       }).join("");
 
       if (!rows) {
@@ -845,7 +915,7 @@
         '<div class="box table-box">' +
           '<div class="stats-table-head"><div>' +
             '<small>СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
-            '<b>' + E(String(data.rows.length)) + ' строк</b>' +
+            '<b>' + E(String(data.rows.length)) + ' сотрудников</b>' +
           '</div><span class="muted">Источник: Google Таблица</span></div>' +
           '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
             E(lastResult && lastResult.source && lastResult.source.sheet_name ? lastResult.source.sheet_name : "Google Sheets") +
