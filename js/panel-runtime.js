@@ -3008,77 +3008,303 @@
   }
 
   function logs() {
-    return {
-      managementOnly: true,
-      title: "Журнал действий",
-      subtitle: "История действий администрации",
-      render: function () {
-        return '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>';
-      },
-      load: async function (user) {
-        var root = document.getElementById("logsRoot");
-        try {
-          var result = await window.BR_API.auditLogs(user.token, 200);
-          var list = Array.isArray(result.logs) ? result.logs : [];
-          var rows = list.length ? list.map(function (x) {
-            var actions = {
-              login: "Вход в систему",
-              logout: "Выход из системы",
-              auth: "Авторизация",
-              access: "Доступ",
-              grant: "Выдача доступа",
-              revoke: "Отзыв доступа",
-              remove: "Удаление",
-              update: "Изменение",
-              edit: "Редактирование",
-              create: "Создание",
-              delete: "Удаление",
-              block: "Блокировка",
-              unblock: "Разблокировка",
-              unbind: "Сброс привязки",
-              game_login: "Вход в игру",
-              game_logout: "Выход из игры"
-            };
-            var pages = {
-              auth: "Авторизация",
-              login: "Авторизация",
-              dashboard: "Главная",
-              profile: "Мой профиль",
-              access: "Выдать доступ",
-              notifications: "Уведомления",
-              normatives: "Нормативы",
-              "normatives-all": "Проставка нормативов",
-              requests: "Мои обращения",
-              "statistics-all": "Статистика администрации",
-              "requests-all": "Обращения администрации",
-              "game-activity": "Вход в игру",
-              logs: "Журнал действий",
-              rules: "Регламент",
-              settings: "Настройки"
-            };
-            var details = {
-              "Login successful": "Авторизация выполнена",
-              "Authentication successful": "Авторизация выполнена",
-              "Logout successful": "Выход из системы выполнен",
-              "Logged out": "Выход из системы выполнен",
-              "Access granted": "Доступ выдан",
-              "Access revoked": "Доступ отозван",
-              "Access removed": "Доступ удалён",
-              "Account blocked": "Аккаунт заблокирован",
-              "Account unblocked": "Аккаунт разблокирован",
-              "Device unbound": "Привязка устройства сброшена"
-            };
+    var state = {
+      nickname: "",
+      action: "",
+      date: ""
+    };
+
+    var actions = {
+      login: "Вход в систему",
+      logout: "Выход из системы",
+      auth: "Авторизация",
+      access: "Доступ",
+      grant: "Выдача доступа",
+      revoke: "Отзыв доступа",
+      access_grant: "Выдача доступа",
+      access_update: "Изменение доступа",
+      access_unbind: "Сброс привязки",
+      access_block: "Блокировка доступа",
+      access_unblock: "Разблокировка доступа",
+      access_remove: "Удаление доступа",
+      remove: "Удаление",
+      update: "Изменение",
+      edit: "Редактирование",
+      create: "Создание",
+      delete: "Удаление",
+      block: "Блокировка",
+      unblock: "Разблокировка",
+      unbind: "Сброс привязки",
+      game_login: "Вход в игру",
+      game_logout: "Выход из игры",
+      game_enter: "Вход в игру",
+      game_exit: "Выход из игры",
+      admins_list: "Просмотр администрации",
+      create_admins: "Создание аккаунтов",
+      settings_update: "Изменение настроек",
+      normative_created: "Отправка норматива",
+      normative_review: "Проверка норматива",
+      notification_created: "Создание уведомления",
+      notification_deleted: "Удаление уведомления"
+    };
+
+    var pages = {
+      auth: "Авторизация",
+      login: "Авторизация",
+      dashboard: "Главная",
+      profile: "Мой профиль",
+      access: "Выдать доступ",
+      admins: "Администраторы",
+      notifications: "Уведомления",
+      normatives: "Нормативы",
+      "normatives-all": "Проставка нормативов",
+      requests: "Мои обращения",
+      "statistics-all": "Статистика администрации",
+      "requests-all": "Обращения администрации",
+      "game-activity": "Вход в игру",
+      logs: "Журнал действий",
+      rules: "Регламент",
+      settings: "Настройки"
+    };
+
+    var details = {
+      "Login successful": "Авторизация выполнена",
+      "Authentication successful": "Авторизация выполнена",
+      "Logout successful": "Выход из системы выполнен",
+      "Logged out": "Выход из системы выполнен",
+      "Access granted": "Доступ выдан",
+      "Access revoked": "Доступ отозван",
+      "Access removed": "Доступ удалён",
+      "Account blocked": "Аккаунт заблокирован",
+      "Account unblocked": "Аккаунт разблокирован",
+      "Device unbound": "Привязка устройства сброшена"
+    };
+
+    var actionOptions = Object.keys(actions)
+      .filter(function (key, index, list) {
+        return list.indexOf(key) === index;
+      })
+      .sort(function (a, b) {
+        return (actions[a] || a).localeCompare(actions[b] || b, "ru");
+      });
+
+    function criticality(action) {
+      var key = String(action || "").toLowerCase();
+
+      if ([
+        "access_block",
+        "access_remove",
+        "settings_update",
+        "create_admins"
+      ].indexOf(key) !== -1) {
+        return {
+          key: "critical",
+          label: "Критическая",
+          className: "badge-red"
+        };
+      }
+
+      if ([
+        "access_grant",
+        "access_update",
+        "access_unbind",
+        "access_unblock",
+        "normative_created",
+        "normative_review",
+        "notification_created",
+        "notification_deleted"
+      ].indexOf(key) !== -1) {
+        return {
+          key: "important",
+          label: "Важная",
+          className: "badge-yellow"
+        };
+      }
+
+      return {
+        key: "normal",
+        label: "Обычная",
+        className: "badge-gray"
+      };
+    }
+
+    function rangeForDate(value) {
+      var text = String(value || "").trim();
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) {
+        return {
+          from: "",
+          to: ""
+        };
+      }
+
+      var start = new Date(text + "T00:00:00");
+      var end = new Date(start.getTime() + 86400000);
+
+      return {
+        from: start.toISOString(),
+        to: end.toISOString()
+      };
+    }
+
+    function renderTable(root, list) {
+      var rows = list.length
+        ? list.map(function (x) {
             var actionKey = String(x.action || "").toLowerCase();
             var pageKey = String(x.page || "").toLowerCase();
             var detailKey = String(x.details || "");
-            return '<tr><td>' + E(formatDateTime(x.created_at || x.time)) + '</td><td>' + E(x.nickname || "—") + '</td><td>' +
-              E(actions[actionKey] || x.action || "—") + '</td><td>' + E(pages[pageKey] || x.page || "—") + '</td><td>' +
-              E(details[detailKey] || x.details || "—") + '</td></tr>';
-          }).join("") : '<tr><td colspan="5">Журнал пуст.</td></tr>';
-          root.innerHTML = '<div class="box table-box"><table><thead><tr><th>Время</th><th>Никнейм</th><th>Действие</th><th>Раздел</th><th>Подробности</th></tr></thead><tbody>' +
-            rows + '</tbody></table></div>';
+            var level = criticality(actionKey);
+
+            if (
+              x.criticality === "critical" ||
+              x.criticality === "important" ||
+              x.criticality === "normal"
+            ) {
+              level = criticality(actionKey);
+              level.key = x.criticality;
+
+              if (x.criticality === "critical") {
+                level.label = "Критическая";
+                level.className = "badge-red";
+              } else if (x.criticality === "important") {
+                level.label = "Важная";
+                level.className = "badge-yellow";
+              } else {
+                level.label = "Обычная";
+                level.className = "badge-gray";
+              }
+            }
+
+            return '<tr><td>' +
+              E(formatDateTime(x.created_at || x.time)) +
+              '</td><td>' +
+              E(x.nickname || "—") +
+              '</td><td>' +
+              E(actions[actionKey] || x.action || "—") +
+              '</td><td>' +
+              '<span class="badge ' + level.className + '">' +
+                E(level.label) +
+              '</span>' +
+              '</td><td>' +
+              E(pages[pageKey] || x.page || "—") +
+              '</td><td>' +
+              E(details[detailKey] || x.details || "—") +
+              '</td></tr>';
+          }).join("")
+        : '<tr><td colspan="6" class="table-empty">По заданным фильтрам записи не найдены.</td></tr>';
+
+      root.innerHTML =
+        '<div class="box table-box">' +
+          '<table>' +
+            '<thead><tr>' +
+              '<th>Время</th>' +
+              '<th>Никнейм</th>' +
+              '<th>Действие</th>' +
+              '<th>Критичность</th>' +
+              '<th>Раздел</th>' +
+              '<th>Подробности</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table>' +
+        '</div>';
+    }
+
+    return {
+      managementOnly: true,
+      title: "Журнал действий",
+      subtitle: "История действий администрации с фильтрацией и уровнем критичности",
+      render: function () {
+        var options = actionOptions.map(function (key) {
+          return '<option value="' + E(key) + '">' +
+            E(actions[key]) +
+            '</option>';
+        }).join("");
+
+        return '<div class="box logs-filter-box">' +
+          '<form id="logsFilterForm" class="logs-filter-form">' +
+            '<div class="form-field">' +
+              '<label for="logsNickname">По никнейму</label>' +
+              '<input id="logsNickname" class="form-input" type="search" placeholder="Введите никнейм">' +
+            '</div>' +
+            '<div class="form-field">' +
+              '<label for="logsAction">По действию</label>' +
+              '<select id="logsAction" class="form-select">' +
+                '<option value="">Все действия</option>' +
+                options +
+              '</select>' +
+            '</div>' +
+            '<div class="form-field">' +
+              '<label for="logsDate">По дате</label>' +
+              '<input id="logsDate" class="form-input" type="date">' +
+            '</div>' +
+            '<div class="logs-filter-actions">' +
+              '<button class="button button-primary" type="submit">Найти</button>' +
+              '<button class="button button-secondary" id="logsFilterReset" type="button">Сбросить</button>' +
+            '</div>' +
+          '</form>' +
+        '</div>' +
+        '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>';
+      },
+      bind: function () {
+        var form = document.getElementById("logsFilterForm");
+        var nicknameInput = document.getElementById("logsNickname");
+        var actionInput = document.getElementById("logsAction");
+        var dateInput = document.getElementById("logsDate");
+        var reset = document.getElementById("logsFilterReset");
+
+        if (form) {
+          form.onsubmit = function (event) {
+            event.preventDefault();
+
+            state.nickname = nicknameInput ? nicknameInput.value.trim() : "";
+            state.action = actionInput ? actionInput.value.trim() : "";
+            state.date = dateInput ? dateInput.value.trim() : "";
+
+            load(document.querySelector("[data-page='logs']"), false);
+          };
+        }
+
+        if (reset) {
+          reset.onclick = function () {
+            state.nickname = "";
+            state.action = "";
+            state.date = "";
+
+            if (nicknameInput) nicknameInput.value = "";
+            if (actionInput) actionInput.value = "";
+            if (dateInput) dateInput.value = "";
+
+            load(document.querySelector("[data-page='logs']"), false);
+          };
+        }
+      },
+      load: async function (user) {
+        var root = document.getElementById("logsRoot");
+        if (!root) return;
+
+        try {
+          var range = rangeForDate(state.date);
+
+          var result = await window.BR_API.auditLogs(
+            user.token,
+            500,
+            {
+              nickname: state.nickname,
+              action: state.action,
+              created_from: range.from,
+              created_to: range.to
+            }
+          );
+
+          var list = Array.isArray(result.logs)
+            ? result.logs
+            : [];
+
+          renderTable(root, list);
         } catch (e) {
-          root.innerHTML = '<div class="box"><div class="empty">' + E(e.message || "Не удалось загрузить журнал.") + '</div></div>';
+          root.innerHTML =
+            '<div class="box"><div class="empty">' +
+              E(e.message || "Не удалось загрузить журнал.") +
+            '</div></div>';
         }
       }
     };
