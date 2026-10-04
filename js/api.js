@@ -1104,6 +1104,52 @@
                 );
             },
 
+        inactiveRequestsMine:
+            function (token) {
+                return request(
+                    { action: "inactive_requests_mine" },
+                    token
+                );
+            },
+
+        inactiveRequestCreate:
+            function (token, inactiveType, startDate, endDate, reason) {
+                return request(
+                    {
+                        action: "inactive_request_create",
+                        inactive_type: inactiveType || "single",
+                        start_date: startDate || "",
+                        end_date: endDate || "",
+                        reason: reason || ""
+                    },
+                    token
+                );
+            },
+
+        inactiveRequestsAll:
+            function (token, status) {
+                return request(
+                    {
+                        action: "inactive_requests_all",
+                        status: status || ""
+                    },
+                    token
+                );
+            },
+
+        inactiveRequestReview:
+            function (token, requestId, status, reviewComment) {
+                return request(
+                    {
+                        action: "inactive_request_review",
+                        request_id: Number(requestId),
+                        status: status,
+                        review_comment: reviewComment || ""
+                    },
+                    token
+                );
+            },
+
         normativesMine:
             function (
                 token
