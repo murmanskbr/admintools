@@ -808,7 +808,7 @@
               (
                 markDate == null ||
                 String(markDate).trim() === "" ||
-                String(markDate).trim() === date
+                normalizeNormativeDate(markDate) === normalizeNormativeDate(date)
               )
             ) {
               return markStatus == null ? "" : String(markStatus);
@@ -875,7 +875,10 @@
 
               if (dateIndex >= 0 && date) {
                 var matrixDate = String(matrixRow[dateIndex] == null ? "" : matrixRow[dateIndex]).trim();
-                if (matrixDate && matrixDate !== date) continue;
+                if (
+                  matrixDate &&
+                  normalizeNormativeDate(matrixDate) !== normalizeNormativeDate(date)
+                ) continue;
               }
 
               return String(matrixRow[statusIndex] == null ? "" : matrixRow[statusIndex]);
@@ -963,6 +966,22 @@
       );
     }
 
+    function normalizeNormativeDate(value) {
+      var text = rawCellValue(value).trim();
+
+      var match = text.match(/^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/);
+      if (match) {
+        return match[3] + "-" + match[2] + "-" + match[1];
+      }
+
+      var slash = text.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+      if (slash) {
+        return slash[3] + "-" + slash[2] + "-" + slash[1];
+      }
+
+      return text;
+    }
+
     function normativeDisplayStatus(normatives, nickname) {
       if (!nickname) return "";
 
@@ -974,17 +993,46 @@
       if (value) {
         var normalized = normalizeHeader(value);
 
-        if (normalized === "норма") return "Норма";
-        if (normalized === "перенорма") return "Перенорма";
-        if (normalized === "неактив") return "Неактив";
-        if (normalized === "нет нормы") return "Нет нормы";
+        if (normalized === "норма" || normalized === "norm" || normalized === "passed") {
+          return "Норма";
+        }
+
+        if (normalized === "перенорма" || normalized === "rework") {
+          return "Перенорма";
+        }
+
+        if (normalized === "неактив" || normalized === "inactive") {
+          return "Неактив";
+        }
+
+        if (
+          normalized === "нет нормы" ||
+          normalized === "no norm" ||
+          normalized === "no normative" ||
+          normalized === "no_norm"
+        ) {
+          return "Нет нормы";
+        }
+
+        if (
+          normalized === "не сдан" ||
+          normalized === "не сдана" ||
+          normalized === "not submitted" ||
+          normalized === "not_submitted"
+        ) {
+          return "Не сдана";
+        }
+
+        if (
+          normalized === "на проверке" ||
+          normalized === "pending"
+        ) {
+          return "На проверке";
+        }
 
         return String(value);
       }
 
-      // Absence of a mark in the normative matrix means that the
-      // selected-day normative was not submitted. This is not a value
-      // invented from statistics; it is derived from the normative sheet.
       if (
         normatives &&
         (
@@ -992,7 +1040,7 @@
           Array.isArray(normatives.rows)
         )
       ) {
-        return "Не сдан";
+        return "Не сдана";
       }
 
       return "";
