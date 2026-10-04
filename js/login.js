@@ -54,13 +54,35 @@
           ? new Date(result.session.last_activity_at).getTime()
           : Date.now();
 
+        var remember = document.getElementById("rememberMe").checked;
         window.BRApp.saveSession(
           user,
           expires,
-          document.getElementById("rememberMe").checked,
+          remember,
           lastActivityAt
         );
-        location.href = "pages/dashboard.html?refresh=" + Date.now();
+
+        // Before opening the panel, remove any legacy service worker/cache.
+        // This prevents an old cached page.js from showing a blank screen.
+        try {
+          if ("serviceWorker" in navigator) {
+            var registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(function (registration) {
+              return registration.unregister().catch(function () { return false; });
+            }));
+          }
+
+          if ("caches" in window) {
+            var cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map(function (key) {
+              return caches.delete(key);
+            }));
+          }
+        } catch (cacheError) {
+          console.warn("[BR AdminTools] Не удалось полностью очистить старый web-cache:", cacheError);
+        }
+
+        location.replace("pages/dashboard.html");
       } catch (e) {
         console.warn(
           "[BR AdminTools] Ошибка авторизации:",
