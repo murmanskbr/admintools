@@ -3244,7 +3244,7 @@
         '</div>' +
         '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>';
       },
-      bind: function () {
+      bind: function (user) {
         var form = document.getElementById("logsFilterForm");
         var nicknameInput = document.getElementById("logsNickname");
         var actionInput = document.getElementById("logsAction");
@@ -3259,7 +3259,7 @@
             state.action = actionInput ? actionInput.value.trim() : "";
             state.date = dateInput ? dateInput.value.trim() : "";
 
-            load(document.querySelector("[data-page='logs']"), false);
+            load(user, false);
           };
         }
 
@@ -3273,7 +3273,7 @@
             if (actionInput) actionInput.value = "";
             if (dateInput) dateInput.value = "";
 
-            load(document.querySelector("[data-page='logs']"), false);
+            load(user, false);
           };
         }
       },
