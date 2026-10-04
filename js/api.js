@@ -1169,6 +1169,18 @@
                 );
             },
 
+        inactiveRequestOverlapCheck:
+            function (token, startDate, endDate) {
+                return request(
+                    {
+                        action: "inactive_request_overlap_check",
+                        start_date: startDate || "",
+                        end_date: endDate || ""
+                    },
+                    token
+                );
+            },
+
         inactiveRequestsAll:
             function (token, status) {
                 return request(
