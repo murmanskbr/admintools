@@ -2255,31 +2255,6 @@
     );
   }
 
-  function requestStatusBadge(status) {
-    var map = {
-      pending: ["На рассмотрении", "badge-yellow"],
-      approved: ["Одобрено", "badge-green"],
-      rejected: ["Отклонено", "badge-red"]
-    };
-    var value = map[String(status || "").toLowerCase()] || ["Неизвестно", ""];
-    return '<span class="badge ' + value[1] + '">' + E(value[0]) + '</span>';
-  }
-
-  function inactiveTypeLabel(value) {
-    return String(value || "").toLowerCase() === "group"
-      ? "Групповой"
-      : "Одиночный";
-  }
-
-  function inactiveRequestPeriod(item) {
-    var start = String(item && item.start_date || "");
-    var end = String(item && item.end_date || "");
-    if (!start) return "—";
-    return start === end
-      ? formatDateNumeric(start)
-      : formatDateNumeric(start) + " — " + formatDateNumeric(end);
-  }
-
   function requests(user) {
     var inactiveList = [];
     var activeSection = "inactive";
