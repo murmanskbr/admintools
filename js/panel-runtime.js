@@ -3069,6 +3069,9 @@
       settings_update: "Изменение настроек",
       normative_created: "Отправка норматива",
       normative_review: "Проверка норматива",
+      inactive_request_created: "Подача заявки на неактив",
+      inactive_request_approved: "Одобрение неактива",
+      inactive_request_rejected: "Отклонение неактива",
       notification_created: "Создание уведомления",
       notification_deleted: "Удаление уведомления"
     };
@@ -3134,6 +3137,9 @@
         "access_update",
         "access_unbind",
         "access_unblock",
+        "inactive_request_created",
+        "inactive_request_approved",
+        "inactive_request_rejected",
         "normative_created",
         "normative_review",
         "notification_created",
