@@ -29,3 +29,27 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.get_google_script_secret() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_google_script_secret() TO service_role;
+
+-- Pin the search path for the configuration writer as well.
+CREATE OR REPLACE FUNCTION public.set_google_script_config_url(p_url text)
+RETURNS public.google_script_config
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $function$
+DECLARE
+  result public.google_script_config;
+BEGIN
+  IF p_url IS NULL OR btrim(p_url) = '' THEN
+    RAISE EXCEPTION 'URL_REQUIRED';
+  END IF;
+
+  INSERT INTO public.google_script_config (id, web_app_url, updated_at)
+  VALUES (1, btrim(p_url), now())
+  ON CONFLICT (id) DO UPDATE
+    SET web_app_url = EXCLUDED.web_app_url,
+        updated_at = now()
+  RETURNING * INTO result;
+
+  RETURN result;
+END;
+$function$;
