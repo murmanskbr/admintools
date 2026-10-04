@@ -1380,8 +1380,11 @@
         auditLogs:
             function (
                 token,
-                limit
+                limit,
+                filters
             ) {
+                var options = filters || {};
+
                 return request(
                     {
                         action:
@@ -1389,8 +1392,28 @@
 
                         limit:
                             Number(
-                                limit || 200
-                            )
+                                limit || 500
+                            ),
+
+                        nickname:
+                            String(
+                                options.nickname || ""
+                            ).trim(),
+
+                        action_filter:
+                            String(
+                                options.action || ""
+                            ).trim(),
+
+                        created_from:
+                            String(
+                                options.created_from || ""
+                            ).trim(),
+
+                        created_to:
+                            String(
+                                options.created_to || ""
+                            ).trim()
                     },
                     token
                 );
