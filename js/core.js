@@ -18,6 +18,7 @@
     requests: ["pages/requests.html", "✦", "Мои обращения"],
     statistics: ["pages/statistics.html", "▥", "Моя статистика"],
     access: ["pages/access.html", "⚿", "Выдать доступ"],
+    "admin-management": ["pages/admin-management.html", "♙", "Создание / удаление администратора"],
     "statistics-all": ["pages/statistics-all.html", "▥", "Статистика администрации"],
     "normatives-all": ["pages/normatives-all.html", "↑", "Проставка нормативов"],
     "requests-all": ["pages/requests-all.html", "✦", "Обращения администрации"],
@@ -246,7 +247,7 @@
   function shell(user, title, subtitle, body) {
     var menu = management(user)
       ? '<div class="section-title">УПРАВЛЕНИЕ</div>' +
-        link("access") + link("statistics-all") +
+        link("access") + link("statistics-all") + link("admin-management") +
         link("notifications") + link("normatives-all") + link("requests-all") +
         '<div class="section-title">КОНТРОЛЬ</div>' + link("game-activity") + link("logs") + link("rules") +
         '<div class="section-title">СИСТЕМА</div>' + link("settings")
