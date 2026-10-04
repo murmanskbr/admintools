@@ -390,7 +390,7 @@
         var response;
 
         try {
-            response = await fetch(
+            response = await fetchWithTimeout(
                 STATISTICS_URL,
                 {
                     method: "POST",
@@ -399,7 +399,8 @@
                         JSON.stringify(
                             payload
                         )
-                }
+                },
+                REQUEST_TIMEOUT_MS
             );
         } catch (networkError) {
             var timeoutError =
@@ -503,6 +504,25 @@
                     ""
                 );
 
+            console.error(
+                "[BR AdminTools] Ошибка модуля Statistics:",
+                {
+                    status:
+                        response.status,
+                    action:
+                        payload &&
+                        payload.action,
+                    code:
+                        code,
+                    message:
+                        message,
+                    body:
+                        data,
+                    raw:
+                        raw
+                }
+            );
+
             notifySessionExpired(code);
 
             var error =
@@ -565,13 +585,14 @@
         var response;
 
         try {
-            response = await fetch(
+            response = await fetchWithTimeout(
                 API_URL,
                 {
                     method: "POST",
                     headers: headers,
                     body: formData
-                }
+                },
+                UPLOAD_TIMEOUT_MS
             );
         } catch (networkError) {
             var timeoutError =
@@ -634,6 +655,18 @@
         if (!response.ok || !data || data.success === false) {
             var message = data && (data.message || data.error || "");
             var code = data && (data.code || data.error_code || "");
+
+            console.error(
+                "[BR AdminTools] Ошибка загрузки норматива:",
+                {
+                    status: response.status,
+                    code: code,
+                    message: message,
+                    body: data,
+                    raw: raw
+                }
+            );
+
             notifySessionExpired(code);
 
             var uploadError = new Error(message || "Не удалось загрузить норматив.");
