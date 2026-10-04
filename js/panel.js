@@ -921,11 +921,6 @@
             raw_row: row.slice()
           }
         };
-      }).filter(function (item) {
-        return !isSectionSourceRow(
-          item.values.raw_row,
-          item.values.headers
-        );
       });
 
       var headerCells = lastHeaders.map(function (header) {
