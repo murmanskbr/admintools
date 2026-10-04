@@ -28,7 +28,9 @@
 
         var requestOptions =
             Object.assign(
-                {},
+                {
+                    cache: "no-store"
+                },
                 options || {},
                 {
                     signal:
@@ -56,16 +58,50 @@
             return value;
         }
 
-        value =
+        if (
             window.crypto &&
-            crypto.randomUUID
-                ? crypto.randomUUID()
-                : "web-" +
-                  Date.now() +
-                  "-" +
-                  Math.random()
-                      .toString(16)
-                      .slice(2);
+            typeof window.crypto.randomUUID ===
+                "function"
+        ) {
+            value = window.crypto.randomUUID();
+        } else if (
+            window.crypto &&
+            typeof window.crypto.getRandomValues ===
+                "function"
+        ) {
+            var randomBytes =
+                new Uint8Array(16);
+
+            window.crypto.getRandomValues(
+                randomBytes
+            );
+
+            randomBytes[6] =
+                (randomBytes[6] & 0x0f) | 0x40;
+
+            randomBytes[8] =
+                (randomBytes[8] & 0x3f) | 0x80;
+
+            value =
+                "web-" +
+                Array.from(
+                    randomBytes
+                )
+                    .map(function (byte) {
+                        return byte
+                            .toString(16)
+                            .padStart(2, "0");
+                    })
+                    .join("");
+        } else {
+            value =
+                "web-" +
+                Date.now() +
+                "-" +
+                Math.random()
+                    .toString(16)
+                    .slice(2);
+        }
 
         localStorage.setItem(
             key,
@@ -120,9 +156,7 @@
         try {
             response =
                 await fetch(
-                    API_URL +
-                    "?br_ts=" +
-                    Date.now(),
+                    API_URL,
                     {
                         method: "POST",
                         headers: headers,
@@ -403,9 +437,7 @@
 
         try {
             response = await fetchWithTimeout(
-                STATISTICS_URL +
-                    "?br_ts=" +
-                    Date.now(),
+                STATISTICS_URL,
                 {
                     method: "POST",
                     headers: headers,
@@ -539,11 +571,7 @@
                     code:
                         code,
                     message:
-                        message,
-                    body:
-                        data,
-                    raw:
-                        raw
+                        message
                 }
             );
 
