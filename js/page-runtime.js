@@ -286,6 +286,1266 @@
     return "";
   }
 
+  function dashboard(user) {
+    return gameActivity(user);
+  }
+
+
+
+  function profile(user) {
+    return {
+      title: "Мой профиль",
+      subtitle: "Полные данные из реестра администрации",
+      render: function () {
+        return '<div id="profileRoot"><div class="box"><div class="empty">Поиск администратора в Google Sheets...</div></div></div>';
+      },
+      load: async function (user) {
+        var root = document.getElementById("profileRoot");
+        if (!root) return;
+        try {
+          var result = await window.BR_API.getStatisticsAdmin(user.token, user.nickname);
+          root.innerHTML =
+            '<div class="box"><div class="form-grid">' +
+              '<div class="form-field"><label>Никнейм аккаунта</label><input class="profile-input" readonly value="' + E(user.nickname) + '"></div>' +
+              '<div class="form-field"><label>Роль панели</label><input class="profile-input" readonly value="' + E(user.role === "management" ? "Руководство" : "Администратор") + '"></div>' +
+            '</div></div>' +
+            googleRowTable(result, "Профиль " + user.nickname);
+        } catch (error) {
+          if (error.code === "STATISTICS_NOT_FOUND") {
+            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в реестре Google Sheets. Данные профиля из таблицы не найдены.</div></div>';
+            return;
+          }
+          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить профиль из Google Sheets.") + '</div></div>';
+        }
+      }
+    };
+  }
+
+  function admins(user) {
+    var currentUser = user;
+    async function load() {
+      var root = document.getElementById("adminsRoot");
+      if (!root || !currentUser || !currentUser.token) return;
+      root.innerHTML = '<div class="box"><div class="empty">Загрузка состава администрации через Google Таблица...</div></div>';
+      try {
+        var result = await window.BR_API.adminsGoogleList(currentUser.token);
+        var statistics = Array.isArray(result.statistics) ? result.statistics : [];
+        var headers = Array.isArray(result.headers) ? result.headers : [];
+        var rows = Array.isArray(result.rows) ? result.rows : [];
+        var rowNumbers = Array.isArray(result.row_numbers) ? result.row_numbers : [];
+        if (!headers.length && statistics.length && statistics[0] && statistics[0].values) headers = Array.isArray(statistics[0].values.headers) ? statistics[0].values.headers : [];
+        if (!rows.length && statistics.length) rows = statistics.map(function (item) { return item && item.values && Array.isArray(item.values.raw_row) ? item.values.raw_row : []; });
+
+        // Убираем строки-заголовки разделов Google Таблицы из состава администрации.
+        var filteredAdminRows = [];
+        var filteredAdminRowNumbers = [];
+        rows.forEach(function (row, index) {
+          var sourceItem = statistics[index] || {
+            values: {
+              headers: headers,
+              raw_row: row
+            }
+          };
+          if (isGoogleCategoryRow(sourceItem)) return;
+          filteredAdminRows.push(row);
+          filteredAdminRowNumbers.push(rowNumbers[index] || (sourceItem.row_number || (sourceItem.values && sourceItem.values.row_number)) || 0);
+        });
+        rows = filteredAdminRows;
+        rowNumbers = filteredAdminRowNumbers;
+
+        if (!headers.length) {
+          root.innerHTML = '<div class="box"><div class="empty">В первом листе не найдены столбцы.</div></div>';
+          return;
+        }
+        var updated = document.getElementById("adminsUpdated");
+        if (updated) updated.textContent = "Обновлено: " + new Date().toLocaleString("ru-RU", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"});
+        var headerCells = headers.map(function (header) { return '<th>' + E(russianAdminHeader(header)) + '</th>'; }).join("");
+        var bodyRows = rows.map(function (row, rowIndex) {
+          var rowNumber = Number(rowNumbers[rowIndex] || (statistics[rowIndex] && (statistics[rowIndex].row_number || (statistics[rowIndex].values && statistics[rowIndex].values.row_number))) || 0);
+          return '<tr><td><b>' + E(rowNumber || "—") + '</b></td>' + headers.map(function (_, index) {
+            return '<td>' + E(row && row[index] != null && row[index] !== "" ? row[index] : "—") + '</td>';
+          }).join("") + '</tr>';
+        }).join("");
+        if (!bodyRows) bodyRows = '<tr><td colspan="' + (headers.length + 1) + '" class="table-empty">В таблице нет данных.</td></tr>';
+        root.innerHTML = '<div class="box table-box"><div class="stats-table-head"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div><span class="muted">Источник: Google Таблица • Google Sheets</span></div><table id="adminsTable"><thead><tr><th>Строка</th>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
+        var search = document.getElementById("adminsSearch");
+        if (search) search.oninput = function () {
+          var query = search.value.trim().toLowerCase();
+          document.querySelectorAll("#adminsTable tbody tr").forEach(function (tr) { if (!tr.querySelector("td")) return; tr.style.display = !query || tr.textContent.toLowerCase().indexOf(query) !== -1 ? "" : "none"; });
+        };
+      } catch (error) {
+        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить состав администрации.") + '</div></div>';
+      }
+    }
+    return {
+      title: "Состав администрации",
+      subtitle: "Полный состав из Google Таблица",
+      render: function () {
+        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице"><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span>Источник: Google Таблица • Google Sheets</span><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
+      },
+      bind: function () {
+        var refresh = document.getElementById("adminsRefresh");
+        if (refresh) refresh.onclick = async function () {
+          refresh.disabled = true; refresh.textContent = "Загрузка…";
+          try { await load(); } finally { refresh.disabled = false; refresh.textContent = "↻ Обновить"; }
+        };
+      },
+      load: load
+    };
+  }
+
+  function myStatistics() {
+    return {
+      title: "Моя статистика",
+      subtitle: "Полная строка администратора из Google Таблица",
+      render: function () {
+        return '<div id="statsRoot"><div class="box"><div class="empty">Поиск администратора в Google Sheets...</div></div></div>';
+      },
+      load: async function (user) {
+        var root = document.getElementById("statsRoot");
+        if (!root) return;
+
+        root.innerHTML =
+          '<div class="box"><div class="empty">Обновление статистики из Google Sheets...</div></div>';
+
+        try {
+          var result = await window.BR_API.myStatistics(user.token);
+          root.innerHTML =
+            '<div class="box"><div class="stats-table-head"><div><small>ЛИЧНАЯ СТАТИСТИКА</small><b>' + E(user.nickname) + '</b></div><span class="muted">Свежие данные из Google Sheets</span></div></div>' +
+            googleRowTable(result, "Статистика " + user.nickname);
+        } catch (error) {
+          if (error.code === "STATISTICS_NOT_FOUND") {
+            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в реестре Google Sheets. Личная статистика не найдена.</div></div>';
+            return;
+          }
+          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить личную статистику.") + '</div></div>';
+        }
+      }
+    };
+  }
+
+  function allStatistics(user) {
+    var selectedDate = dateIso(0);
+    var lastResult = null;
+    var lastData = [];
+    var lastHeaders = [];
+    var lastNicknameIndex = -1;
+
+    function normalizeHeader(header) {
+      return String(header == null ? "" : header)
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .replace(/[_\-]+/g, " ")
+        .replace(/\s+/g, " ");
+    }
+
+    function findNicknameIndex(headers) {
+      var aliases = [
+        "никнейм", "ник", "nickname", "nick",
+        "логин", "login", "username"
+      ];
+
+      for (var i = 0; i < headers.length; i += 1) {
+        if (aliases.indexOf(normalizeHeader(headers[i])) !== -1) {
+          return i;
+        }
+      }
+
+      return -1;
+    }
+
+    var normativeToastTimer = null;
+
+    function showNormativeResult(message, type) {
+      var old = document.getElementById("brNormativeToast");
+      if (old) old.remove();
+
+      var toast = document.createElement("div");
+      toast.id = "brNormativeToast";
+      toast.className = "br-normative-toast " + (
+        type === "success" ? "is-success" : "is-error"
+      );
+
+      toast.innerHTML =
+        '<span class="br-normative-toast-icon">' +
+        (type === "success" ? "✓" : "!") +
+        '</span>' +
+        '<span class="br-normative-toast-message">' +
+        E(String(message || "")) +
+        '</span>';
+
+      document.body.appendChild(toast);
+
+      window.clearTimeout(normativeToastTimer);
+      window.requestAnimationFrame(function () {
+        toast.classList.add("is-visible");
+      });
+
+      normativeToastTimer = window.setTimeout(function () {
+        toast.classList.remove("is-visible");
+        window.setTimeout(function () {
+          if (toast.parentNode) toast.remove();
+        }, 220);
+      }, type === "success" ? 4200 : 5200);
+    }
+
+    function normativeErrorMessage(error) {
+      var code = error && error.code ? String(error.code) : "";
+
+      if (code === "GOOGLE_SCRIPT_NOT_FOUND") {
+        return "Статус сохранён, но обновление таблицы не удалось: публичная ссылка Google Apps Script сейчас недоступна.";
+      }
+
+      if (code === "GOOGLE_SCRIPT_TIMEOUT" || code === "STATISTICS_TIMEOUT") {
+        return "Статус сохранён, но Google Apps Script не ответил вовремя. Текущие данные оставлены на экране.";
+      }
+
+      if (code === "APPS_SCRIPT_UNAUTHORIZED") {
+        return "Статус не удалось подтвердить: секрет Google Apps Script не совпадает.";
+      }
+
+      return String(
+        error && error.message
+          ? error.message
+          : "Не удалось завершить операцию."
+      );
+    }
+
+    function sourceData(result) {
+      var headers = Array.isArray(result && result.headers)
+        ? result.headers.slice()
+        : [];
+
+      var rows = Array.isArray(result && result.rows)
+        ? result.rows.map(function (row) {
+            return Array.isArray(row) ? row.slice() : [];
+          })
+        : [];
+
+      var statistics = Array.isArray(result && result.statistics)
+        ? result.statistics
+        : [];
+
+      if (!headers.length && statistics.length) {
+        var firstValues = statistics[0] && statistics[0].values;
+        if (firstValues && Array.isArray(firstValues.headers)) {
+          headers = firstValues.headers.slice();
+        }
+      }
+
+      if (!rows.length && statistics.length) {
+        rows = statistics.map(function (item) {
+          var values = item && item.values ? item.values : {};
+          return Array.isArray(values.raw_row)
+            ? values.raw_row.slice()
+            : [];
+        });
+      }
+
+      var count = headers.length;
+
+      rows.forEach(function (row) {
+        if (row.length > count) count = row.length;
+      });
+
+      while (headers.length < count) {
+        headers.push("");
+      }
+
+      var sections = [];
+      if (statistics.length) {
+        var currentSection = "";
+        statistics.forEach(function (item) {
+          var title = item && item.section_title
+            ? String(item.section_title).trim()
+            : "";
+          if (title && title !== currentSection) {
+            sections.push({
+              title: title,
+              row_number: item.row_number || 0
+            });
+            currentSection = title;
+          }
+        });
+      }
+
+      if (!sections.length && result && Array.isArray(result.sections)) {
+        sections = result.sections
+          .map(function (section) {
+            return {
+              title: section && section.title
+                ? String(section.title).trim()
+                : "",
+              row_number: section && section.row_number
+                ? Number(section.row_number)
+                : 0
+            };
+          })
+          .filter(function (section) {
+            return !!section.title;
+          });
+      }
+
+      var nicknameIndex = findNicknameIndex(headers);
+      var displayRecords = [];
+      var pendingSection = "";
+
+      function rowTextValues(row) {
+        return row.map(function (value) {
+          return rawCellValue(value).trim();
+        }).filter(function (value) {
+          return value !== "";
+        });
+      }
+
+      function isHeaderLikeRow(row) {
+        var values = rowTextValues(row);
+        if (values.length < 3) return false;
+
+        var known = 0;
+        values.forEach(function (value) {
+          var normalized = normalizeHeader(value);
+          if (
+            [
+              "никнейм", "возраст", "доступ с пк", "должность",
+              "неактивы", "баллы активности", "дни на посту",
+              "страйки", "предупреждение", "предупреждения",
+              "баллы", "последнее повышение"
+            ].indexOf(normalized) >= 0
+          ) {
+            known += 1;
+          }
+        });
+
+        return known >= 4;
+      }
+
+      function sectionTitleFromRow(row) {
+        var values = rowTextValues(row);
+        if (values.length !== 1) return "";
+
+        var title = values[0];
+        var normalized = normalizeHeader(title);
+
+        if (
+          normalized.indexOf("администрац") >= 0 ||
+          normalized.indexOf("модератор") >= 0 ||
+          normalized.indexOf("следящ") >= 0 ||
+          normalized.indexOf("старш") >= 0
+        ) {
+          return title;
+        }
+
+        return "";
+      }
+
+      function isValidNickname(value) {
+        var normalized = normalizeHeader(value);
+
+        if (!normalized) return false;
+
+        return [
+          "никнейм", "ник", "nickname", "nick",
+          "логин", "login", "username",
+          "должность", "возраст", "доступ с пк",
+          "неактивы", "баллы активности", "дни на посту",
+          "страйки", "предупреждение", "предупреждения",
+          "баллы", "последнее повышение"
+        ].indexOf(normalized) < 0;
+      }
+
+      rows.forEach(function (row, rowIndex) {
+        if (!Array.isArray(row) || !rowTextValues(row).length) {
+          return;
+        }
+
+        var sectionTitle = sectionTitleFromRow(row);
+
+        if (sectionTitle) {
+          pendingSection = sectionTitle;
+          return;
+        }
+
+        if (isHeaderLikeRow(row)) {
+          return;
+        }
+
+        var nickname = nicknameIndex >= 0
+          ? rawCellValue(row[nicknameIndex]).trim()
+          : "";
+
+        var nonEmptyCount = rowTextValues(row).length;
+
+        if (
+          !nickname ||
+          !isValidNickname(nickname) ||
+          nonEmptyCount < 2
+        ) {
+          return;
+        }
+
+        var sourceItem = statistics[rowIndex] || {};
+        var effectiveSection = sourceItem && sourceItem.section_title
+          ? String(sourceItem.section_title).trim()
+          : pendingSection;
+
+        displayRecords.push({
+          row: row,
+          sourceItem: sourceItem,
+          originalIndex: rowIndex,
+          sectionTitle: effectiveSection
+        });
+
+        pendingSection = "";
+      });
+
+      return {
+        headers: headers,
+        rows: rows,
+        statistics: statistics,
+        displayRecords: displayRecords,
+        sections: sections,
+        count: count
+      };
+    }
+
+    function sourceRowNumber(result, rowIndex) {
+      var statistics = Array.isArray(result && result.statistics)
+        ? result.statistics
+        : [];
+
+      var item = statistics[rowIndex];
+
+      var value = item && item.row_number != null
+        ? item.row_number
+        : result && Array.isArray(result.row_numbers)
+          ? result.row_numbers[rowIndex]
+          : 0;
+
+      var rowNumber = Number(value);
+      return Number.isFinite(rowNumber) ? rowNumber : 0;
+    }
+
+    function sourceNormativeHeaderIndex(headers) {
+      var aliases = [
+        "норматив", "нормативы", "норма", "нормы", "норм",
+        "статус норматива", "результат норматива",
+        "norm", "normative", "normatives"
+      ];
+
+      for (var i = 0; i < headers.length; i += 1) {
+        if (aliases.indexOf(normalizeHeader(headers[i])) !== -1) {
+          return i;
+        }
+      }
+
+      return -1;
+    }
+
+    function externalGoogleNormative(data, nickname) {
+      if (!data || !nickname) return "";
+
+      var target = String(nickname).trim().toLowerCase();
+      var date = String(selectedDate || "").trim();
+      var nicknameKeys = ["nickname", "nick", "username", "login", "никнейм", "ник", "логин"];
+      var valueKeys = ["normative_status", "status", "normative", "norm", "result", "value", "статус", "норматив", "норма", "результат"];
+      var dateKeys = ["date", "selected_date", "normative_date", "дата", "дата норматива"];
+
+      function getKey(object, keys) {
+        if (!object || typeof object !== "object") return null;
+
+        for (var i = 0; i < keys.length; i += 1) {
+          if (Object.prototype.hasOwnProperty.call(object, keys[i])) {
+            return object[keys[i]];
+          }
+        }
+
+        var normalizedKeys = Object.keys(object);
+        for (var j = 0; j < normalizedKeys.length; j += 1) {
+          var normalizedObjectKey = normalizeHeader(normalizedKeys[j]);
+          for (var k = 0; k < keys.length; k += 1) {
+            if (normalizedObjectKey === normalizeHeader(keys[k])) {
+              return object[normalizedKeys[j]];
+            }
+          }
+        }
+
+        return null;
+      }
+
+      function scan(value) {
+        if (!value) return "";
+
+        if (Array.isArray(value.marks)) {
+          for (var m = 0; m < value.marks.length; m += 1) {
+            var mark = value.marks[m];
+            if (!mark || typeof mark !== "object") continue;
+
+            var markNickname = getKey(mark, nicknameKeys);
+            var markDate = getKey(mark, dateKeys);
+            var markStatus = getKey(mark, valueKeys);
+            var markBackground = getKey(mark, ["background", "color", "цвет"]);
+
+            if (
+              markNickname != null &&
+              String(markNickname).trim().toLowerCase() === target &&
+              (
+                markDate == null ||
+                String(markDate).trim() === "" ||
+                normalizeNormativeDate(markDate) === normalizeNormativeDate(date)
+              )
+            ) {
+              if (markStatus != null && String(markStatus).trim() !== "") {
+                return String(markStatus);
+              }
+
+              var color = rawCellValue(markBackground).trim().toLowerCase();
+
+              if (
+                color === "#34d186" ||
+                color === "#00ff00" ||
+                color === "green"
+              ) {
+                return "Норма";
+              }
+
+              if (
+                color === "#f6c344" ||
+                color === "yellow" ||
+                color === "orange"
+              ) {
+                return "Перенорма";
+              }
+
+              if (
+                color === "#a7adb7" ||
+                color === "gray" ||
+                color === "grey"
+              ) {
+                return "Неактив";
+              }
+
+              return "";
+            }
+          }
+        }
+
+        if (Array.isArray(value)) {
+          for (var i = 0; i < value.length; i += 1) {
+            var found = scan(value[i]);
+            if (found !== "") return found;
+          }
+          return "";
+        }
+
+        if (typeof value !== "object") return "";
+
+        // Support a raw Google Sheets matrix: { headers: [...], rows: [...] }.
+        if (Array.isArray(value.headers) && Array.isArray(value.rows)) {
+          var headers = value.headers.map(function (header) {
+            return String(header == null ? "" : header).trim();
+          });
+
+          var nickIndex = -1;
+          var statusIndex = -1;
+          var dateIndex = -1;
+
+          for (var h = 0; h < headers.length; h += 1) {
+            var normalized = normalizeHeader(headers[h]);
+            if (
+              nickIndex < 0 &&
+              nicknameKeys.some(function (key) {
+                return normalizeHeader(key) === normalized;
+              })
+            ) {
+              nickIndex = h;
+            }
+
+            if (
+              statusIndex < 0 &&
+              valueKeys.some(function (key) {
+                return normalizeHeader(key) === normalized;
+              })
+            ) {
+              statusIndex = h;
+            }
+
+            if (
+              dateIndex < 0 &&
+              dateKeys.some(function (key) {
+                return normalizeHeader(key) === normalized;
+              })
+            ) {
+              dateIndex = h;
+            }
+          }
+
+          if (nickIndex >= 0 && statusIndex >= 0) {
+            for (var r = 0; r < value.rows.length; r += 1) {
+              var matrixRow = Array.isArray(value.rows[r]) ? value.rows[r] : [];
+              var matrixNickname = String(matrixRow[nickIndex] == null ? "" : matrixRow[nickIndex]).trim().toLowerCase();
+
+              if (matrixNickname !== target) continue;
+
+              if (dateIndex >= 0 && date) {
+                var matrixDate = String(matrixRow[dateIndex] == null ? "" : matrixRow[dateIndex]).trim();
+                if (
+                  matrixDate &&
+                  normalizeNormativeDate(matrixDate) !== normalizeNormativeDate(date)
+                ) continue;
+              }
+
+              return String(matrixRow[statusIndex] == null ? "" : matrixRow[statusIndex]);
+            }
+          }
+        }
+
+        var nicknameValue = getKey(value, nicknameKeys);
+        if (
+          nicknameValue != null &&
+          String(nicknameValue).trim().toLowerCase() === target
+        ) {
+          var dateValue = getKey(value, dateKeys);
+          if (
+            dateValue == null ||
+            String(dateValue).trim() === "" ||
+            String(dateValue).trim() === date
+          ) {
+            var direct = getKey(value, valueKeys);
+            if (direct != null) return String(direct);
+          }
+        }
+
+        var nestedKeys = ["normatives", "marks", "administrators", "rows", "data", "items", "results"];
+        for (var j = 0; j < nestedKeys.length; j += 1) {
+          if (value[nestedKeys[j]] != null) {
+            var nested = scan(value[nestedKeys[j]]);
+            if (nested !== "") return nested;
+          }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(value, nickname)) {
+          var byNickname = value[nickname];
+          if (typeof byNickname === "object" && byNickname !== null) {
+            var byNicknameValue = getKey(byNickname, valueKeys);
+            if (byNicknameValue != null) return String(byNicknameValue);
+          } else if (byNickname != null) {
+            return String(byNickname);
+          }
+        }
+
+        return "";
+      }
+
+      return scan(data);
+    }
+
+    function rawCellValue(value) {
+      return value == null ? "" : String(value);
+    }
+
+    function isSectionSourceRow(row, headers) {
+      if (!Array.isArray(row) || !Array.isArray(headers)) return false;
+
+      var nonEmpty = [];
+      row.forEach(function (value, index) {
+        var text = rawCellValue(value).trim();
+        if (text) {
+          nonEmpty.push({
+            index: index,
+            value: text
+          });
+        }
+      });
+
+      if (nonEmpty.length !== 1) return false;
+
+      // A real section title in the source sheet is a single non-empty
+      // cell while all statistic columns are empty.
+      var title = nonEmpty[0].value;
+      var normalizedTitle = normalizeHeader(title);
+
+      if (
+        sourceNormativeHeaderIndex(headers) === nonEmpty[0].index ||
+        findNicknameIndex(headers) === nonEmpty[0].index
+      ) {
+        return false;
+      }
+
+      return (
+        normalizedTitle.indexOf("администрац") >= 0 ||
+        normalizedTitle.indexOf("модератор") >= 0 ||
+        normalizedTitle.indexOf("следящ") >= 0 ||
+        normalizedTitle.indexOf("старш") >= 0
+      );
+    }
+
+    function normalizeNormativeDate(value) {
+      var text = rawCellValue(value).trim();
+
+      var match = text.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (match) {
+        return match[3] + "-" + match[2] + "-" + match[1];
+      }
+
+      var slash = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (slash) {
+        return slash[3] + "-" + slash[2] + "-" + slash[1];
+      }
+
+      return text;
+    }
+
+    function normativeDisplayStatus(normatives, nickname) {
+      if (!nickname) return "";
+
+      var value = externalGoogleNormative(
+        normatives,
+        nickname
+      );
+
+      if (value) {
+        var normalized = normalizeHeader(value);
+
+        if (normalized === "норма" || normalized === "norm" || normalized === "passed") {
+          return "Норма";
+        }
+
+        if (normalized === "перенорма" || normalized === "rework") {
+          return "Перенорма";
+        }
+
+        if (normalized === "неактив" || normalized === "inactive") {
+          return "Неактив";
+        }
+
+        if (
+          normalized === "нет нормы" ||
+          normalized === "no norm" ||
+          normalized === "no normative" ||
+          normalized === "no_norm"
+        ) {
+          return "Нет нормы";
+        }
+
+        if (
+          normalized === "не сдан" ||
+          normalized === "не сдана" ||
+          normalized === "not submitted" ||
+          normalized === "not_submitted"
+        ) {
+          return "Не сдана";
+        }
+
+        if (
+          normalized === "на проверке" ||
+          normalized === "pending"
+        ) {
+          return "На проверке";
+        }
+
+        return String(value);
+      }
+
+      if (
+        normatives &&
+        (
+          Array.isArray(normatives.marks) ||
+          Array.isArray(normatives.rows)
+        )
+      ) {
+        return "Не сдана";
+      }
+
+      return "";
+    }
+
+    function normativeStatusBadge(status) {
+      if (!status) return "";
+
+      var classes = {
+        "Норма": "badge-green",
+        "Перенорма": "badge-blue",
+        "Неактив": "badge-gray",
+        "Нет нормы": "badge-red",
+        "Не сдан": ""
+      };
+
+      return '<span class="badge ' +
+        (classes[status] || "") +
+        '">' + E(status) + '</span>';
+    }
+
+    function renderTable() {
+      var root = document.getElementById("allStatsRoot");
+      if (!root) return;
+
+      var data = sourceData(lastResult || {});
+      lastHeaders = data.headers.slice();
+      lastNicknameIndex = findNicknameIndex(lastHeaders);
+
+      var normativeHeaderIndex = sourceNormativeHeaderIndex(lastHeaders);
+      var hasSourceNormativeColumn = normativeHeaderIndex >= 0;
+
+      var displayRecords = Array.isArray(data.displayRecords)
+        ? data.displayRecords
+        : data.rows.map(function (row, rowIndex) {
+            return {
+              row: row,
+              sourceItem: data.statistics[rowIndex] || {},
+              originalIndex: rowIndex,
+              sectionTitle: ""
+            };
+          });
+
+      lastData = displayRecords.map(function (record) {
+        var row = record.row;
+        var sourceItem = record.sourceItem || {};
+        return {
+          row_number: sourceItem.row_number != null
+            ? Number(sourceItem.row_number)
+            : sourceRowNumber(lastResult || {}, record.originalIndex),
+          sheet_name: sourceItem.sheet_name || (lastResult && lastResult.source && lastResult.source.sheet_name) || "",
+          section_title: record.sectionTitle || "",
+          values: {
+            headers: lastHeaders.slice(),
+            raw_row: row.slice()
+          }
+        };
+      });
+
+      var headerCells = lastHeaders.map(function (header) {
+        return '<th>' + E(header == null ? "" : header) + '</th>';
+      }).join("");
+
+      if (hasSourceNormativeColumn) {
+        // The normative value already belongs to the Google Sheets source row.
+        // Do not add or rewrite it.
+      }
+
+      var lastRenderedSection = "";
+      var rows = displayRecords.map(function (record, displayIndex) {
+        var row = record.row;
+        var rowIndex = record.originalIndex;
+        var sectionTitle = record.sectionTitle || "";
+
+        var sectionRow = "";
+        if (
+          sectionTitle &&
+          sectionTitle !== lastRenderedSection
+        ) {
+          lastRenderedSection = sectionTitle;
+          sectionRow =
+            '<tr class="stats-section-row"><td colspan="' +
+            String(lastHeaders.length + 2) +
+            '"><strong>' + E(sectionTitle) + '</strong></td></tr>';
+        }
+
+        var cells = lastHeaders.map(function (_, columnIndex) {
+          var value = rawCellValue(row[columnIndex]);
+          return '<td data-stat-column="' + columnIndex + '">' + E(value) + '</td>';
+        }).join("");
+
+        var nickname = lastNicknameIndex >= 0
+          ? rawCellValue(row[lastNicknameIndex]).trim()
+          : "";
+
+        var actionButtons = nickname
+          ? '<div class="stats-norm-actions">' +
+              '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
+              '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
+              '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
+              '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
+            '</div>'
+          : "";
+
+        var normativeStatus = normativeDisplayStatus(
+          lastResult && lastResult.normatives,
+          nickname
+        );
+
+        var normativeCell =
+          '<td class="stats-norm-cell">' +
+            '<span class="stats-norm-value">' +
+              normativeStatusBadge(normativeStatus) +
+            '</span>' +
+            actionButtons +
+          '</td>';
+
+        var actionCell = nickname
+          ? '<td class="admin-actions-cell"><button class="admin-edit-inline" type="button" data-edit-row-index="' + displayIndex + '">Изменить</button></td>'
+          : '<td class="admin-actions-cell"></td>';
+
+        return sectionRow + '<tr>' + cells + normativeCell + actionCell + '</tr>';
+      }).join("");
+
+      if (!rows) {
+        rows = '<tr><td colspan="' + (lastHeaders.length + 2) + '" class="table-empty">В Google Таблице нет строк данных.</td></tr>';
+      }
+
+      root.innerHTML =
+        '<div class="box table-box">' +
+          '<div class="stats-table-head"><div>' +
+            '<small>СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
+            '<b>' + E(String(displayRecords.length)) + ' сотрудников</b>' +
+          '</div><span class="muted">Источник: Google Таблица</span></div>' +
+          '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
+            E(lastResult && lastResult.source && lastResult.source.sheet_name ? lastResult.source.sheet_name : "Google Sheets") +
+          '</span></div>' +
+          '<table id="allStatsTable"><thead><tr>' +
+            headerCells +
+            '<th>Норматив</th><th>Действия</th>' +
+          '</tr></thead><tbody>' + rows + '</tbody></table>' +
+        '</div><div id="adminEditModal"></div>';
+
+      document.querySelectorAll("#allStatsTable tbody tr").forEach(function (row) {
+        row.addEventListener("click", function (event) {
+          if (event.target.closest("button, a, input, select, textarea")) return;
+          document.querySelectorAll("#allStatsTable tbody tr.stats-row-selected").forEach(function (selected) {
+            selected.classList.remove("stats-row-selected");
+          });
+          row.classList.add("stats-row-selected");
+        });
+      });
+
+      document.querySelectorAll("[data-stat-norm]").forEach(function (button) {
+        button.onclick = async function () {
+          var nickname = button.dataset.nickname || "";
+          var status = button.dataset.statNorm || "";
+          var labels = {
+            norm: "Норма",
+            rework: "Перенорма",
+            no_norm: "Нет нормы",
+            inactive: "Неактив"
+          };
+          if (!nickname) return;
+
+          if (!confirm(
+            "Выставить «" + (labels[status] || status) +
+            "» для " + nickname +
+            " за " + formatDateOnly(selectedDate) + "?"
+          )) return;
+
+          button.disabled = true;
+
+          try {
+            var result = await window.BR_API.normativeMark(
+              user.token,
+              nickname,
+              selectedDate,
+              status,
+              ""
+            );
+
+            var google = result && result.google_sheet
+              ? result.google_sheet
+              : {};
+
+            var details = [];
+            if (google.cell) details.push("ячейка " + String(google.cell));
+            if (google.post_days_updated) {
+              details.push("Дни на посту: " + String(google.post_days_value));
+            }
+            if (google.inactives_updated) {
+              details.push("Неактивы: " + String(google.inactives_value));
+            }
+            if (google.strikes_updated) {
+              details.push("Страйки: " + String(google.strikes_value));
+            }
+
+            // normative_mark теперь возвращает свежий снимок Google Sheets
+            // непосредственно в ответе. Поэтому второй запрос load() не нужен:
+            // он только добавлял лишнюю задержку и мог заменить успешное
+            // уведомление ошибкой повторного обновления.
+            var hasFreshSnapshot =
+              result &&
+              Array.isArray(result.headers) &&
+              Array.isArray(result.rows) &&
+              Array.isArray(result.statistics);
+
+            if (hasFreshSnapshot) {
+              lastResult = result;
+              renderTable();
+            }
+
+            var successMessage =
+              "Статус «" + (labels[status] || status) +
+              "» проставлен для " + nickname +
+              " за " + formatDateOnly(selectedDate);
+
+            if (details.length) {
+              successMessage += " • " + details.join(" • ");
+            }
+
+            showNormativeResult(
+              successMessage,
+              "success"
+            );
+
+            // Для совместимости со старыми ответами без снимка таблицы
+            // выполняем один обычный refresh как резервный путь.
+            if (!hasFreshSnapshot) {
+              try {
+                await load(user, true);
+              } catch (refreshError) {
+                console.warn(
+                  "[BR AdminTools] Статус сохранён, но резервное обновление статистики не удалось:",
+                  refreshError
+                );
+
+                showNormativeResult(
+                  "✅ " + (labels[status] || status) +
+                  " проставлен для " + nickname +
+                  ". Данные на экране не удалось обновить.",
+                  "error"
+                );
+              }
+            }
+          } catch (error) {
+            showNormativeResult(
+              normativeErrorMessage(error),
+              "error"
+            );
+            button.disabled = false;
+          }
+        };
+      });
+
+      document.querySelectorAll("[data-edit-row-index]").forEach(function (button) {
+        button.onclick = function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          var rowIndex = Number(button.dataset.editRowIndex);
+          var item = lastData[rowIndex];
+
+          if (!item) {
+            alert("Выбранная строка больше не существует в загруженной таблице.");
+            return;
+          }
+
+          openEditModal(user, item);
+        };
+      });
+    }
+
+    function openEditModal(user, item) {
+      var root = document.getElementById("adminEditModal");
+      if (!root) return;
+
+      var values = item && item.values ? item.values : {};
+      var headers = Array.isArray(values.headers) ? values.headers : [];
+      var raw = Array.isArray(values.raw_row) ? values.raw_row : [];
+
+      if (!headers.length) {
+        alert("В Google Таблице не найдены заголовки столбцов.");
+        return;
+      }
+
+      var fields = headers.map(function (header, index) {
+        var title = rawCellValue(header);
+        if (!title.trim()) return "";
+
+        return '<div class="form-field">' +
+          '<label>' + E(title) + '</label>' +
+          '<input class="form-input" data-google-field-index="' + index + '" value="' +
+            E(rawCellValue(raw[index])) + '">' +
+        '</div>';
+      }).join("");
+
+      root.innerHTML =
+        '<div class="modal-backdrop" id="adminEditBackdrop">' +
+          '<div class="modal-card admin-edit-modal-card">' +
+            '<div class="modal-head">' +
+              '<div class="admin-edit-title"><small>GOOGLE ТАБЛИЦА</small><h2>Редактирование строки</h2><span>Изменяются только существующие столбцы</span></div>' +
+              '<button class="modal-close" id="adminEditClose" type="button">×</button>' +
+            '</div>' +
+            '<form id="adminEditForm">' +
+              '<div class="form-grid">' + fields + '</div>' +
+              '<div class="form-actions admin-edit-actions">' +
+                '<button class="button button-secondary" id="adminEditCancel" type="button">Отмена</button>' +
+                '<button class="button button-primary" type="submit">Сохранить изменения</button>' +
+              '</div>' +
+            '</form>' +
+          '</div>' +
+        '</div>';
+
+      function close() {
+        root.innerHTML = "";
+      }
+
+      document.getElementById("adminEditClose").onclick = close;
+      document.getElementById("adminEditCancel").onclick = close;
+
+      document.getElementById("adminEditForm").onsubmit = async function (event) {
+        event.preventDefault();
+
+        var changes = {};
+        document.querySelectorAll("[data-google-field-index]").forEach(function (input) {
+          var index = Number(input.dataset.googleFieldIndex);
+          var header = rawCellValue(headers[index]).trim();
+          if (!header) return;
+
+          var currentValue = rawCellValue(raw[index]);
+          var nextValue = String(input.value);
+
+          if (nextValue !== currentValue) {
+            changes[header] = nextValue;
+          }
+        });
+
+        if (!Object.keys(changes).length) {
+          close();
+          return;
+        }
+
+        var saveButton = document.querySelector("#adminEditForm button[type=submit]");
+        if (saveButton) {
+          saveButton.disabled = true;
+          saveButton.textContent = "Сохранение…";
+        }
+
+        try {
+          await window.BR_API.updateAdminStatistics(
+            user.token,
+            lastNicknameIndex >= 0
+              ? rawCellValue(raw[lastNicknameIndex]).trim()
+              : "",
+            changes
+          );
+
+          close();
+          await load(user, true);
+        } catch (error) {
+          alert(error.message || "Не удалось сохранить изменения.");
+          if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = "Сохранить изменения";
+          }
+        }
+      };
+    }
+
+    function load(user, forceRefresh) {
+      var root = document.getElementById("allStatsRoot");
+      var refresh = document.getElementById("allStatsRefresh");
+      var dateInput = document.getElementById("allStatsDate");
+      if (!root) return Promise.resolve();
+
+      if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(String(dateInput.value || ""))) {
+        selectedDate = String(dateInput.value);
+      }
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(selectedDate || ""))) {
+        selectedDate = dateIso(0);
+        if (dateInput) dateInput.value = selectedDate;
+      }
+
+      if (refresh) {
+        refresh.disabled = true;
+        refresh.textContent = forceRefresh ? "Обновление…" : "Загрузка…";
+      }
+
+      var hasRenderedData =
+        lastResult &&
+        Array.isArray(lastResult.headers) &&
+        Array.isArray(lastResult.rows);
+
+      if (!hasRenderedData) {
+        root.innerHTML =
+          '<div class="box"><div class="empty">' +
+          (forceRefresh
+            ? "Получение актуальной статистики из Google Таблицы..."
+            : "Загрузка актуальной статистики...") +
+          '</div></div>';
+      } else if (forceRefresh) {
+        showNormativeResult(
+          "Обновление статистики из Google Таблицы…",
+          "success"
+        );
+      }
+
+      return window.BR_API.allStatistics(
+        user.token,
+        selectedDate
+      ).then(function (result) {
+        lastResult = result || {};
+        renderTable();
+      }).catch(function (error) {
+        console.error("[BR AdminTools] Ошибка общей статистики:", error);
+
+        if (hasRenderedData) {
+          showNormativeResult(
+            "Не удалось обновить статистику. Текущие данные оставлены без изменений.",
+            "error"
+          );
+          return;
+        }
+
+        lastResult = null;
+        lastData = [];
+        lastHeaders = [];
+        lastNicknameIndex = -1;
+
+        root.innerHTML =
+          '<div class="box"><div class="empty">' +
+          E(error.message || "Не удалось загрузить актуальную статистику из Google Таблицы.") +
+          '</div></div>';
+      }).finally(function () {
+        if (refresh) {
+          refresh.disabled = false;
+          refresh.textContent = "↻ Обновить";
+        }
+      });
+    }
+
+    return {
+      managementOnly: true,
+      title: "Статистика администрации",
+      subtitle: "Данные отображаются напрямую из Google Таблицы без локальных подстановок",
+      render: function () {
+        return '<div class="page-toolbar stats-all-toolbar">' +
+          '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Google Таблица • исходные столбцы и значения</b></div>' +
+          '<div class="stats-toolbar-actions">' +
+            '<button class="small-button" id="statsDatePrev" type="button">←</button>' +
+            '<input id="allStatsDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
+            '<button class="small-button" id="statsDateNext" type="button">→</button>' +
+            '<button class="button button-secondary" id="statsDateToday" type="button">Сегодня</button>' +
+            '<button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button>' +
+          '</div>' +
+        '</div>' +
+        '<div id="allStatsRoot"><div class="box"><div class="empty">Загрузка статистики администрации...</div></div></div>';
+      },
+      bind: function (user) {
+        var date = document.getElementById("allStatsDate");
+        var prev = document.getElementById("statsDatePrev");
+        var next = document.getElementById("statsDateNext");
+        var today = document.getElementById("statsDateToday");
+        var refresh = document.getElementById("allStatsRefresh");
+
+        function setDate(value) {
+          if (!value) return;
+          selectedDate = value;
+          if (date) date.value = value;
+          load(user, true);
+        }
+
+        if (date) date.onchange = function () { setDate(date.value); };
+        if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
+        if (next) next.onclick = function () { setDate(dateIso(1)); };
+        if (today) today.onclick = function () { setDate(dateIso(0)); };
+
+        if (refresh) {
+          refresh.onclick = function () {
+            load(user, true);
+          };
+        }
+      },
+      load: load
+    };
+  }
+
   function gameActivity(user) {
     var refreshTimer = null;
 
@@ -643,9 +1903,7 @@
     };
   }
 
-  function dashboard(user) {
-    return gameActivity(user);
-  }
+
 
   function notifications(user) {
     function targetLabel(value) {
