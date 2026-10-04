@@ -813,6 +813,93 @@
       return value == null ? "" : String(value);
     }
 
+    function isSectionSourceRow(row, headers) {
+      if (!Array.isArray(row) || !Array.isArray(headers)) return false;
+
+      var nonEmpty = [];
+      row.forEach(function (value, index) {
+        var text = rawCellValue(value).trim();
+        if (text) {
+          nonEmpty.push({
+            index: index,
+            value: text
+          });
+        }
+      });
+
+      if (nonEmpty.length !== 1) return false;
+
+      // A real section title in the source sheet is a single non-empty
+      // cell while all statistic columns are empty.
+      var title = nonEmpty[0].value;
+      var normalizedTitle = normalizeHeader(title);
+
+      if (
+        sourceNormativeHeaderIndex(headers) === nonEmpty[0].index ||
+        findNicknameIndex(headers) === nonEmpty[0].index
+      ) {
+        return false;
+      }
+
+      return (
+        normalizedTitle.indexOf("администрац") >= 0 ||
+        normalizedTitle.indexOf("модератор") >= 0 ||
+        normalizedTitle.indexOf("следящ") >= 0 ||
+        normalizedTitle.indexOf("старш") >= 0
+      );
+    }
+
+    function normativeDisplayStatus(normatives, nickname) {
+      if (!nickname) return "";
+
+      var value = externalGoogleNormative(
+        normatives,
+        nickname
+      );
+
+      if (value) {
+        var normalized = normalizeHeader(value);
+
+        if (normalized === "норма") return "Норма";
+        if (normalized === "перенорма") return "Перенорма";
+        if (normalized === "неактив") return "Неактив";
+        if (normalized === "нет нормы") return "Нет нормы";
+
+        return String(value);
+      }
+
+      // Absence of a mark in the normative matrix means that the
+      // selected-day normative was not submitted. This is not a value
+      // invented from statistics; it is derived from the normative sheet.
+      if (
+        normatives &&
+        (
+          Array.isArray(normatives.marks) ||
+          Array.isArray(normatives.rows)
+        )
+      ) {
+        return "Не сдан";
+      }
+
+      return "";
+    }
+
+    function normativeStatusBadge(status) {
+      if (!status) return "";
+
+      var classes = {
+        "Норма": "badge-green",
+        "Перенорма": "badge-blue",
+        "Неактив": "badge-gray",
+        "Нет нормы": "badge-red",
+        "Не сдан": ""
+      };
+
+      return '<span class="badge ' +
+        (classes[status] || "") +
+        '">' + E(status) + '</span>';
+    }
+
     function renderTable() {
       var root = document.getElementById("allStatsRoot");
       if (!root) return;
@@ -846,22 +933,43 @@
       }
 
       var lastRenderedSection = "";
+      var renderedRowMap = [];
+      var renderedRowIndex = 0;
+
       var rows = data.rows.map(function (row, rowIndex) {
         var sourceItem = data.statistics[rowIndex] || {};
         var sectionTitle = sourceItem.section_title
           ? String(sourceItem.section_title).trim()
           : "";
 
+        var sourceSectionRow = isSectionSourceRow(
+          row,
+          lastHeaders
+        );
+
+        var effectiveSectionTitle = sectionTitle ||
+          (
+            sourceSectionRow
+              ? rawCellValue(row.find(function (value) {
+                  return rawCellValue(value).trim() !== "";
+                }))
+              : ""
+          );
+
         var sectionRow = "";
         if (
-          sectionTitle &&
-          sectionTitle !== lastRenderedSection
+          effectiveSectionTitle &&
+          effectiveSectionTitle !== lastRenderedSection
         ) {
-          lastRenderedSection = sectionTitle;
+          lastRenderedSection = effectiveSectionTitle;
           sectionRow =
             '<tr class="stats-section-row"><td colspan="' +
             String(lastHeaders.length + (hasSourceNormativeColumn ? 2 : 2)) +
-            '"><strong>' + E(sectionTitle) + '</strong></td></tr>';
+            '"><strong>' + E(effectiveSectionTitle) + '</strong></td></tr>';
+        }
+
+        if (sourceSectionRow) {
+          return sectionRow;
         }
 
         var cells = lastHeaders.map(function (_, columnIndex) {
@@ -884,13 +992,14 @@
           : '';
 
         if (!hasSourceNormativeColumn) {
-          var externalNormative = nickname
-            ? externalGoogleNormative(lastResult && lastResult.normatives, nickname)
-            : "";
+          var externalNormative = normativeDisplayStatus(
+            lastResult && lastResult.normatives,
+            nickname
+          );
 
           normativeCell =
             '<td class="stats-norm-cell">' +
-              '<span class="stats-norm-value">' + E(externalNormative) + '</span>' +
+              normativeStatusBadge(externalNormative) +
               actionButtons +
             '</td>';
         } else {
