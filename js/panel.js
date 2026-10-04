@@ -2257,6 +2257,7 @@
 
   function requests(user) {
     var inactiveList = [];
+    var generalList = [];
     var activeSection = "inactive";
 
     function renderInactiveRows() {
@@ -2264,8 +2265,7 @@
       if (!body) return;
 
       if (!inactiveList.length) {
-        body.innerHTML =
-          '<div class="box"><div class="empty">Заявок на неактив пока нет.</div></div>';
+        body.innerHTML = '<div class="box"><div class="empty">Заявок на неактив пока нет.</div></div>';
         return;
       }
 
@@ -2280,55 +2280,84 @@
       }).join("");
 
       body.innerHTML =
-        '<div class="box table-box">' +
-          '<table>' +
-            '<thead><tr>' +
-              '<th>Тип</th>' +
-              '<th>Период</th>' +
-              '<th>Статус</th>' +
-              '<th>Причина</th>' +
-              '<th>Комментарий руководства</th>' +
-            '</tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-          '</table>' +
-        '</div>';
+        '<div class="box table-box"><table>' +
+          '<thead><tr><th>Тип</th><th>Период</th><th>Статус</th><th>Причина</th><th>Комментарий руководства</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table></div>';
+    }
+
+    function generalStatusBadge(status) {
+      return String(status || "") === "answered"
+        ? '<span class="badge badge-green">Отвечено</span>'
+        : '<span class="badge badge-yellow">На рассмотрении</span>';
+    }
+
+    function generalTypeLabel(type) {
+      var value = String(type || "").toLowerCase();
+      if (value === "complaint") return "Жалоба";
+      if (value === "suggestion") return "Предложение";
+      return "Вопрос";
+    }
+
+    function renderGeneralRows() {
+      var body = document.getElementById("generalRequestsMineRoot");
+      if (!body) return;
+
+      if (!generalList.length) {
+        body.innerHTML = '<tr><td colspan="5">Обращений пока нет.</td></tr>';
+        return;
+      }
+
+      body.innerHTML = generalList.map(function (item) {
+        return '<tr>' +
+          '<td>' + E(generalTypeLabel(item.request_type)) + '</td>' +
+          '<td>' + E(item.created_at ? formatDateTime(item.created_at) : "—") + '</td>' +
+          '<td>' + E(item.message || "—") + '</td>' +
+          '<td>' + generalStatusBadge(item.status) + '</td>' +
+          '<td>' + E(item.management_comment || "—") + '</td>' +
+        '</tr>';
+      }).join("");
     }
 
     function loadInactiveRequests() {
       return window.BR_API.inactiveRequestsMine(user.token).then(function (result) {
-        inactiveList = Array.isArray(result && result.requests)
-          ? result.requests
-          : [];
+        inactiveList = Array.isArray(result && result.requests) ? result.requests : [];
         renderInactiveRows();
       }).catch(function (error) {
         var body = document.getElementById("inactiveRequestsMineRoot");
         if (body) {
-          body.innerHTML =
-            '<div class="box"><div class="empty">' +
-              E(error.message || "Не удалось загрузить заявки на неактив.") +
+          body.innerHTML = '<div class="box"><div class="empty">' +
+            E(error.message || "Не удалось загрузить заявки на неактив.") +
             '</div></div>';
+        }
+      });
+    }
+
+    function loadGeneralRequests() {
+      return window.BR_API.generalRequestsMine(user.token).then(function (result) {
+        generalList = Array.isArray(result && result.requests) ? result.requests : [];
+        renderGeneralRows();
+      }).catch(function (error) {
+        var body = document.getElementById("generalRequestsMineRoot");
+        if (body) {
+          body.innerHTML = '<tr><td colspan="5">' +
+            E(error.message || "Не удалось загрузить обращения.") +
+            '</td></tr>';
         }
       });
     }
 
     function renderSection() {
       var inactivePanel = document.getElementById("requestsInactivePanel");
-      var requestPanel = document.getElementById("requestsGeneralPanel");
+      var generalPanel = document.getElementById("requestsGeneralPanel");
       var inactiveButton = document.getElementById("requestsSectionInactive");
-      var requestButton = document.getElementById("requestsSectionGeneral");
-
+      var generalButton = document.getElementById("requestsSectionGeneral");
       var showInactive = activeSection === "inactive";
 
       if (inactivePanel) inactivePanel.hidden = !showInactive;
-      if (requestPanel) requestPanel.hidden = showInactive;
-
-      if (inactiveButton) {
-        inactiveButton.classList.toggle("is-active", showInactive);
-      }
-
-      if (requestButton) {
-        requestButton.classList.toggle("is-active", !showInactive);
-      }
+      if (generalPanel) generalPanel.hidden = showInactive;
+      if (inactiveButton) inactiveButton.classList.toggle("is-active", showInactive);
+      if (generalButton) generalButton.classList.toggle("is-active", !showInactive);
     }
 
     function syncInactiveType() {
@@ -2336,7 +2365,6 @@
       var start = document.getElementById("inactiveStartDate");
       var endField = document.getElementById("inactiveEndField");
       var end = document.getElementById("inactiveEndDate");
-
       var isGroup = inactiveType && inactiveType.value === "group";
 
       if (endField) {
@@ -2348,98 +2376,60 @@
         end.value = start.value;
       }
 
-      if (end) {
-        end.required = !!isGroup;
-      }
+      if (end) end.required = !!isGroup;
     }
 
     return {
       title: "Мои обращения",
       subtitle: "Неактивы и обращения к руководству",
       render: function () {
-        return '<div class="box">' +
-          '<div class="stats-toolbar-actions">' +
-            '<button class="button button-secondary is-active" id="requestsSectionInactive" type="button">Неактивы</button>' +
-            '<button class="button button-secondary" id="requestsSectionGeneral" type="button">Обращения</button>' +
-          '</div>' +
-        '</div>' +
+        return '<div class="box"><div class="stats-toolbar-actions">' +
+          '<button class="button button-secondary is-active" id="requestsSectionInactive" type="button">Неактивы</button>' +
+          '<button class="button button-secondary" id="requestsSectionGeneral" type="button">Обращения</button>' +
+        '</div></div>' +
 
         '<section id="requestsInactivePanel">' +
           '<div class="box">' +
-            '<div class="page-toolbar">' +
-              '<div><small>НЕАКТИВЫ</small><b>Подать неактив</b></div>' +
-            '</div>' +
+            '<div class="page-toolbar"><div><small>НЕАКТИВЫ</small><b>Подать неактив</b></div></div>' +
             '<form id="inactiveRequestForm">' +
               '<div class="form-grid">' +
-                '<div class="form-field">' +
-                  '<label>Тип неактива</label>' +
+                '<div class="form-field"><label>Тип неактива</label>' +
                   '<select id="inactiveRequestType" class="form-select">' +
                     '<option value="single">Одиночный — 1 день</option>' +
                     '<option value="group">Групповой — несколько дней</option>' +
                   '</select>' +
                 '</div>' +
-                '<div class="form-field">' +
-                  '<label>Дата неактива</label>' +
-                  '<input id="inactiveStartDate" class="form-input" type="date" value="' + dateIso(0) + '" required>' +
-                '</div>' +
-                '<div id="inactiveEndField" class="form-field" hidden>' +
-                  '<label>Дата окончания</label>' +
-                  '<input id="inactiveEndDate" class="form-input" type="date" value="' + dateIso(0) + '">' +
-                '</div>' +
-                '<div class="form-field form-full">' +
-                  '<label>Причина</label>' +
-                  '<textarea id="inactiveReason" class="form-textarea" required placeholder="Почему нужен неактив"></textarea>' +
-                '</div>' +
+                '<div class="form-field"><label>Дата неактива</label><input id="inactiveStartDate" class="form-input" type="date" value="' + dateIso(0) + '" required></div>' +
+                '<div id="inactiveEndField" class="form-field" hidden style="display:none"><label>Дата окончания</label><input id="inactiveEndDate" class="form-input" type="date" value="' + dateIso(0) + '"></div>' +
+                '<div class="form-field form-full"><label>Причина</label><textarea id="inactiveReason" class="form-textarea" required placeholder="Почему нужен неактив"></textarea></div>' +
               '</div>' +
-              '<div class="form-actions">' +
-                '<button class="button button-primary" type="submit">Отправить руководству</button>' +
-              '</div>' +
+              '<div class="form-actions"><button class="button button-primary" type="submit">Отправить руководству</button></div>' +
             '</form>' +
           '</div>' +
-
-          '<div class="page-toolbar">' +
-            '<div><small>ИСТОРИЯ</small><b>Мои заявки на неактив</b></div>' +
-          '</div>' +
-          '<div id="inactiveRequestsMineRoot">' +
-            '<div class="box"><div class="empty">Загрузка заявок...</div></div>' +
-          '</div>' +
+          '<div class="page-toolbar"><div><small>ИСТОРИЯ</small><b>Мои заявки на неактив</b></div></div>' +
+          '<div id="inactiveRequestsMineRoot"><div class="box"><div class="empty">Загрузка заявок...</div></div></div>' +
         '</section>' +
 
         '<section id="requestsGeneralPanel" hidden>' +
           '<div class="box">' +
-            '<div class="page-toolbar">' +
-              '<div><small>ОБРАЩЕНИЯ</small><b>Подать обращение</b></div>' +
-            '</div>' +
+            '<div class="page-toolbar"><div><small>ОБРАЩЕНИЯ</small><b>Подать обращение</b></div></div>' +
             '<form id="requestForm">' +
               '<div class="form-grid">' +
-                '<div class="form-field">' +
-                  '<label>Тип обращения</label>' +
+                '<div class="form-field"><label>Тип обращения</label>' +
                   '<select id="requestType" class="form-select">' +
-                    '<option>Вопрос</option>' +
-                    '<option>Жалоба</option>' +
-                    '<option>Предложение</option>' +
+                    '<option>Вопрос</option><option>Жалоба</option><option>Предложение</option>' +
                   '</select>' +
                 '</div>' +
-                '<div class="form-field form-full">' +
-                  '<label>Текст обращения</label>' +
-                  '<textarea id="requestText" class="form-textarea" required placeholder="Опишите обращение"></textarea>' +
-                '</div>' +
+                '<div class="form-field form-full"><label>Текст обращения</label><textarea id="requestText" class="form-textarea" required placeholder="Опишите обращение"></textarea></div>' +
               '</div>' +
-              '<div class="form-actions">' +
-                '<button class="button button-primary" type="submit">Отправить обращение</button>' +
-              '</div>' +
+              '<div class="form-actions"><button class="button button-primary" type="submit">Отправить обращение</button></div>' +
             '</form>' +
           '</div>' +
-
-          '<div class="page-toolbar">' +
-            '<div><small>ИСТОРИЯ</small><b>Мои обращения</b></div>' +
-          '</div>' +
-          '<div class="box table-box">' +
-            '<table>' +
-              '<thead><tr><th>Тип</th><th>Дата</th><th>Статус</th><th>Текст</th></tr></thead>' +
-              '<tbody id="generalRequestsMineRoot"></tbody>' +
-            '</table>' +
-          '</div>' +
+          '<div class="page-toolbar"><div><small>ИСТОРИЯ</small><b>Мои обращения</b></div></div>' +
+          '<div class="box table-box"><table>' +
+            '<thead><tr><th>Тип</th><th>Дата</th><th>Текст</th><th>Статус</th><th>Комментарий руководства</th></tr></thead>' +
+            '<tbody id="generalRequestsMineRoot"><tr><td colspan="5">Загрузка обращений...</td></tr></tbody>' +
+          '</table></div>' +
         '</section>';
       },
 
@@ -2449,108 +2439,48 @@
         var inactiveType = document.getElementById("inactiveRequestType");
         var startDate = document.getElementById("inactiveStartDate");
         var endDate = document.getElementById("inactiveEndDate");
-
-        var inactiveSectionButton =
-          document.getElementById("requestsSectionInactive");
-        var generalSectionButton =
-          document.getElementById("requestsSectionGeneral");
-
-        function loadGeneralRequests() {
-          var root = document.getElementById("generalRequestsMineRoot");
-          if (!root) return;
-
-          var list = localList("br_requests").filter(function (item) {
-            return item.nickname === user.nickname && item.type !== "Неактив";
-          });
-
-          root.innerHTML = list.length
-            ? list.map(function (item) {
-                return '<tr>' +
-                  '<td>' + E(item.type || "Вопрос") + '</td>' +
-                  '<td>' + E(item.date || "—") + '</td>' +
-                  '<td>' + E(item.status || "На рассмотрении") + '</td>' +
-                  '<td>' + E(item.text || "—") + '</td>' +
-                '</tr>';
-              }).join("")
-            : '<tr><td colspan="4">Обращений пока нет.</td></tr>';
-        }
+        var inactiveButton = document.getElementById("requestsSectionInactive");
+        var generalButton = document.getElementById("requestsSectionGeneral");
 
         function setSection(section) {
           activeSection = section === "general" ? "general" : "inactive";
           renderSection();
         }
 
-        if (inactiveSectionButton) {
-          inactiveSectionButton.onclick = function () {
-            setSection("inactive");
-          };
-        }
-
-        if (generalSectionButton) {
-          generalSectionButton.onclick = function () {
-            setSection("general");
-          };
-        }
-
-        if (inactiveType) {
-          inactiveType.onchange = syncInactiveType;
-        }
+        if (inactiveButton) inactiveButton.onclick = function () { setSection("inactive"); };
+        if (generalButton) generalButton.onclick = function () { setSection("general"); };
+        if (inactiveType) inactiveType.onchange = syncInactiveType;
 
         if (startDate) {
           startDate.onchange = function () {
-            if (
-              inactiveType &&
-              inactiveType.value === "group" &&
-              endDate &&
-              endDate.value &&
-              endDate.value < startDate.value
-            ) {
+            if (inactiveType && inactiveType.value === "group" && endDate && endDate.value && endDate.value < startDate.value) {
               endDate.value = startDate.value;
             }
-
             syncInactiveType();
           };
         }
 
         if (endDate) {
           endDate.onchange = function () {
-            if (
-              startDate &&
-              endDate.value &&
-              endDate.value < startDate.value
-            ) {
+            if (startDate && endDate.value && endDate.value < startDate.value) {
               endDate.value = startDate.value;
             }
           };
         }
 
-        syncInactiveType();
-        renderSection();
-
         if (inactiveForm) {
           inactiveForm.onsubmit = async function (event) {
             event.preventDefault();
-
             var button = inactiveForm.querySelector("button[type=submit]");
-            if (button) {
-              button.disabled = true;
-              button.textContent = "Отправка…";
-            }
+            if (button) { button.disabled = true; button.textContent = "Отправка…"; }
 
             try {
               var type = inactiveType ? inactiveType.value : "single";
               var start = startDate ? startDate.value : "";
-              var end = type === "single"
-                ? start
-                : (endDate ? endDate.value : "");
+              var end = type === "single" ? start : (endDate ? endDate.value : "");
 
-              if (!start) {
-                throw new Error("Укажите дату неактива.");
-              }
-
-              if (type === "group" && (!end || end < start)) {
-                throw new Error("Укажите корректный период неактива.");
-              }
+              if (!start) throw new Error("Укажите дату неактива.");
+              if (type === "group" && (!end || end < start)) throw new Error("Укажите корректный период неактива.");
 
               await window.BR_API.inactiveRequestCreate(
                 user.token,
@@ -2562,58 +2492,44 @@
 
               alert("Заявка на неактив отправлена руководству.");
               inactiveForm.reset();
-
               if (startDate) startDate.value = dateIso(0);
               if (endDate) endDate.value = dateIso(0);
-
               syncInactiveType();
               await loadInactiveRequests();
             } catch (error) {
               alert(error.message || "Не удалось отправить заявку на неактив.");
             } finally {
-              if (button) {
-                button.disabled = false;
-                button.textContent = "Отправить руководству";
-              }
+              if (button) { button.disabled = false; button.textContent = "Отправить руководству"; }
             }
           };
         }
 
         if (generalForm) {
-          generalForm.onsubmit = function (event) {
+          generalForm.onsubmit = async function (event) {
             event.preventDefault();
-
             var button = generalForm.querySelector("button[type=submit]");
-            if (button) {
-              button.disabled = true;
-              button.textContent = "Отправка…";
-            }
+            if (button) { button.disabled = true; button.textContent = "Отправка…"; }
 
             try {
-              var list = localList("br_requests");
-              list.unshift({
-                nickname: user.nickname,
-                type: document.getElementById("requestType").value,
-                date: new Date().toLocaleDateString("ru-RU"),
-                status: "На рассмотрении",
-                text: document.getElementById("requestText").value.trim()
-              });
+              var type = document.getElementById("requestType").value;
+              var message = document.getElementById("requestText").value.trim();
+              if (!message) throw new Error("Введите текст обращения.");
 
-              save("br_requests", list.slice(0, 200));
+              await window.BR_API.generalRequestCreate(user.token, type, message);
+
+              alert("Обращение отправлено руководству.");
               generalForm.reset();
-              loadGeneralRequests();
-              alert("Обращение отправлено.");
+              await loadGeneralRequests();
             } catch (error) {
               alert(error.message || "Не удалось отправить обращение.");
             } finally {
-              if (button) {
-                button.disabled = false;
-                button.textContent = "Отправить обращение";
-              }
+              if (button) { button.disabled = false; button.textContent = "Отправить обращение"; }
             }
           };
         }
 
+        syncInactiveType();
+        renderSection();
         loadInactiveRequests();
         loadGeneralRequests();
       }
