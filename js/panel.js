@@ -3216,9 +3216,9 @@
           '<div class="settings-card-head"><div><small>БЕЗОПАСНОСТЬ</small><h2>Пароль</h2></div><span>Изменение пароля аккаунта</span></div>' +
           '<form id="passwordSettingsForm">' +
             '<div class="form-grid">' +
-              '<div class="form-field form-full"><label>Текущий пароль</label><div class="access-password-field"><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required><button type="button" class="small-button password-toggle" data-password-toggle="currentPassword">Показать</button></div></div>' +
-              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="6" required><button type="button" class="small-button password-toggle" data-password-toggle="newPassword">Показать</button></div></div>' +
-              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="6" required><button type="button" class="small-button password-toggle" data-password-toggle="newPasswordConfirm">Показать</button></div></div>' +
+              '<div class="form-field form-full"><label>Текущий пароль</label><div class="access-password-field"><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="currentPassword" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
+              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="6" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="newPassword" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
+              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="6" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="newPasswordConfirm" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
             '</div>' +
             '<p class="settings-hint">Минимальная длина нового пароля — 6 символов.</p>' +
             '<div class="form-actions"><button class="button button-primary" id="passwordSettingsSubmit" type="submit">Изменить пароль</button></div>' +
@@ -3322,7 +3322,19 @@
 
               var show = input.type === "password";
               input.type = show ? "text" : "password";
-              toggle.textContent = show ? "Скрыть" : "Показать";
+
+              toggle.setAttribute(
+                "aria-label",
+                show ? "Скрыть пароль" : "Показать пароль"
+              );
+              toggle.setAttribute(
+                "title",
+                show ? "Скрыть пароль" : "Показать пароль"
+              );
+
+              toggle.innerHTML = show
+                ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 5.2A9.5 9.5 0 0 1 12 5c5.8 0 9.2 7 9.2 7a16.8 16.8 0 0 1-4.2 4.8"></path><path d="M6.1 6.5C3.8 8.2 2.8 12 2.8 12s3.4 6 9.2 6c1.5 0 2.8-.3 4-.9"></path><path d="M9.6 9.6a3.4 3.4 0 0 0 4.8 4.8"></path></svg>'
+                : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>';
             };
           });
 
