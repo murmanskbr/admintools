@@ -2968,7 +2968,7 @@
     return {
       managementOnly: true,
       title: "Журнал действий",
-      subtitle: "Серверный журнал Supabase",
+      subtitle: "История действий администрации",
       render: function () {
         return '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>';
       },
@@ -2978,8 +2978,59 @@
           var result = await window.BR_API.auditLogs(user.token, 200);
           var list = Array.isArray(result.logs) ? result.logs : [];
           var rows = list.length ? list.map(function (x) {
-            return '<tr><td>' + E(formatDateTime(x.created_at || x.time)) + '</td><td>' + E(x.nickname) + '</td><td>' +
-              E(x.action) + '</td><td>' + E(x.page) + '</td><td>' + E(x.details) + '</td></tr>';
+            var actions = {
+              login: "Вход в систему",
+              logout: "Выход из системы",
+              auth: "Авторизация",
+              access: "Доступ",
+              grant: "Выдача доступа",
+              revoke: "Отзыв доступа",
+              remove: "Удаление",
+              update: "Изменение",
+              edit: "Редактирование",
+              create: "Создание",
+              delete: "Удаление",
+              block: "Блокировка",
+              unblock: "Разблокировка",
+              unbind: "Сброс привязки",
+              game_login: "Вход в игру",
+              game_logout: "Выход из игры"
+            };
+            var pages = {
+              auth: "Авторизация",
+              login: "Авторизация",
+              dashboard: "Главная",
+              profile: "Мой профиль",
+              access: "Выдать доступ",
+              notifications: "Уведомления",
+              normatives: "Нормативы",
+              "normatives-all": "Проставка нормативов",
+              requests: "Мои обращения",
+              "statistics-all": "Статистика администрации",
+              "requests-all": "Обращения администрации",
+              "game-activity": "Вход в игру",
+              logs: "Журнал действий",
+              rules: "Регламент",
+              settings: "Настройки"
+            };
+            var details = {
+              "Login successful": "Авторизация выполнена",
+              "Authentication successful": "Авторизация выполнена",
+              "Logout successful": "Выход из системы выполнен",
+              "Logged out": "Выход из системы выполнен",
+              "Access granted": "Доступ выдан",
+              "Access revoked": "Доступ отозван",
+              "Access removed": "Доступ удалён",
+              "Account blocked": "Аккаунт заблокирован",
+              "Account unblocked": "Аккаунт разблокирован",
+              "Device unbound": "Привязка устройства сброшена"
+            };
+            var actionKey = String(x.action || "").toLowerCase();
+            var pageKey = String(x.page || "").toLowerCase();
+            var detailKey = String(x.details || "");
+            return '<tr><td>' + E(formatDateTime(x.created_at || x.time)) + '</td><td>' + E(x.nickname || "—") + '</td><td>' +
+              E(actions[actionKey] || x.action || "—") + '</td><td>' + E(pages[pageKey] || x.page || "—") + '</td><td>' +
+              E(details[detailKey] || x.details || "—") + '</td></tr>';
           }).join("") : '<tr><td colspan="5">Журнал пуст.</td></tr>';
           root.innerHTML = '<div class="box table-box"><table><thead><tr><th>Время</th><th>Никнейм</th><th>Действие</th><th>Раздел</th><th>Подробности</th></tr></thead><tbody>' +
             rows + '</tbody></table></div>';
