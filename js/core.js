@@ -3,9 +3,10 @@
 
   var COOKIE = "br_session";
   var REMEMBER_DAYS = 30;
-  var SESSION_IDLE_MS = 1800000;
+  var SESSION_IDLE_MS = 180000;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var timer = null;
+  var heartbeatTimer = null;
   var lastActivitySync = 0;
 
   var NAV = {
@@ -188,7 +189,9 @@
   function goToLogin() {
     clearStorage();
     if (timer) clearInterval(timer);
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
     timer = null;
+    heartbeatTimer = null;
 
     var loginUrl = new URL(
       document.body && document.body.dataset.page
@@ -435,6 +438,12 @@
     updateTimer();
     if (timer) clearInterval(timer);
     timer = setInterval(updateTimer, 1000);
+
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = setInterval(function () {
+      if (document.visibilityState === "hidden") return;
+      touchActivity();
+    }, 30000);
 
     document.addEventListener("click", touchActivity, { passive: true, capture: true });
     document.addEventListener("keydown", touchActivity, { passive: true, capture: true });
