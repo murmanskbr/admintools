@@ -7,6 +7,47 @@
     var STATISTICS_URL =
         "https://frwajpwzurzokkvhntdl.supabase.co/functions/v1/statistics";
 
+    var REQUEST_TIMEOUT_MS = 30000;
+    var UPLOAD_TIMEOUT_MS = 120000;
+
+    function fetchWithTimeout(
+        url,
+        options,
+        timeoutMs
+    ) {
+        var controller =
+            new AbortController();
+
+        var timeout =
+            window.setTimeout(
+                function () {
+                    controller.abort();
+                },
+                timeoutMs
+            );
+
+        var requestOptions =
+            Object.assign(
+                {},
+                options || {},
+                {
+                    signal:
+                        controller.signal
+                }
+            );
+
+        return fetch(
+            url,
+            requestOptions
+        ).finally(
+            function () {
+                window.clearTimeout(
+                    timeout
+                );
+            }
+        );
+    }
+
     function getDeviceId() {
         var key = "br_device_id";
         var value = localStorage.getItem(key);
@@ -90,21 +131,35 @@
                     }
                 );
         } catch (networkError) {
+            var timeoutError =
+                networkError &&
+                networkError.name ===
+                    "AbortError";
+
             console.error(
-                "[BR AdminTools] Ошибка соединения с сервером:",
-                networkError
+                "[BR AdminTools] Ошибка запроса:",
+                {
+                    url: API_URL,
+                    action: payload && payload.action,
+                    timeout: timeoutError,
+                    error: networkError
+                }
             );
 
             var error =
                 new Error(
-                    "Ошибка сервера: не удалось подключиться к системе авторизации."
+                    timeoutError
+                        ? "Сервер не ответил за отведённое время."
+                        : "Не удалось подключиться к серверу."
                 );
 
             error.kind =
                 "server";
 
             error.code =
-                "NETWORK_ERROR";
+                timeoutError
+                    ? "REQUEST_TIMEOUT"
+                    : "NETWORK_ERROR";
 
             throw error;
         }
@@ -286,6 +341,15 @@
                 code ||
                 "SERVER_ERROR";
 
+            serverError.status =
+                response.status;
+
+            serverError.details =
+                data &&
+                data.details
+                    ? data.details
+                    : null;
+
             throw serverError;
         }
 
@@ -338,26 +402,65 @@
                 }
             );
         } catch (networkError) {
+            var timeoutError =
+                networkError &&
+                networkError.name ===
+                    "AbortError";
+
             console.error(
                 "[BR AdminTools] Ошибка подключения Statistics:",
-                networkError
+                {
+                    action:
+                        payload &&
+                        payload.action,
+                    timeout:
+                        timeoutError,
+                    error:
+                        networkError
+                }
             );
 
             var error =
                 new Error(
-                    "Не удалось подключиться к модулю статистики."
+                    timeoutError
+                        ? "Модуль статистики не ответил вовремя."
+                        : "Не удалось подключиться к модулю статистики."
                 );
 
             error.kind =
                 "server";
 
             error.code =
-                "STATISTICS_NETWORK_ERROR";
+                timeoutError
+                    ? "STATISTICS_TIMEOUT"
+                    : "STATISTICS_NETWORK_ERROR";
 
             throw error;
         }
 
-        var raw = await response.text();
+        var raw;
+
+        try {
+            raw = await response.text();
+        } catch (readError) {
+            console.error(
+                "[BR AdminTools] Не удалось прочитать ответ Statistics:",
+                readError
+            );
+
+            var readResponseError =
+                new Error(
+                    "Модуль статистики не вернул тело ответа."
+                );
+
+            readResponseError.kind =
+                "server";
+
+            readResponseError.code =
+                "STATISTICS_RESPONSE_READ_ERROR";
+
+            throw readResponseError;
+        }
         var data = null;
 
         try {
@@ -415,6 +518,15 @@
                 code ||
                 "STATISTICS_ERROR";
 
+            error.status =
+                response.status;
+
+            error.details =
+                data &&
+                data.details
+                    ? data.details
+                    : null;
+
             throw error;
         }
 
@@ -462,13 +574,52 @@
                 }
             );
         } catch (networkError) {
-            var error = new Error("Не удалось загрузить норматив.");
+            var timeoutError =
+                networkError &&
+                networkError.name ===
+                    "AbortError";
+
+            console.error(
+                "[BR AdminTools] Ошибка загрузки норматива:",
+                {
+                    timeout:
+                        timeoutError,
+                    error:
+                        networkError
+                }
+            );
+
+            var error = new Error(
+                timeoutError
+                    ? "Загрузка норматива превысила допустимое время ожидания."
+                    : "Не удалось загрузить норматив."
+            );
+
             error.kind = "server";
-            error.code = "NORMATIVE_UPLOAD_NETWORK_ERROR";
+            error.code = timeoutError
+                ? "NORMATIVE_UPLOAD_TIMEOUT"
+                : "NORMATIVE_UPLOAD_NETWORK_ERROR";
             throw error;
         }
 
-        var raw = await response.text();
+        var raw;
+
+        try {
+            raw = await response.text();
+        } catch (readError) {
+            console.error(
+                "[BR AdminTools] Не удалось прочитать ответ при загрузке норматива:",
+                readError
+            );
+
+            var readErrorResult = new Error(
+                "Сервер не вернул корректное тело ответа при загрузке норматива."
+            );
+
+            readErrorResult.kind = "server";
+            readErrorResult.code = "NORMATIVE_UPLOAD_RESPONSE_READ_ERROR";
+            throw readErrorResult;
+        }
         var data = null;
 
         try {
@@ -488,6 +639,8 @@
             var uploadError = new Error(message || "Не удалось загрузить норматив.");
             uploadError.kind = "server";
             uploadError.code = code || "NORMATIVE_UPLOAD_ERROR";
+            uploadError.status = response.status;
+            uploadError.details = data && data.details ? data.details : null;
             throw uploadError;
         }
 
