@@ -62,7 +62,21 @@
         );
         location.href = "pages/dashboard.html?refresh=" + Date.now();
       } catch (e) {
-        error.textContent = e && e.message ? e.message : "Ошибка сервера.";
+        console.warn(
+          "[BR AdminTools] Ошибка авторизации:",
+          {
+            code: e && e.code ? e.code : "LOGIN_ERROR",
+            message: e && e.message ? e.message : "Ошибка сервера.",
+            status: e && e.status ? e.status : null,
+            error: e
+          }
+        );
+
+        error.textContent =
+          e && e.message
+            ? e.message
+            : "Не удалось выполнить вход.";
+
         submit.disabled = false;
         submit.textContent = "Войти";
       }
