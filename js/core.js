@@ -102,14 +102,12 @@
         return null;
       }
 
-      if (!Number.isFinite(idleUntil)) {
-        session.idle_until = Date.now() + SESSION_IDLE_MS;
-        persistSession(session);
-      }
-
-      if (Number(session.idle_until) <= Date.now()) {
-        session.idle_until = Date.now() + SESSION_IDLE_MS;
-        persistSession(session);
+      if (
+        Number.isFinite(idleUntil) &&
+        idleUntil <= Date.now()
+      ) {
+        clearStorage();
+        return null;
       }
 
       return session;
@@ -426,6 +424,11 @@
 
       if (!Number.isFinite(idleUntil) || idleUntil <= Date.now() || seconds <= 0) {
         logout();
+        return;
+      }
+
+      if (Date.now() - lastActivitySync >= 30000) {
+        syncServerSession().catch(function () {});
       }
     }
 
@@ -453,6 +456,12 @@
       if (!window.BR_API || typeof window.BR_API.me !== "function") {
         return Promise.resolve(null);
       }
+
+      if (Date.now() - lastActivitySync < 30000) {
+        return Promise.resolve(null);
+      }
+
+      lastActivitySync = Date.now();
 
       return window.BR_API.me(session.user.token)
         .then(function (result) {
