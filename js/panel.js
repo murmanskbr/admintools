@@ -2196,58 +2196,388 @@
     }
   }
 
+  function requestStatusBadge(status) {
+    var map = {
+      pending: ["На рассмотрении", "badge-yellow"],
+      approved: ["Одобрено", "badge-green"],
+      rejected: ["Отклонено", "badge-red"]
+    };
+    var value = map[String(status || "").toLowerCase()] || ["Неизвестно", ""];
+    return '<span class="badge ' + value[1] + '">' + E(value[0]) + '</span>';
+  }
+
+  function inactiveTypeLabel(value) {
+    return String(value || "").toLowerCase() === "group"
+      ? "Групповой"
+      : "Одиночный";
+  }
+
+  function inactiveRequestPeriod(item) {
+    var start = String(item && item.start_date || "");
+    var end = String(item && item.end_date || "");
+    if (!start) return "—";
+    return start === end ? formatDateNumeric(start) : (
+      formatDateNumeric(start) + " — " + formatDateNumeric(end)
+    );
+  }
+
   function requests(user) {
+    var inactiveList = [];
+
+    function renderInactiveRows() {
+      var body = document.getElementById("inactiveRequestsMineRoot");
+      if (!body) return;
+
+      if (!inactiveList.length) {
+        body.innerHTML = '<div class="box"><div class="empty">Заявок на неактив пока нет.</div></div>';
+        return;
+      }
+
+      var rows = inactiveList.map(function (item) {
+        return '<tr>' +
+          '<td>' + E(inactiveTypeLabel(item.inactive_type)) + '</td>' +
+          '<td>' + E(inactiveRequestPeriod(item)) + '</td>' +
+          '<td>' + requestStatusBadge(item.status) + '</td>' +
+          '<td>' + E(item.reason || "—") + '</td>' +
+          '<td>' + E(item.review_comment || "—") + '</td>' +
+        '</tr>';
+      }).join("");
+
+      body.innerHTML =
+        '<div class="box table-box">' +
+          '<table>' +
+            '<thead><tr><th>Тип</th><th>Период</th><th>Статус</th><th>Причина</th><th>Комментарий руководства</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table>' +
+        '</div>';
+    }
+
+    function loadInactiveRequests() {
+      return window.BR_API.inactiveRequestsMine(user.token).then(function (result) {
+        inactiveList = Array.isArray(result && result.requests)
+          ? result.requests
+          : [];
+        renderInactiveRows();
+      }).catch(function (error) {
+        var body = document.getElementById("inactiveRequestsMineRoot");
+        if (body) {
+          body.innerHTML = '<div class="box"><div class="empty">' +
+            E(error.message || "Не удалось загрузить заявки на неактив.") +
+            '</div></div>';
+        }
+      });
+    }
+
+    function syncInactiveFields() {
+      var type = document.getElementById("requestType");
+      var fields = document.getElementById("inactiveRequestFields");
+      var generic = document.getElementById("genericRequestFields");
+      var inactive = type && type.value === "Неактив";
+
+      if (fields) fields.hidden = !inactive;
+      if (generic) generic.hidden = inactive;
+
+      var inactiveType = document.getElementById("inactiveRequestType");
+      var endField = document.getElementById("inactiveEndField");
+
+      if (inactiveType && endField) {
+        endField.hidden = inactiveType.value !== "group";
+      }
+
+      var start = document.getElementById("inactiveStartDate");
+      var end = document.getElementById("inactiveEndDate");
+
+      if (start && end && (!end.value || end.value < start.value)) {
+        end.value = start.value;
+      }
+    }
+
     return {
       title: "Мои обращения",
-      subtitle: "Обращения к руководству",
+      subtitle: "Заявки руководству",
       render: function () {
-        var list = localList("br_requests").filter(function (item) {
-          return item.nickname === user.nickname;
-        });
+        return '<div class="box">' +
+          '<form id="requestForm">' +
+            '<div class="form-grid">' +
+              '<div class="form-field form-full"><label>Тип обращения</label>' +
+                '<select id="requestType" class="form-select">' +
+                  '<option>Вопрос</option>' +
+                  '<option value="Неактив">Неактив</option>' +
+                  '<option>Жалоба</option>' +
+                  '<option>Предложение</option>' +
+                '</select>' +
+              '</div>' +
 
-        var rows = list.length ? list.map(function (item) {
-          return '<tr><td>' + E(item.type) + '</td><td>' + E(item.date) + '</td><td>' +
-            E(item.status) + '</td><td>' + E(item.text) + '</td></tr>';
-        }).join("") : '<tr><td colspan="4">Обращений пока нет.</td></tr>';
+              '<div id="genericRequestFields" class="form-field form-full">' +
+                '<label>Текст</label>' +
+                '<textarea id="requestText" class="form-textarea" required placeholder="Опишите обращение"></textarea>' +
+              '</div>' +
 
-        return '<div class="box"><form id="requestForm"><div class="form-grid">' +
-          '<div class="form-field"><label>Тип обращения</label><select id="requestType" class="form-select"><option>Вопрос</option><option>Неактив</option><option>Жалоба</option><option>Предложение</option></select></div>' +
-          '<div class="form-field form-full"><label>Текст</label><textarea id="requestText" class="form-textarea" required></textarea></div>' +
-          '</div><button class="button button-primary" type="submit">Отправить обращение</button></form></div>' +
-          '<div class="box table-box spaced-box"><table><thead><tr><th>Тип</th><th>Дата</th><th>Статус</th><th>Текст</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+              '<div id="inactiveRequestFields" class="form-field form-full" hidden>' +
+                '<div class="form-grid">' +
+                  '<div class="form-field"><label>Тип неактива</label>' +
+                    '<select id="inactiveRequestType" class="form-select">' +
+                      '<option value="single">Одиночный — 1 день</option>' +
+                      '<option value="group">Групповой — несколько дней</option>' +
+                    '</select>' +
+                  '</div>' +
+                  '<div class="form-field"><label>Дата начала</label><input id="inactiveStartDate" class="form-input" type="date" value="' + dateIso(0) + '" required></div>' +
+                  '<div id="inactiveEndField" class="form-field" hidden><label>Дата окончания</label><input id="inactiveEndDate" class="form-input" type="date" value="' + dateIso(0) + '"></div>' +
+                  '<div class="form-field form-full"><label>Причина</label><textarea id="inactiveReason" class="form-textarea" placeholder="Почему нужен неактив"></textarea></div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="form-actions"><button class="button button-primary" type="submit">Отправить обращение</button></div>' +
+          '</form>' +
+        '</div>' +
+        '<div class="page-toolbar"><div><small>НЕАКТИВЫ</small><b>Мои заявки на неактив</b></div></div>' +
+        '<div id="inactiveRequestsMineRoot"><div class="box"><div class="empty">Загрузка заявок...</div></div></div>' +
+        '<div class="box table-box spaced-box">' +
+          '<table><thead><tr><th>Тип</th><th>Дата</th><th>Статус</th><th>Текст</th></tr></thead>' +
+          '<tbody><tr><td colspan="4">Обычные обращения доступны в этом разделе и сохраняются отдельно.</td></tr></tbody></table>' +
+        '</div>';
       },
       bind: function () {
-        document.getElementById("requestForm").onsubmit = function (event) {
-          event.preventDefault();
-          var list = localList("br_requests");
-          list.unshift({
-            nickname: user.nickname,
-            type: document.getElementById("requestType").value,
-            date: new Date().toLocaleDateString("ru-RU"),
-            status: "На рассмотрении",
-            text: document.getElementById("requestText").value.trim()
-          });
-          save("br_requests", list.slice(0, 200));
-          location.reload();
+        var form = document.getElementById("requestForm");
+        var type = document.getElementById("requestType");
+        var inactiveType = document.getElementById("inactiveRequestType");
+        var start = document.getElementById("inactiveStartDate");
+        var end = document.getElementById("inactiveEndDate");
+
+        if (type) type.onchange = syncInactiveFields;
+        if (inactiveType) inactiveType.onchange = syncInactiveFields;
+
+        if (start) start.onchange = function () {
+          if (inactiveType && inactiveType.value === "single") {
+            if (end) end.value = start.value;
+          } else if (end && (!end.value || end.value < start.value)) {
+            end.value = start.value;
+          }
         };
+
+        syncInactiveFields();
+
+        if (form) {
+          form.onsubmit = async function (event) {
+            event.preventDefault();
+
+            var button = form.querySelector("button[type=submit]");
+            if (button) {
+              button.disabled = true;
+              button.textContent = "Отправка…";
+            }
+
+            try {
+              if (type && type.value === "Неактив") {
+                var requestType = inactiveType ? inactiveType.value : "single";
+                var startDate = start ? start.value : "";
+                var endDate = requestType === "single"
+                  ? startDate
+                  : (end ? end.value : "");
+
+                if (!startDate || !endDate) {
+                  throw new Error("Укажите даты неактива.");
+                }
+
+                if (requestType === "group" && endDate < startDate) {
+                  throw new Error("Дата окончания не может быть раньше даты начала.");
+                }
+
+                await window.BR_API.inactiveRequestCreate(
+                  user.token,
+                  requestType,
+                  startDate,
+                  endDate,
+                  document.getElementById("inactiveReason").value.trim()
+                );
+
+                alert("Заявка на неактив отправлена руководству.");
+                form.reset();
+
+                if (start) start.value = dateIso(0);
+                if (end) end.value = dateIso(0);
+
+                syncInactiveFields();
+                await loadInactiveRequests();
+                return;
+              }
+
+              var list = localList("br_requests");
+              list.unshift({
+                nickname: user.nickname,
+                type: type ? type.value : "Вопрос",
+                date: new Date().toLocaleDateString("ru-RU"),
+                status: "На рассмотрении",
+                text: document.getElementById("requestText").value.trim()
+              });
+
+              save("br_requests", list.slice(0, 200));
+              form.reset();
+              syncInactiveFields();
+              alert("Обращение отправлено.");
+            } catch (error) {
+              alert(error.message || "Не удалось отправить обращение.");
+            } finally {
+              if (button) {
+                button.disabled = false;
+                button.textContent = "Отправить обращение";
+              }
+            }
+          };
+        }
+
+        loadInactiveRequests();
       }
     };
   }
 
   function requestsAll() {
+    var list = [];
+    var currentStatus = "";
+
+    function render() {
+      var root = document.getElementById("inactiveRequestsAllRoot");
+      if (!root) return;
+
+      var filtered = currentStatus
+        ? list.filter(function (item) { return item.status === currentStatus; })
+        : list.slice();
+
+      if (!filtered.length) {
+        root.innerHTML = '<div class="box"><div class="empty">Заявок по выбранному фильтру нет.</div></div>';
+        return;
+      }
+
+      var rows = filtered.map(function (item) {
+        var actions = item.status === "pending"
+          ? '<div class="form-actions">' +
+              '<button class="small-button" data-inactive-approve="' + E(item.id) + '">Одобрить</button>' +
+              '<button class="small-button" data-inactive-reject="' + E(item.id) + '">Отклонить</button>' +
+            '</div>'
+          : '<span class="muted">' +
+              (item.reviewed_at ? E(formatDateTime(item.reviewed_at)) : "Рассмотрено") +
+            '</span>';
+
+        return '<tr>' +
+          '<td>' + E(item.nickname) + '</td>' +
+          '<td>' + E(inactiveTypeLabel(item.inactive_type)) + '</td>' +
+          '<td>' + E(inactiveRequestPeriod(item)) + '</td>' +
+          '<td>' + E(item.reason || "—") + '</td>' +
+          '<td>' + requestStatusBadge(item.status) + '</td>' +
+          '<td>' + E(item.review_comment || "—") + '</td>' +
+          '<td>' + actions + '</td>' +
+        '</tr>';
+      }).join("");
+
+      root.innerHTML =
+        '<div class="box table-box">' +
+          '<table>' +
+            '<thead><tr><th>Никнейм</th><th>Тип</th><th>Период</th><th>Причина</th><th>Статус</th><th>Комментарий</th><th>Действие</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table>' +
+        '</div>';
+
+      Array.from(root.querySelectorAll("[data-inactive-approve]")).forEach(function (button) {
+        button.onclick = function () {
+          review(Number(button.getAttribute("data-inactive-approve")), "approved");
+        };
+      });
+
+      Array.from(root.querySelectorAll("[data-inactive-reject]")).forEach(function (button) {
+        button.onclick = function () {
+          review(Number(button.getAttribute("data-inactive-reject")), "rejected");
+        };
+      });
+    }
+
+    async function review(id, status) {
+      var comment = "";
+
+      if (status === "rejected") {
+        comment = window.prompt("Причина отказа (необязательно):", "") || "";
+      } else {
+        var confirmText = window.confirm(
+          "Одобрить этот неактив? После одобрения период будет сохранён и учтён системой."
+        );
+        if (!confirmText) return;
+      }
+
+      var button = document.querySelector(
+        '[data-inactive-' + (status === "approved" ? "approve" : "reject") + '="' + id + '"]'
+      );
+
+      if (button) button.disabled = true;
+
+      try {
+        await window.BR_API.inactiveRequestReview(
+          window.BRApp.getSession().user.token,
+          id,
+          status,
+          comment
+        );
+
+        alert(status === "approved" ? "Неактив одобрен." : "Заявка отклонена.");
+        await load();
+      } catch (error) {
+        alert(error.message || "Не удалось обработать заявку.");
+        if (button) button.disabled = false;
+      }
+    }
+
+    async function load() {
+      var root = document.getElementById("inactiveRequestsAllRoot");
+      if (root && !list.length) {
+        root.innerHTML = '<div class="box"><div class="empty">Загрузка заявок...</div></div>';
+      }
+
+      try {
+        var result = await window.BR_API.inactiveRequestsAll(
+          window.BRApp.getSession().user.token,
+          ""
+        );
+
+        list = Array.isArray(result && result.requests)
+          ? result.requests
+          : [];
+
+        render();
+      } catch (error) {
+        if (root) {
+          root.innerHTML = '<div class="box"><div class="empty">' +
+            E(error.message || "Не удалось загрузить заявки.") +
+            '</div></div>';
+        }
+      }
+    }
+
     return {
       managementOnly: true,
       title: "Обращения администрации",
-      subtitle: "Обзор обращений сотрудников",
+      subtitle: "Заявки на неактив от состава",
       render: function () {
-        var list = localList("br_requests");
-        var rows = list.length ? list.map(function (item) {
-          return '<tr><td>' + E(item.nickname) + '</td><td>' + E(item.type) + '</td><td>' +
-            E(item.date) + '</td><td>' + E(item.status) + '</td><td>' + E(item.text) + '</td></tr>';
-        }).join("") : '<tr><td colspan="5">Обращений нет.</td></tr>';
+        return '<div class="page-toolbar">' +
+          '<div><small>ЗАЯВКИ</small><b>Неактивы</b></div>' +
+          '<div class="stats-toolbar-actions">' +
+            '<button class="small-button" id="inactiveFilterAll" type="button">Все</button>' +
+            '<button class="small-button" id="inactiveFilterPending" type="button">На рассмотрении</button>' +
+            '<button class="small-button" id="inactiveFilterApproved" type="button">Одобрены</button>' +
+            '<button class="small-button" id="inactiveFilterRejected" type="button">Отклонены</button>' +
+          '</div>' +
+        '</div>' +
+        '<div id="inactiveRequestsAllRoot"><div class="box"><div class="empty">Загрузка заявок...</div></div></div>';
+      },
+      bind: function () {
+        var all = document.getElementById("inactiveFilterAll");
+        var pending = document.getElementById("inactiveFilterPending");
+        var approved = document.getElementById("inactiveFilterApproved");
+        var rejected = document.getElementById("inactiveFilterRejected");
 
-        return '<div class="box table-box"><table><thead><tr><th>Никнейм</th><th>Тип</th><th>Дата</th><th>Статус</th><th>Текст</th></tr></thead><tbody>' +
-          rows + '</tbody></table></div>';
+        if (all) all.onclick = function () { currentStatus = ""; render(); };
+        if (pending) pending.onclick = function () { currentStatus = "pending"; render(); };
+        if (approved) approved.onclick = function () { currentStatus = "approved"; render(); };
+        if (rejected) rejected.onclick = function () { currentStatus = "rejected"; render(); };
+
+        load();
       }
     };
   }
