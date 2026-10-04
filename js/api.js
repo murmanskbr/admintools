@@ -120,13 +120,33 @@
         try {
             response =
                 await fetch(
-                    API_URL,
+                    API_URL +
+                    "?br_ts=" +
+                    Date.now(),
                     {
                         method: "POST",
-                        headers: headers,
+                        headers: Object.assign(
+                            {},
+                            headers,
+                            {
+                                "Cache-Control": "no-store, no-cache, max-age=0",
+                                Pragma: "no-cache"
+                            }
+                        ),
+                        cache: "no-store",
                         body:
                             JSON.stringify(
-                                payload
+                                Object.assign(
+                                    {},
+                                    payload,
+                                    {
+                                        _client_ts: Date.now(),
+                                        _client_request_id:
+                                            window.crypto && crypto.randomUUID
+                                                ? crypto.randomUUID()
+                                                : String(Date.now()) + "-" + Math.random()
+                                    }
+                                )
                             )
                     }
                 );
@@ -391,13 +411,33 @@
 
         try {
             response = await fetchWithTimeout(
-                STATISTICS_URL,
+                STATISTICS_URL +
+                    "?br_ts=" +
+                    Date.now(),
                 {
                     method: "POST",
-                    headers: headers,
+                    headers: Object.assign(
+                        {},
+                        headers,
+                        {
+                            "Cache-Control": "no-store, no-cache, max-age=0",
+                            Pragma: "no-cache"
+                        }
+                    ),
+                    cache: "no-store",
                     body:
                         JSON.stringify(
-                            payload
+                            Object.assign(
+                                {},
+                                payload,
+                                {
+                                    _client_ts: Date.now(),
+                                    _client_request_id:
+                                        window.crypto && crypto.randomUUID
+                                            ? crypto.randomUUID()
+                                            : String(Date.now()) + "-" + Math.random()
+                                }
+                            )
                         )
                 },
                 REQUEST_TIMEOUT_MS
@@ -586,10 +626,20 @@
 
         try {
             response = await fetchWithTimeout(
-                API_URL,
+                API_URL +
+                    "?br_ts=" +
+                    Date.now(),
                 {
                     method: "POST",
-                    headers: headers,
+                    headers: Object.assign(
+                        {},
+                        headers,
+                        {
+                            "Cache-Control": "no-store, no-cache, max-age=0",
+                            Pragma: "no-cache"
+                        }
+                    ),
+                    cache: "no-store",
                     body: formData
                 },
                 UPLOAD_TIMEOUT_MS
