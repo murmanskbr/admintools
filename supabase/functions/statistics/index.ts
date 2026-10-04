@@ -207,7 +207,7 @@ async function authenticatedSession(
         await db()
             .from("admin_sessions")
             .select(
-                "id,admin_id,token_hash,device_id,expires_at,last_activity_at,revoked_at"
+                "id,admin_id,device_id,expires_at,last_activity_at,revoked_at"
             )
             .eq(
                 "token_hash",
@@ -247,6 +247,17 @@ async function authenticatedSession(
         !Number.isFinite(expiresAt) ||
         expiresAt <= now
     ) {
+        await db()
+            .from("admin_sessions")
+            .update({
+                revoked_at:
+                    new Date().toISOString()
+            })
+            .eq(
+                "id",
+                session.id
+            );
+
         throw new Error(
             "SESSION_EXPIRED"
         );
@@ -264,6 +275,17 @@ async function authenticatedSession(
         now - lastActivity >
             IDLE_TIMEOUT_SECONDS * 1000
     ) {
+        await db()
+            .from("admin_sessions")
+            .update({
+                revoked_at:
+                    new Date().toISOString()
+            })
+            .eq(
+                "id",
+                session.id
+            );
+
         throw new Error(
             "SESSION_IDLE_EXPIRED"
         );
@@ -437,10 +459,16 @@ async function appsScript(
                                 upstream.headers.get(
                                     "content-type"
                                 ) ?? "",
-                            final_url:
-                                upstream.url,
-                            body_preview:
-                                raw.slice(0, 300)
+                            final_host:
+                                (() => {
+                                    try {
+                                        return new URL(
+                                            upstream.url
+                                        ).host;
+                                    } catch {
+                                        return "";
+                                    }
+                                })()
                         }
                     );
 
@@ -456,8 +484,15 @@ async function appsScript(
                 ) {
                     console.error(
                         "APPS SCRIPT ERROR",
-                        upstream.status,
-                        data
+                        {
+                            status:
+                                upstream.status,
+                            code:
+                                String(
+                                    data?.code ??
+                                        ""
+                                ).trim()
+                        }
                     );
 
                     const code =
