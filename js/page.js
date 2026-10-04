@@ -639,65 +639,7 @@
   }
 
   function allStatistics(user) {
-    var STATS_CACHE_KEY = "br_all_stats_cache_v3";
-
-    function readStatsCache() {
-      try {
-        var raw = sessionStorage.getItem(STATS_CACHE_KEY);
-        if (!raw) return null;
-
-        var cache = JSON.parse(raw);
-        return cache && typeof cache === "object" ? cache : null;
-      } catch (_) {
-        return null;
-      }
-    }
-
-    function writeStatsCache(cache) {
-      try {
-        sessionStorage.setItem(STATS_CACHE_KEY, JSON.stringify(cache));
-      } catch (_) {
-        // Кэш необязателен: при переполненном sessionStorage просто
-        // продолжаем работать с обычной загрузкой данных.
-      }
-    }
-
-    function clearStatsDateCache(date) {
-      var cache = readStatsCache();
-      if (!cache) return;
-
-      if (cache.dates && typeof cache.dates === "object") {
-        delete cache.dates[String(date || "")];
-      }
-
-      writeStatsCache(cache);
-    }
-
-    function saveStatsCache(date, statistics, normatives, marks) {
-      var cache = readStatsCache() || {};
-      cache.version = 1;
-      cache.nickname = String(user && user.nickname || "");
-      cache.selectedDate = date;
-      cache.statistics = Array.isArray(statistics) ? statistics : [];
-      cache.dates = cache.dates && typeof cache.dates === "object" ? cache.dates : {};
-      cache.dates[date] = {
-        normatives: Array.isArray(normatives) ? normatives : [],
-        marks: Array.isArray(marks) ? marks : []
-      };
-
-      writeStatsCache(cache);
-    }
-
-    var initialCache = readStatsCache();
-    var sameUserCache =
-      initialCache &&
-      String(initialCache.nickname || "").toLowerCase() ===
-        String(user && user.nickname || "").toLowerCase();
-
-    var selectedDate =
-      sameUserCache && initialCache.selectedDate
-        ? String(initialCache.selectedDate)
-        : dateIso(0);
+    var selectedDate = dateIso(0);
     var lastData = [];
     var lastNormatives = [];
     var lastMarks = [];
@@ -963,25 +905,6 @@
         if (dateInput) dateInput.value = selectedDate;
       }
 
-      var cache = readStatsCache();
-      var cacheMatchesUser =
-        cache &&
-        String(cache.nickname || "").toLowerCase() ===
-          String(user && user.nickname || "").toLowerCase();
-
-      var cachedDate =
-        cacheMatchesUser &&
-        cache.dates &&
-        cache.dates[selectedDate];
-
-      if (!forceRefresh && cacheMatchesUser && Array.isArray(cache.statistics) && cachedDate) {
-        lastData = cache.statistics;
-        lastNormatives = Array.isArray(cachedDate.normatives) ? cachedDate.normatives : [];
-        lastMarks = Array.isArray(cachedDate.marks) ? cachedDate.marks : [];
-        renderTable(user);
-        return Promise.resolve();
-      }
-
       if (refresh) {
         refresh.disabled = true;
         refresh.textContent = forceRefresh ? "Обновление…" : "Загрузка…";
@@ -996,13 +919,6 @@
         lastData = Array.isArray(statisticsResult.statistics) ? statisticsResult.statistics : [];
         lastNormatives = Array.isArray(normativesResult.administrators) ? normativesResult.administrators : [];
         lastMarks = Array.isArray(normativesResult.marks) ? normativesResult.marks : [];
-
-        saveStatsCache(
-          selectedDate,
-          lastData,
-          lastNormatives,
-          lastMarks
-        );
 
         renderTable(user);
       }).catch(function (error) {
@@ -1388,8 +1304,7 @@
               "✅ " + label + " проставлена для " + nickname + " за " + formatDateOnly(selectedDate) + cellText + postDaysText + inactivesText,
               "success"
             );
-            clearStatsDateCache(selectedDate);
-            await load(user);
+            await load(user, true);
           } catch (error) {
             showNormativeResult(normativeErrorMessage(error), "error");
             button.disabled = false;
