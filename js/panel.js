@@ -117,7 +117,7 @@
     var rows = data.headers.map(function (header, index) {
       var value = formatGoogleCellValue(header, data.raw[index]);
 
-      return '<tr><td><b>' + E(columnLetter(index)) + '</b></td><td>' + E(header || "Без названия") + '</td><td>' + E(value) + '</td></tr>';
+      return '<tr><td>' + E(header || "Без названия") + '</td><td>' + E(value) + '</td></tr>';
     }).join("");
     var mobileRows = data.headers.map(function (header, index) {
       var value = formatGoogleCellValue(header, data.raw[index]);
@@ -129,7 +129,7 @@
     }).join("");
 
     return '<div class="page-toolbar"><div><small>GOOGLE ТАБЛИЦА</small><b>' + E(caption || "Полные данные строки") + '</b></div><span class="muted">' + E(rangeText) + '</span></div>' +
-      '<div class="box table-box google-row-desktop"><table class="google-row-table"><thead><tr><th>Колонка</th><th>Заголовок</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="box table-box google-row-desktop"><table class="google-row-table"><thead><tr><th>Заголовок</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<div class="mobile-data-list google-row-mobile">' + mobileRows + '</div>';
   }
 
