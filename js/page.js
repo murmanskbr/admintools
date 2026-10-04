@@ -622,10 +622,14 @@
       load: async function (user) {
         var root = document.getElementById("statsRoot");
         if (!root) return;
+
+        root.innerHTML =
+          '<div class="box"><div class="empty">Обновление статистики из Google Sheets...</div></div>';
+
         try {
           var result = await window.BR_API.myStatistics(user.token);
           root.innerHTML =
-            '<div class="box"><div class="stats-table-head"><div><small>ЛИЧНАЯ СТАТИСТИКА</small><b>' + E(user.nickname) + '</b></div><span class="muted">Найдена строка администратора</span></div></div>' +
+            '<div class="box"><div class="stats-table-head"><div><small>ЛИЧНАЯ СТАТИСТИКА</small><b>' + E(user.nickname) + '</b></div><span class="muted">Свежие данные из Google Sheets</span></div></div>' +
             googleRowTable(result, "Статистика " + user.nickname);
         } catch (error) {
           if (error.code === "STATISTICS_NOT_FOUND") {
@@ -899,6 +903,17 @@
       var dateInput = document.getElementById("allStatsDate");
       if (!root) return Promise.resolve();
 
+      lastData = [];
+      lastNormatives = [];
+      lastMarks = [];
+
+      root.innerHTML =
+        '<div class="box"><div class="empty">' +
+        (forceRefresh
+          ? "Обновление статистики и нормативов из Google Sheets..."
+          : "Загрузка актуальной статистики и нормативов...") +
+        '</div></div>';
+
       if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(String(dateInput.value || ""))) {
         selectedDate = String(dateInput.value);
       }
@@ -937,8 +952,13 @@
           "[BR AdminTools] Ошибка общей статистики:",
           error
         );
+
+        lastData = [];
+        lastNormatives = [];
+        lastMarks = [];
+
         root.innerHTML = '<div class="box"><div class="empty">' +
-          E(error.message || "Не удалось загрузить статистику администрации.") +
+          E(error.message || "Не удалось загрузить актуальную статистику администрации.") +
           '</div></div>';
       }).finally(function () {
         if (refresh) {
@@ -1480,7 +1500,15 @@
         if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
         if (next) next.onclick = function () { setDate(dateIso(1)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
-        if (refresh) refresh.onclick = function () { load(user, true); };
+        if (refresh) {
+          refresh.onclick = function () {
+            selectedDate = date && /^\d{4}-\d{2}-\d{2}$/.test(String(date.value || ""))
+              ? String(date.value)
+              : dateIso(0);
+
+            load(user, true);
+          };
+        }
 
         document.addEventListener("click", function () {
           closeMenus();
