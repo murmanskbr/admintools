@@ -3242,6 +3242,24 @@
             '</div>' +
           '</form>' +
         '</div>' +
+        '<div class="box logs-cleanup-box">' +
+          '<div class="logs-cleanup-head">' +
+            '<div><small>ОЧИСТКА</small><b>Удаление старых записей</b></div>' +
+            '<span>Действие доступно только руководству</span>' +
+          '</div>' +
+          '<div class="logs-cleanup-controls">' +
+            '<div class="form-field">' +
+              '<label for="logsCleanupPeriod">Период</label>' +
+              '<select id="logsCleanupPeriod" class="form-select">' +
+                '<option value="older_7_days">Старше 7 дней</option>' +
+                '<option value="older_30_days">Старше 1 месяца</option>' +
+                '<option value="older_180_days" selected>Старше 6 месяцев</option>' +
+                '<option value="all">Весь журнал</option>' +
+              '</select>' +
+            '</div>' +
+            '<button class="button button-danger" id="logsCleanupButton" type="button">Очистить журнал</button>' +
+          '</div>' +
+        '</div>' +
         '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>';
       },
       bind: function (user) {
@@ -3250,6 +3268,67 @@
         var actionInput = document.getElementById("logsAction");
         var dateInput = document.getElementById("logsDate");
         var reset = document.getElementById("logsFilterReset");
+        var cleanupPeriod = document.getElementById("logsCleanupPeriod");
+        var cleanupButton = document.getElementById("logsCleanupButton");
+
+        if (cleanupButton) {
+          cleanupButton.onclick = async function () {
+            var period = cleanupPeriod
+              ? cleanupPeriod.value
+              : "older_180_days";
+
+            var labels = {
+              older_7_days: "все записи старше 7 дней",
+              older_30_days: "все записи старше 1 месяца",
+              older_180_days: "все записи старше 6 месяцев",
+              all: "весь журнал действий"
+            };
+
+            var description =
+              labels[period] || "выбранные записи";
+
+            var confirmed = window.confirm(
+              "Внимание! Будут удалены " +
+              description +
+              ".\n\nПродолжить?"
+            );
+
+            if (!confirmed) return;
+
+            cleanupButton.disabled = true;
+            cleanupButton.textContent = "Очистка…";
+
+            try {
+              var result = await window.BR_API.auditLogsClear(
+                user.token,
+                period
+              );
+
+              var deleted = Number(
+                result && result.deleted_count
+                  ? result.deleted_count
+                  : 0
+              );
+
+              window.alert(
+                deleted
+                  ? "Журнал очищен. Удалено записей: " + deleted
+                  : "Записей для удаления не найдено."
+              );
+
+              await load(user, false);
+            } catch (error) {
+              window.alert(
+                error && error.message
+                  ? error.message
+                  : "Не удалось очистить журнал."
+              );
+            } finally {
+              cleanupButton.disabled = false;
+              cleanupButton.textContent = "Очистить журнал";
+            }
+          };
+        }
 
         if (form) {
           form.onsubmit = function (event) {
