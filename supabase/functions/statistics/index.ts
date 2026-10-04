@@ -425,6 +425,25 @@ async function appsScript(
                         ? JSON.parse(raw)
                         : null;
                 } catch {
+                    // A stale/invalid Apps Script secret may return an HTML or
+                    // plain-text response instead of the JSON API payload.
+                    // Log only safe metadata, never the secret itself.
+                    console.error(
+                        "STATISTICS GOOGLE INVALID RESPONSE",
+                        {
+                            status:
+                                upstream.status,
+                            content_type:
+                                upstream.headers.get(
+                                    "content-type"
+                                ) ?? "",
+                            final_url:
+                                upstream.url,
+                            body_preview:
+                                raw.slice(0, 300)
+                        }
+                    );
+
                     throw new Error(
                         "GOOGLE_SCRIPT_INVALID_RESPONSE"
                     );
@@ -492,8 +511,12 @@ async function appsScript(
                 lastError = normalized;
 
                 if (
-                    normalized.message ===
-                        "APPS_SCRIPT_UNAUTHORIZED" &&
+                    (
+                        normalized.message ===
+                            "APPS_SCRIPT_UNAUTHORIZED" ||
+                        normalized.message ===
+                            "GOOGLE_SCRIPT_INVALID_RESPONSE"
+                    ) &&
                     secretIndex + 1 <
                         scriptSecrets.length
                 ) {
