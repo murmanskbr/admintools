@@ -801,6 +801,7 @@
             var markNickname = getKey(mark, nicknameKeys);
             var markDate = getKey(mark, dateKeys);
             var markStatus = getKey(mark, valueKeys);
+            var markBackground = getKey(mark, ["background", "color", "цвет"]);
 
             if (
               markNickname != null &&
@@ -811,7 +812,37 @@
                 normalizeNormativeDate(markDate) === normalizeNormativeDate(date)
               )
             ) {
-              return markStatus == null ? "" : String(markStatus);
+              if (markStatus != null && String(markStatus).trim() !== "") {
+                return String(markStatus);
+              }
+
+              var color = rawCellValue(markBackground).trim().toLowerCase();
+
+              if (
+                color === "#34d186" ||
+                color === "#00ff00" ||
+                color === "green"
+              ) {
+                return "Норма";
+              }
+
+              if (
+                color === "#f6c344" ||
+                color === "yellow" ||
+                color === "orange"
+              ) {
+                return "Перенорма";
+              }
+
+              if (
+                color === "#a7adb7" ||
+                color === "gray" ||
+                color === "grey"
+              ) {
+                return "Неактив";
+              }
+
+              return "";
             }
           }
         }
