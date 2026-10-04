@@ -408,15 +408,7 @@
                     Date.now(),
                 {
                     method: "POST",
-                    headers: Object.assign(
-                        {},
-                        headers,
-                        {
-                            "Cache-Control": "no-store, no-cache, max-age=0",
-                            Pragma: "no-cache"
-                        }
-                    ),
-                    cache: "no-store",
+                    headers: headers,
                     body:
                         JSON.stringify(
                             Object.assign(
@@ -623,15 +615,7 @@
                     Date.now(),
                 {
                     method: "POST",
-                    headers: Object.assign(
-                        {},
-                        headers,
-                        {
-                            "Cache-Control": "no-store, no-cache, max-age=0",
-                            Pragma: "no-cache"
-                        }
-                    ),
-                    cache: "no-store",
+                    headers: headers,
                     body: formData
                 },
                 UPLOAD_TIMEOUT_MS
