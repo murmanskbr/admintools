@@ -1478,14 +1478,65 @@
         return;
       }
 
+      function googleFieldInputType(title) {
+        var normalized = normalizeHeader(title);
+        var dateWords = [
+          "дата",
+          "последнее повышение",
+          "дата повышения",
+          "date",
+          "last promotion",
+          "last_promotion"
+        ];
+
+        if (
+          dateWords.some(function (word) {
+            return normalized === word ||
+              normalized.indexOf(word + " ") === 0 ||
+              normalized.indexOf(" " + word) >= 0;
+          })
+        ) {
+          return "date";
+        }
+
+        return "text";
+      }
+
+      function normalizeDateInputValue(value) {
+        var text = rawCellValue(value).trim();
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+          return text;
+        }
+
+        var match = text.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+        if (match) {
+          return match[3] + "-" + match[2] + "-" + match[1];
+        }
+
+        match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (match) {
+          return match[3] + "-" + match[2] + "-" + match[1];
+        }
+
+        return "";
+      }
+
       var fields = headers.map(function (header, index) {
         var title = rawCellValue(header);
         if (!title.trim()) return "";
 
+        var type = googleFieldInputType(title);
+        var value = rawCellValue(raw[index]);
+
+        if (type === "date") {
+          value = normalizeDateInputValue(value);
+        }
+
         return '<div class="form-field">' +
           '<label>' + E(title) + '</label>' +
-          '<input class="form-input" data-google-field-index="' + index + '" value="' +
-            E(rawCellValue(raw[index])) + '">' +
+          '<input class="form-input" type="' + type + '" data-google-field-index="' + index + '" value="' +
+            E(value) + '">' +
         '</div>';
       }).join("");
 
