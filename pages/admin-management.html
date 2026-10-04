@@ -14,7 +14,7 @@
 <body data-page="admin-management">
 <div id="app"></div>
 
-<script src="../js/api.js?v=20261004-2320"></script>
+<script src="../js/api.js?v=20261004-2340"></script>
 <script>
 (function () {
   "use strict";
@@ -310,6 +310,24 @@
       return "";
     }
 
+    var POSITIONS = [
+      "Главный администратор",
+      "Заместитель главного администратора",
+      "Куратор администрации",
+      "Заместитель Куратора администрации",
+      "Куратор агентов поддержки",
+      "Заместитель Куратора агентов поддержки",
+      "Куратор организаций",
+      "Заместитель Куратора организаций",
+      "Старший администратор",
+      "Старший следящий",
+      "Администратор",
+      "Старший модератор",
+      "Модератор",
+      "Следящий",
+      "Младший модератор"
+    ];
+
     function inputTypeFor(key) {
       return ["age","activity_points","post_days","strikes","warnings","points"].indexOf(key) >= 0
         ? "number"
@@ -341,13 +359,23 @@
             ? "Например: Младший модератор"
             : "";
 
+        var control = key === "position"
+          ? '<select id="' + id + '" class="form-select" data-admin-header="' + esc(header) +
+            '" data-admin-key="' + esc(key) + '">' +
+            '<option value="">Выберите должность</option>' +
+            POSITIONS.map(function (position) {
+              return '<option value="' + esc(position) + '">' + esc(position) + '</option>';
+            }).join("") +
+            '</select>'
+          : '<input id="' + id + '" class="form-input" data-admin-header="' + esc(header) +
+            '" data-admin-key="' + esc(key) + '" type="' + type + '"' + required +
+            (type === "number" ? ' min="0"' : "") +
+            (placeholder ? ' placeholder="' + esc(placeholder) + '"' : "") +
+            '>';
+
         return '<div class="form-field">' +
           '<label for="' + id + '">' + esc(header) + '</label>' +
-          '<input id="' + id + '" class="form-input" data-admin-header="' + esc(header) +
-          '" data-admin-key="' + esc(key) + '" type="' + type + '"' + required +
-          (type === "number" ? ' min="0"' : "") +
-          (placeholder ? ' placeholder="' + esc(placeholder) + '"' : "") +
-          '>' +
+          control +
         '</div>';
       }).join("");
     }
