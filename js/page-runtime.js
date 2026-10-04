@@ -603,10 +603,124 @@
           });
       }
 
+      var nicknameIndex = findNicknameIndex(headers);
+      var displayRecords = [];
+      var pendingSection = "";
+
+      function rowTextValues(row) {
+        return row.map(function (value) {
+          return rawCellValue(value).trim();
+        }).filter(function (value) {
+          return value !== "";
+        });
+      }
+
+      function isHeaderLikeRow(row) {
+        var values = rowTextValues(row);
+        if (values.length < 3) return false;
+
+        var known = 0;
+        values.forEach(function (value) {
+          var normalized = normalizeHeader(value);
+          if (
+            [
+              "никнейм", "возраст", "доступ с пк", "должность",
+              "неактивы", "баллы активности", "дни на посту",
+              "страйки", "предупреждение", "предупреждения",
+              "баллы", "последнее повышение"
+            ].indexOf(normalized) >= 0
+          ) {
+            known += 1;
+          }
+        });
+
+        return known >= 4;
+      }
+
+      function sectionTitleFromRow(row) {
+        var values = rowTextValues(row);
+        if (values.length !== 1) return "";
+
+        var title = values[0];
+        var normalized = normalizeHeader(title);
+
+        if (
+          normalized.indexOf("администрац") >= 0 ||
+          normalized.indexOf("модератор") >= 0 ||
+          normalized.indexOf("следящ") >= 0 ||
+          normalized.indexOf("старш") >= 0
+        ) {
+          return title;
+        }
+
+        return "";
+      }
+
+      function isValidNickname(value) {
+        var normalized = normalizeHeader(value);
+
+        if (!normalized) return false;
+
+        return [
+          "никнейм", "ник", "nickname", "nick",
+          "логин", "login", "username",
+          "должность", "возраст", "доступ с пк",
+          "неактивы", "баллы активности", "дни на посту",
+          "страйки", "предупреждение", "предупреждения",
+          "баллы", "последнее повышение"
+        ].indexOf(normalized) < 0;
+      }
+
+      rows.forEach(function (row, rowIndex) {
+        if (!Array.isArray(row) || !rowTextValues(row).length) {
+          return;
+        }
+
+        var sectionTitle = sectionTitleFromRow(row);
+
+        if (sectionTitle) {
+          pendingSection = sectionTitle;
+          return;
+        }
+
+        if (isHeaderLikeRow(row)) {
+          return;
+        }
+
+        var nickname = nicknameIndex >= 0
+          ? rawCellValue(row[nicknameIndex]).trim()
+          : "";
+
+        var nonEmptyCount = rowTextValues(row).length;
+
+        if (
+          !nickname ||
+          !isValidNickname(nickname) ||
+          nonEmptyCount < 2
+        ) {
+          return;
+        }
+
+        var sourceItem = statistics[rowIndex] || {};
+        var effectiveSection = sourceItem && sourceItem.section_title
+          ? String(sourceItem.section_title).trim()
+          : pendingSection;
+
+        displayRecords.push({
+          row: row,
+          sourceItem: sourceItem,
+          originalIndex: rowIndex,
+          sectionTitle: effectiveSection
+        });
+
+        pendingSection = "";
+      });
+
       return {
         headers: headers,
         rows: rows,
         statistics: statistics,
+        displayRecords: displayRecords,
         sections: sections,
         count: count
       };
@@ -911,11 +1025,26 @@
       var normativeHeaderIndex = sourceNormativeHeaderIndex(lastHeaders);
       var hasSourceNormativeColumn = normativeHeaderIndex >= 0;
 
-      lastData = data.rows.map(function (row, rowIndex) {
-        var sourceItem = data.statistics[rowIndex] || {};
+      var displayRecords = Array.isArray(data.displayRecords)
+        ? data.displayRecords
+        : data.rows.map(function (row, rowIndex) {
+            return {
+              row: row,
+              sourceItem: data.statistics[rowIndex] || {},
+              originalIndex: rowIndex,
+              sectionTitle: ""
+            };
+          });
+
+      lastData = displayRecords.map(function (record) {
+        var row = record.row;
+        var sourceItem = record.sourceItem || {};
         return {
-          row_number: sourceRowNumber(lastResult || {}, rowIndex),
+          row_number: sourceItem.row_number != null
+            ? Number(sourceItem.row_number)
+            : sourceRowNumber(lastResult || {}, record.originalIndex),
           sheet_name: sourceItem.sheet_name || (lastResult && lastResult.source && lastResult.source.sheet_name) || "",
+          section_title: record.sectionTitle || "",
           values: {
             headers: lastHeaders.slice(),
             raw_row: row.slice()
@@ -933,43 +1062,21 @@
       }
 
       var lastRenderedSection = "";
-      var renderedRowMap = [];
-      var renderedRowIndex = 0;
-
-      var rows = data.rows.map(function (row, rowIndex) {
-        var sourceItem = data.statistics[rowIndex] || {};
-        var sectionTitle = sourceItem.section_title
-          ? String(sourceItem.section_title).trim()
-          : "";
-
-        var sourceSectionRow = isSectionSourceRow(
-          row,
-          lastHeaders
-        );
-
-        var effectiveSectionTitle = sectionTitle ||
-          (
-            sourceSectionRow
-              ? rawCellValue(row.find(function (value) {
-                  return rawCellValue(value).trim() !== "";
-                }))
-              : ""
-          );
+      var rows = displayRecords.map(function (record, displayIndex) {
+        var row = record.row;
+        var rowIndex = record.originalIndex;
+        var sectionTitle = record.sectionTitle || "";
 
         var sectionRow = "";
         if (
-          effectiveSectionTitle &&
-          effectiveSectionTitle !== lastRenderedSection
+          sectionTitle &&
+          sectionTitle !== lastRenderedSection
         ) {
-          lastRenderedSection = effectiveSectionTitle;
+          lastRenderedSection = sectionTitle;
           sectionRow =
             '<tr class="stats-section-row"><td colspan="' +
-            String(lastHeaders.length + (hasSourceNormativeColumn ? 2 : 2)) +
-            '"><strong>' + E(effectiveSectionTitle) + '</strong></td></tr>';
-        }
-
-        if (sourceSectionRow) {
-          return sectionRow;
+            String(lastHeaders.length + 2) +
+            '"><strong>' + E(sectionTitle) + '</strong></td></tr>';
         }
 
         var cells = lastHeaders.map(function (_, columnIndex) {
@@ -981,7 +1088,6 @@
           ? rawCellValue(row[lastNicknameIndex]).trim()
           : "";
 
-        var normativeCell = "";
         var actionButtons = nickname
           ? '<div class="stats-norm-actions">' +
               '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
@@ -989,28 +1095,23 @@
               '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
               '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
             '</div>'
-          : '';
+          : "";
 
-        if (!hasSourceNormativeColumn) {
-          var externalNormative = normativeDisplayStatus(
-            lastResult && lastResult.normatives,
-            nickname
-          );
+        var normativeStatus = normativeDisplayStatus(
+          lastResult && lastResult.normatives,
+          nickname
+        );
 
-          normativeCell =
-            '<td class="stats-norm-cell">' +
-              normativeStatusBadge(externalNormative) +
-              actionButtons +
-            '</td>';
-        } else {
-          normativeCell =
-            '<td class="stats-norm-cell">' +
-              actionButtons +
-            '</td>';
-        }
+        var normativeCell =
+          '<td class="stats-norm-cell">' +
+            '<span class="stats-norm-value">' +
+              normativeStatusBadge(normativeStatus) +
+            '</span>' +
+            actionButtons +
+          '</td>';
 
         var actionCell = nickname
-          ? '<td class="admin-actions-cell"><button class="admin-edit-inline" type="button" data-edit-row-index="' + rowIndex + '">Изменить</button></td>'
+          ? '<td class="admin-actions-cell"><button class="admin-edit-inline" type="button" data-edit-row-index="' + displayIndex + '">Изменить</button></td>'
           : '<td class="admin-actions-cell"></td>';
 
         return sectionRow + '<tr>' + cells + normativeCell + actionCell + '</tr>';
@@ -1024,14 +1125,14 @@
         '<div class="box table-box">' +
           '<div class="stats-table-head"><div>' +
             '<small>СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
-            '<b>' + E(String(data.rows.length)) + ' сотрудников</b>' +
+            '<b>' + E(String(displayRecords.length)) + ' сотрудников</b>' +
           '</div><span class="muted">Источник: Google Таблица</span></div>' +
           '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
             E(lastResult && lastResult.source && lastResult.source.sheet_name ? lastResult.source.sheet_name : "Google Sheets") +
           '</span></div>' +
           '<table id="allStatsTable"><thead><tr>' +
             headerCells +
-            (hasSourceNormativeColumn ? '<th>Действия</th>' : '<th>Норматив</th><th>Действия</th>') +
+            '<th>Норматив</th><th>Действия</th>' +
           '</tr></thead><tbody>' + rows + '</tbody></table>' +
         '</div><div id="adminEditModal"></div>';
 
