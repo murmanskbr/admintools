@@ -2482,7 +2482,13 @@
               if (!start) throw new Error("Укажите дату неактива.");
               if (type === "group" && (!end || end < start)) throw new Error("Укажите корректный период неактива.");
 
-              var overlapCheck = await window.BR_API.inactiveRequestOverlapCheck(user.token, start, end);\n\n              if (overlapCheck && overlapCheck.has_overlap) {\n                throw new Error("У вас уже есть одобренный неактив, пересекающийся с выбранным периодом.");\n              }\n\n              await window.BR_API.inactiveRequestCreate(
+              var overlapCheck = await window.BR_API.inactiveRequestOverlapCheck(user.token, start, end);
+
+              if (overlapCheck && overlapCheck.has_overlap) {
+                throw new Error("У вас уже есть одобренный неактив, пересекающийся с выбранным периодом.");
+              }
+
+              await window.BR_API.inactiveRequestCreate(
                 user.token,
                 type,
                 start,
