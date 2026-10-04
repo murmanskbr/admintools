@@ -379,7 +379,8 @@
         var root = document.getElementById("profileRoot");
         if (!root) return;
         try {
-          var result = await window.BR_API.getStatisticsAdmin(user.token, user.nickname);
+          var profileNickname = String(user.nickname || "").trim().replace(/\s+/g, "_");
+          var result = await window.BR_API.getStatisticsAdmin(user.token, profileNickname);
           root.innerHTML =
             '<div class="box"><div class="form-grid">' +
               '<div class="form-field"><label>Никнейм аккаунта</label><input class="profile-input" readonly value="' + E(user.nickname) + '"></div>' +
