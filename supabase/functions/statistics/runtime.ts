@@ -723,7 +723,7 @@ async function updateAdmin(
     if (!item) throw new Error("STATISTICS_NOT_FOUND");
 
     const realHeaders = item.values.headers.map(
-        (header) => String(header ?? "").trim().toLowerCase()
+        (header: unknown) => String(header ?? "").trim().toLowerCase()
     );
 
     for (const [field] of entries) {
@@ -915,7 +915,6 @@ async function normativeMark(
     });
 
     return {
-        success: true,
         google_sheet: result,
         ...googlePublicStatistics(result)
     };
