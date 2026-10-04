@@ -1596,6 +1596,7 @@
 
   function gameActivity(user) {
     var refreshTimer = null;
+    var isManagement = user && user.role === "management";
 
     function stateLabel(state) {
       return state === "in_game" ? "В игре" : "Не в игре";
@@ -1640,7 +1641,7 @@
       }, type === "success" ? 3500 : 5000);
     }
 
-    function render(root, mine, control, keepContent) {
+    function render(root, mine, control) {
       var mineState =
         mine && mine.state === "in_game"
           ? "in_game"
@@ -1650,6 +1651,11 @@
         mine && mine.last_event
           ? mine.last_event
           : null;
+
+      var history =
+        mine && Array.isArray(mine.history)
+          ? mine.history
+          : [];
 
       var summary =
         control && control.summary
@@ -1697,6 +1703,31 @@
           '<tr><td colspan="4" class="table-empty">Других активных пользователей нет.</td></tr>';
       }
 
+      var historyRows = history.map(function (item) {
+        var state =
+          item && item.status === "in_game"
+            ? "in_game"
+            : "out_game";
+
+        return (
+          '<tr>' +
+            '<td>' +
+              E(item && item.event_at ? formatDateTime(item.event_at) : "—") +
+            '</td>' +
+            '<td><span class="badge ' +
+              stateClass(state) +
+            '">' +
+              E(eventLabel(state)) +
+            '</span></td>' +
+          '</tr>'
+        );
+      }).join("");
+
+      if (!historyRows) {
+        historyRows =
+          '<tr><td colspan="2" class="table-empty">История пока пуста.</td></tr>';
+      }
+
       var recentRows = recent.map(function (item) {
         var state =
           item && item.status === "in_game"
@@ -1722,6 +1753,63 @@
         recentRows =
           '<tr><td colspan="3" class="table-empty">Событий пока нет.</td></tr>';
       }
+
+      var personalHtml =
+        '<div class="page-toolbar game-control-toolbar">' +
+          '<div><small>МОЯ ИСТОРИЯ</small><b>Последние входы и выходы</b></div>' +
+          '<button class="button button-secondary" id="gameActivityRefresh" type="button">↻ Обновить</button>' +
+        '</div>' +
+        '<div class="box table-box game-activity-table-box">' +
+          '<table class="game-activity-table"><thead><tr>' +
+            '<th>Время</th><th>Событие</th>' +
+          '</tr></thead><tbody>' +
+            historyRows +
+          '</tbody></table>' +
+        '</div>';
+
+      var managementHtml =
+        '<div class="game-control-grid">' +
+          '<div class="box game-online-card">' +
+            '<small>СЕЙЧАС В ИГРЕ</small>' +
+            '<strong>' + E(String(summary.in_game == null ? 0 : summary.in_game)) + '</strong>' +
+            '<span>из ' + E(String(summary.total_active == null ? 0 : summary.total_active)) + ' остальных активных пользователей</span>' +
+          '</div>' +
+          '<div class="box game-online-card">' +
+            '<small>НЕ В ИГРЕ</small>' +
+            '<strong>' + E(String(summary.out_game == null ? 0 : summary.out_game)) + '</strong>' +
+            '<span>последний зафиксированный статус</span>' +
+          '</div>' +
+          '<div class="box game-online-card">' +
+            '<small>ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ</small>' +
+            '<strong>' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</strong>' +
+            '<span>данные из Supabase</span>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="page-toolbar game-control-toolbar">' +
+          '<div><small>КОНТРОЛЬ</small><b>Кто сейчас в игре</b></div>' +
+          '<button class="button button-secondary" id="gameActivityRefresh" type="button">↻ Обновить</button>' +
+        '</div>' +
+
+        '<div class="box table-box game-activity-table-box">' +
+          '<table class="game-activity-table"><thead><tr>' +
+            '<th>Никнейм</th><th>Должность</th><th>Статус</th><th>Последнее изменение</th>' +
+          '</tr></thead><tbody>' +
+            currentRows +
+          '</tbody></table>' +
+        '</div>' +
+
+        '<div class="page-toolbar game-control-toolbar">' +
+          '<div><small>ЖУРНАЛ</small><b>Последние входы и выходы</b></div>' +
+        '</div>' +
+
+        '<div class="box table-box game-activity-table-box">' +
+          '<table class="game-activity-table"><thead><tr>' +
+            '<th>Время</th><th>Никнейм</th><th>Событие</th>' +
+          '</tr></thead><tbody>' +
+            recentRows +
+          '</tbody></table>' +
+        '</div>';
 
       var html =
         '<div class="game-activity-grid">' +
@@ -1758,56 +1846,10 @@
             '</div>' +
             '<div class="game-activity-note">Нажмите кнопку только при фактическом входе или выходе из игры. Событие сохраняется в журнале.</div>' +
           '</section>' +
-
-          '<div class="game-control-grid">' +
-            '<div class="box game-online-card">' +
-              '<small>СЕЙЧАС В ИГРЕ</small>' +
-              '<strong>' + E(String(summary.in_game == null ? 0 : summary.in_game)) + '</strong>' +
-              '<span>из ' + E(String(summary.total_active == null ? 0 : summary.total_active)) + ' остальных активных пользователей</span>' +
-            '</div>' +
-            '<div class="box game-online-card">' +
-              '<small>НЕ В ИГРЕ</small>' +
-              '<strong>' + E(String(summary.out_game == null ? 0 : summary.out_game)) + '</strong>' +
-              '<span>последний зафиксированный статус</span>' +
-            '</div>' +
-            '<div class="box game-online-card">' +
-              '<small>ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ</small>' +
-              '<strong>' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</strong>' +
-              '<span>данные из Supabase</span>' +
-            '</div>' +
-          '</div>' +
-
-          '<div class="page-toolbar game-control-toolbar">' +
-            '<div><small>КОНТРОЛЬ</small><b>Кто сейчас в игре</b></div>' +
-            '<button class="button button-secondary" id="gameActivityRefresh" type="button">↻ Обновить</button>' +
-          '</div>' +
-
-          '<div class="box table-box game-activity-table-box">' +
-            '<table class="game-activity-table"><thead><tr>' +
-              '<th>Никнейм</th><th>Должность</th><th>Статус</th><th>Последнее изменение</th>' +
-            '</tr></thead><tbody>' +
-              currentRows +
-            '</tbody></table>' +
-          '</div>' +
-
-          '<div class="page-toolbar game-control-toolbar">' +
-            '<div><small>ЖУРНАЛ</small><b>Последние входы и выходы</b></div>' +
-          '</div>' +
-
-          '<div class="box table-box game-activity-table-box">' +
-            '<table class="game-activity-table"><thead><tr>' +
-              '<th>Время</th><th>Никнейм</th><th>Событие</th>' +
-            '</tr></thead><tbody>' +
-              recentRows +
-            '</tbody></table>' +
-          '</div>' +
+          (isManagement ? managementHtml : personalHtml) +
         '</div>';
 
-      if (!keepContent) {
-        root.innerHTML = html;
-      } else {
-        root.innerHTML = html;
-      }
+      root.innerHTML = html;
 
       var state = mineState;
 
@@ -1826,6 +1868,19 @@
         }
       }
 
+      function refreshAfterChange() {
+        if (isManagement) {
+          return Promise.all([
+            window.BR_API.gamePresenceMine(user.token),
+            window.BR_API.gamePresenceControl(user.token, 200)
+          ]);
+        }
+
+        return window.BR_API.gamePresenceMine(user.token).then(function (result) {
+          return [result, null];
+        });
+      }
+
       function setState(nextState) {
         setButtons(true);
 
@@ -1841,17 +1896,13 @@
               "success"
             );
 
-            return Promise.all([
-              window.BR_API.gamePresenceMine(user.token),
-              window.BR_API.gamePresenceControl(user.token, 200)
-            ]);
+            return refreshAfterChange();
           })
           .then(function (result) {
             render(
               root,
               result[0],
-              result[1],
-              false
+              result[1]
             );
           })
           .catch(function (error) {
@@ -1894,19 +1945,25 @@
           '<div class="box"><div class="empty">Загрузка контроля онлайна...</div></div>';
       }
 
-      Promise.all([
-        window.BR_API.gamePresenceMine(user.token),
-        window.BR_API.gamePresenceControl(user.token, 200)
-      ])
+      var request = isManagement
+        ? Promise.all([
+            window.BR_API.gamePresenceMine(user.token),
+            window.BR_API.gamePresenceControl(user.token, 200)
+          ])
+        : window.BR_API.gamePresenceMine(user.token).then(function (result) {
+            return [result, null];
+          });
+
+      request
         .then(function (result) {
-          render(root, result[0], result[1], silent);
+          render(root, result[0], result[1]);
         })
         .catch(function (error) {
           if (silent && root.innerHTML) {
             showToast(
               error && error.message
                 ? error.message
-                : "Не удалось обновить контроль онлайна.",
+                : "Не удалось обновить историю входа в игру.",
               "error"
             );
             return;
@@ -1916,14 +1973,16 @@
             '<div class="box"><div class="empty">' +
               E(error && error.message
                 ? error.message
-                : "Не удалось загрузить контроль онлайна.") +
+                : "Не удалось загрузить историю входа в игру.") +
             '</div></div>';
         });
     }
 
     return {
       title: "Вход и контроль игры",
-      subtitle: "Отметьте свой вход или выход и смотрите статус всех остальных пользователей с активным доступом",
+      subtitle: isManagement
+        ? "Отметьте свой вход или выход и контролируйте статус остальных пользователей"
+        : "Отметьте свой вход или выход и просматривайте только свою историю",
       render: function () {
         return (
           '<div id="gameActivityRoot">' +
