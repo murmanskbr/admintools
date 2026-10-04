@@ -1755,9 +1755,18 @@
       }
 
       var personalHtml =
+        '<div class="box game-activity-personal-actions">' +
+          '<div class="game-activity-buttons">' +
+            '<button class="button button-primary" id="gameEnterButton" type="button"' +
+              (mineState === "in_game" ? " disabled" : "") +
+              '>Вошёл в игру</button>' +
+            '<button class="button button-secondary" id="gameExitButton" type="button"' +
+              (mineState !== "in_game" ? " disabled" : "") +
+              '>Вышел из игры</button>' +
+          '</div>' +
+        '</div>' +
         '<div class="page-toolbar game-control-toolbar">' +
-          '<div><small>МОЯ ИСТОРИЯ</small><b>Последние входы и выходы</b></div>' +
-          '<button class="button button-secondary" id="gameActivityRefresh" type="button">↻ Обновить</button>' +
+          '<div><small>МОЯ ИСТОРИЯ</small><b>Входы и выходы</b></div>' +
         '</div>' +
         '<div class="box table-box game-activity-table-box">' +
           '<table class="game-activity-table"><thead><tr>' +
@@ -1811,42 +1820,56 @@
           '</tbody></table>' +
         '</div>';
 
+      var managementStatusCard =
+        '<section class="box game-activity-card">' +
+          '<div class="game-activity-head">' +
+            '<div><small>ИГРОВОЙ СТАТУС</small><h2>Ваш статус в игре</h2></div>' +
+            '<span class="badge ' +
+              stateClass(mineState) +
+            '">' +
+              E(stateLabel(mineState)) +
+            '</span>' +
+          '</div>' +
+          '<div class="game-activity-current">' +
+            '<div class="game-activity-current-icon">' +
+              (mineState === "in_game" ? "●" : "○") +
+            '</div>' +
+            '<div><strong>' +
+              E(stateLabel(mineState)) +
+              '</strong><span>' +
+              (
+                lastEvent && lastEvent.event_at
+                  ? "Последнее изменение: " + E(formatDateTime(lastEvent.event_at))
+                  : "Вы ещё не отмечали вход или выход"
+              ) +
+            '</span></div>' +
+          '</div>' +
+          '<div class="game-activity-buttons">' +
+            '<button class="button button-primary" id="gameEnterButton" type="button"' +
+              (mineState === "in_game" ? " disabled" : "") +
+              '>Вошёл в игру</button>' +
+            '<button class="button button-secondary" id="gameExitButton" type="button"' +
+              (mineState !== "in_game" ? " disabled" : "") +
+              '>Вышел из игры</button>' +
+          '</div>' +
+          '<div class="game-activity-note">Нажмите кнопку только при фактическом входе или выходе из игры. Событие сохраняется в журнале.</div>' +
+        '</section>';
+
+      var personalButtons =
+        '<div class="box game-activity-personal-actions">' +
+          '<div class="game-activity-buttons">' +
+            '<button class="button button-primary" id="gameEnterButton" type="button"' +
+              (mineState === "in_game" ? " disabled" : "") +
+              '>Вошёл в игру</button>' +
+            '<button class="button button-secondary" id="gameExitButton" type="button"' +
+              (mineState !== "in_game" ? " disabled" : "") +
+              '>Вышел из игры</button>' +
+          '</div>' +
+        '</div>';
+
       var html =
         '<div class="game-activity-grid">' +
-          '<section class="box game-activity-card">' +
-            '<div class="game-activity-head">' +
-              '<div><small>ИГРОВОЙ СТАТУС</small><h2>Ваш статус в игре</h2></div>' +
-              '<span class="badge ' +
-                stateClass(mineState) +
-              '">' +
-                E(stateLabel(mineState)) +
-              '</span>' +
-            '</div>' +
-            '<div class="game-activity-current">' +
-              '<div class="game-activity-current-icon">' +
-                (mineState === "in_game" ? "●" : "○") +
-              '</div>' +
-              '<div><strong>' +
-                E(stateLabel(mineState)) +
-                '</strong><span>' +
-                (
-                  lastEvent && lastEvent.event_at
-                    ? "Последнее изменение: " + E(formatDateTime(lastEvent.event_at))
-                    : "Вы ещё не отмечали вход или выход"
-                ) +
-              '</span></div>' +
-            '</div>' +
-            '<div class="game-activity-buttons">' +
-              '<button class="button button-primary" id="gameEnterButton" type="button"' +
-                (mineState === "in_game" ? " disabled" : "") +
-                '>Вошёл в игру</button>' +
-              '<button class="button button-secondary" id="gameExitButton" type="button"' +
-                (mineState !== "in_game" ? " disabled" : "") +
-                '>Вышел из игры</button>' +
-            '</div>' +
-            '<div class="game-activity-note">Нажмите кнопку только при фактическом входе или выходе из игры. Событие сохраняется в журнале.</div>' +
-          '</section>' +
-          (isManagement ? managementHtml : personalHtml) +
+          (isManagement ? managementStatusCard + managementHtml : personalButtons + personalHtml) +
         '</div>';
 
       root.innerHTML = html;
