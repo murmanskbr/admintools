@@ -867,6 +867,30 @@
                 );
             },
 
+        adminCreateGoogle:
+            function (token, payload) {
+                return requestStatistics(
+                    Object.assign(
+                        {
+                            action: "admin_add"
+                        },
+                        payload || {}
+                    ),
+                    token
+                );
+            },
+
+        adminDeleteGoogle:
+            function (token, nickname) {
+                return requestStatistics(
+                    {
+                        action: "admin_delete",
+                        nickname: String(nickname || "").trim()
+                    },
+                    token
+                );
+            },
+
         myStatistics:
             function (token) {
                 return requestStatistics(
