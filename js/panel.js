@@ -1779,10 +1779,13 @@
       }
 
       try {
-        var result = await window.BR_API.gamePresenceControl(
-          user.token,
-          200
-        );
+        var results = await Promise.all([
+          window.BR_API.gamePresenceControl(user.token, 200),
+          window.BR_API.gamePresenceMine(user.token)
+        ]);
+
+        var result = results[0] || {};
+        var mine = results[1] || {};
 
         var summary = result && result.summary
           ? result.summary
@@ -1815,7 +1818,7 @@
 
         if (!currentRows) {
           currentRows =
-            '<tr><td colspan="4" class="table-empty">Активных администраторов нет.</td></tr>';
+            '<tr><td colspan="4" class="table-empty">Активных пользователей с доступом нет.</td></tr>';
         }
 
         var recentRows = recent.map(function (item) {
@@ -1836,21 +1839,22 @@
         }
 
         root.innerHTML =
+          '<div id="gameViewerStatus"></div>' +
           '<div class="game-control-grid">' +
             '<div class="box game-online-card">' +
               '<small>СЕЙЧАС В ИГРЕ</small>' +
               '<strong>' + E(String(summary.in_game)) + '</strong>' +
-              '<span>из ' + E(String(summary.total_active)) + ' активных администраторов</span>' +
+              '<span>из ' + E(String(summary.total_active)) + ' активных пользователей с доступом</span>' +
             '</div>' +
             '<div class="box game-online-card">' +
               '<small>НЕ В ИГРЕ</small>' +
               '<strong>' + E(String(summary.out_game)) + '</strong>' +
-              '<span>последний зафиксированный статус</span>' +
+              '<span>по последнему зафиксированному статусу</span>' +
             '</div>' +
             '<div class="box game-online-card">' +
-              '<small>ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ</small>' +
-              '<strong>' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</strong>' +
-              '<span>данные из Supabase</span>' +
+              '<small>ПОКАЗАНО ПОЛЬЗОВАТЕЛЕЙ</small>' +
+              '<strong>' + E(String(summary.total_active)) + '</strong>' +
+              '<span>ваш аккаунт скрыт из списка</span>' +
             '</div>' +
           '</div>' +
           '<div class="page-toolbar game-control-toolbar">' +
@@ -1870,6 +1874,11 @@
               recentRows +
             '</tbody></table>' +
           '</div>';
+
+        var viewerRoot = document.getElementById("gameViewerStatus");
+        if (viewerRoot) {
+          renderAdmin(viewerRoot, mine);
+        }
 
         var refresh = document.getElementById("gameActivityRefresh");
         if (refresh) {
