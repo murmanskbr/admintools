@@ -75,6 +75,8 @@
     if (!isPageReload()) return;
 
     try { sessionStorage.removeItem(STATS_CACHE_KEY); } catch (_) {}
+    try { sessionStorage.removeItem("br_statistics_cache"); } catch (_) {}
+    try { sessionStorage.removeItem("br_all_statistics_cache"); } catch (_) {}
   }
 
   function getSession() {
@@ -438,8 +440,12 @@
       }
     }
 
-    if (options.load) {
-      Promise.resolve(options.load(session.user)).catch(function (error) {
+    function loadPageData() {
+      if (!options.load) return Promise.resolve();
+
+      return Promise.resolve(
+        options.load(session.user, true)
+      ).catch(function (error) {
         console.error(
           "[BR AdminTools] Ошибка загрузки страницы:",
           {
@@ -449,6 +455,21 @@
         );
       });
     }
+
+    loadPageData();
+
+    window.addEventListener("pageshow", function (event) {
+      if (!event.persisted) return;
+
+      var currentSession = getSession();
+
+      if (!currentSession) {
+        goToLogin();
+        return;
+      }
+
+      loadPageData();
+    });
   }
 
   window.addEventListener("error", function (event) {
