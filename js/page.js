@@ -22,7 +22,21 @@
   }
 
   function save(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
+    try {
+      localStorage.setItem(
+        key,
+        JSON.stringify(value)
+      );
+    } catch (error) {
+      console.error(
+        "[BR AdminTools] Не удалось сохранить локальные данные:",
+        {
+          key: key,
+          error: error
+        }
+      );
+      throw error;
+    }
   }
 
   function num(value) {
@@ -992,6 +1006,10 @@
 
         renderTable(user);
       }).catch(function (error) {
+        console.error(
+          "[BR AdminTools] Ошибка общей статистики:",
+          error
+        );
         root.innerHTML = '<div class="box"><div class="empty">' +
           E(error.message || "Не удалось загрузить статистику администрации.") +
           '</div></div>';
@@ -2192,6 +2210,10 @@
           });
         }
       }).catch(function (error) {
+        console.error(
+          "[BR AdminTools] Ошибка открытия норматива:",
+          error
+        );
         document.getElementById("normativeDetailRoot").innerHTML =
           '<div class="empty">' + E(error.message || "Не удалось открыть норматив.") + '</div>';
       });
