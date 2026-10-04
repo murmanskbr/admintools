@@ -12,12 +12,15 @@
 <body data-page="admin-management">
 <div id="app"></div>
 
-<script src="../js/api.js?v=20261004-2230"></script>
-<script src="../js/core.js?v=20261004-2230"></script>
-
+<script src="../js/api.js?v=20261004-2305"></script>
 <script>
 (function () {
   "use strict";
+
+  var SESSION_IDLE_MS = 180000;
+  var COOKIE = "br_session";
+  var timer = null;
+  var heartbeat = null;
 
   function esc(value) {
     return String(value == null ? "" : value)
@@ -28,442 +31,536 @@
       .replace(/'/g, "&#039;");
   }
 
-  function buildPage(user) {
-    var state = {
-      section: "create",
-      nicknames: [],
-      sections: [],
-      currentNickname: String(user && user.nickname || "").trim()
-    };
+  function normalizeNickname(value) {
+    return String(value == null ? "" : value)
+      .trim()
+      .replace(/_/g, " ")
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
 
-    function sessionToken() {
-      var session = window.BRApp.getSession();
+  function cookie(name) {
+    var prefix = name + "=";
+    var items = document.cookie ? document.cookie.split(";") : [];
+    for (var i = 0; i < items.length; i += 1) {
+      var item = items[i].trim();
+      if (item.indexOf(prefix) === 0) {
+        return decodeURIComponent(item.slice(prefix.length));
+      }
+    }
+    return null;
+  }
+
+  function clearSession() {
+    try { localStorage.removeItem("br_session"); } catch (_) {}
+    try { sessionStorage.removeItem("br_session"); } catch (_) {}
+    document.cookie = COOKIE + "=; Max-Age=0; Path=/; Secure; SameSite=Lax";
+  }
+
+  function readSession() {
+    var raw = cookie(COOKIE);
+
+    try {
+      if (!raw) raw = sessionStorage.getItem("br_session");
+    } catch (_) {}
+
+    try {
+      if (!raw) raw = localStorage.getItem("br_session");
+    } catch (_) {}
+
+    if (!raw) return null;
+
+    try {
+      var session = JSON.parse(raw);
+      if (!session || !session.user || !session.user.token) {
+        return null;
+      }
+
+      var expires = Number(session.expires);
+      var idleUntil = Number(session.idle_until);
+
+      if (Number.isFinite(expires) && expires <= Date.now()) {
+        clearSession();
+        return null;
+      }
+
+      if (Number.isFinite(idleUntil) && idleUntil <= Date.now()) {
+        clearSession();
+        return null;
+      }
+
+      return session;
+    } catch (_) {
+      clearSession();
+      return null;
+    }
+  }
+
+  function saveSession(session) {
+    var raw = JSON.stringify(session);
+
+    try {
+      if (session.remember === true) {
+        document.cookie =
+          COOKIE + "=" + encodeURIComponent(raw) +
+          "; Max-Age=2592000; Path=/; Secure; SameSite=Lax";
+        sessionStorage.removeItem("br_session");
+      } else {
+        sessionStorage.setItem("br_session", raw);
+        document.cookie = COOKIE + "=; Max-Age=0; Path=/; Secure; SameSite=Lax";
+      }
+    } catch (_) {}
+  }
+
+  function goLogin() {
+    if (timer) clearInterval(timer);
+    if (heartbeat) clearInterval(heartbeat);
+    timer = null;
+    heartbeat = null;
+    clearSession();
+    location.replace(new URL("../index.html", location.href).href);
+  }
+
+  function touchActivity() {
+    var session = readSession();
+    if (!session) {
+      goLogin();
+      return;
+    }
+
+    session.idle_until = Date.now() + SESSION_IDLE_MS;
+    saveSession(session);
+  }
+
+  function sessionSeconds() {
+    var session = readSession();
+    if (!session) return -1;
+
+    var idleUntil = Number(session.idle_until);
+    if (!Number.isFinite(idleUntil)) {
+      session.idle_until = Date.now() + SESSION_IDLE_MS;
+      saveSession(session);
+      idleUntil = session.idle_until;
+    }
+
+    return Math.ceil((idleUntil - Date.now()) / 1000);
+  }
+
+  function renderShell(user) {
+    var nickname = String(user.nickname || "BR");
+    var role = String(user.role || "");
+
+    if (role !== "management") {
+      location.replace(new URL("../pages/dashboard.html", location.href).href);
+      return;
+    }
+
+    var nav = [
+      ["pages/dashboard.html", "⌂", "Главная"],
+      ["pages/profile.html", "◉", "Мой профиль"],
+      ["pages/access.html", "⚿", "Выдать доступ"],
+      ["pages/statistics-all.html", "▥", "Статистика администрации"],
+      ["pages/admin-management.html", "♙", "Создание / удаление администратора"],
+      ["pages/notifications.html", "!", "Уведомления"],
+      ["pages/normatives-all.html", "↑", "Проставка нормативов"],
+      ["pages/requests-all.html", "✦", "Обращения администрации"],
+      ["pages/game-activity.html", "◉", "Вход в игру"],
+      ["pages/logs.html", "◷", "Журнал действий"],
+      ["pages/rules.html", "☷", "Регламент"],
+      ["pages/settings.html", "⚙", "Настройки"]
+    ];
+
+    var current = "admin-management.html";
+    var links = nav.map(function (item) {
+      var active = item[0].replace("pages/", "") === current ? " active" : "";
+      return '<a class="side-link' + active + '" href="../' + item[0] + '">' +
+        "<span>" + item[1] + "</span>" + esc(item[2]) + "</a>";
+    }).join("");
+
+    document.getElementById("app").innerHTML =
+      '<div class="panel">' +
+        '<aside class="sidebar" id="sidebar">' +
+          '<div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
+          '<div class="section-title">ПАНЕЛЬ</div>' +
+          links.split(nav[8] ? '<a' : '<x')[0] +
+          '<div class="section-title">КОНТРОЛЬ</div>' +
+          links.substring(
+            links.indexOf('<a class="side-link' + (nav[8][0].replace("pages/", "") === current ? " active" : "") + '"')
+          ) +
+          '<div class="sidebar-bottom">' +
+            '<div class="user-mini"><div class="avatar">' +
+              esc(nickname.slice(0, 2).toUpperCase()) +
+            '</div><div><b>' + esc(nickname) + '</b><small>' +
+              esc(user.position || "") + '</small></div></div>' +
+            '<button class="logout" id="logout" type="button">Выйти</button>' +
+          '</div>' +
+        '</aside>' +
+        '<div class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-hidden="true"></div>' +
+        '<main class="main">' +
+          '<header class="top">' +
+            '<button class="mobile-menu" id="mobileMenu" type="button" aria-label="Открыть меню">☰</button>' +
+            '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span>' +
+            '<div class="top-right"><span id="sessionTimer">Сессия</span></div>' +
+          '</header>' +
+          '<section class="content">' +
+            '<div class="head"><h1>Создание / удаление администратора</h1><p>Управление администраторами в Google Таблице</p></div>' +
+            '<div id="adminContent"></div>' +
+          '</section>' +
+          '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><strong>BR</strong><span>' +
+            esc(nickname) + '</span><small>BLACK RUSSIA • МУРМАНСК</small></div></div>' +
+        '</main>' +
+      '</div>';
+
+    // Replace the combined link list with explicit menu groups.
+    var sidebar = document.getElementById("sidebar");
+    var groupHtml =
+      '<div class="section-title">ПАНЕЛЬ</div>' +
+      nav.slice(0, 2).map(function (item) {
+        var active = item[0].replace("pages/", "") === current ? " active" : "";
+        return '<a class="side-link' + active + '" href="../' + item[0] + '"><span>' + item[1] + '</span>' + esc(item[2]) + '</a>';
+      }).join("") +
+      '<div class="section-title">УПРАВЛЕНИЕ</div>' +
+      nav.slice(2, 8).map(function (item) {
+        var active = item[0].replace("pages/", "") === current ? " active" : "";
+        return '<a class="side-link' + active + '" href="../' + item[0] + '"><span>' + item[1] + '</span>' + esc(item[2]) + '</a>';
+      }).join("") +
+      '<div class="section-title">КОНТРОЛЬ</div>' +
+      nav.slice(8, 11).map(function (item) {
+        var active = item[0].replace("pages/", "") === current ? " active" : "";
+        return '<a class="side-link' + active + '" href="../' + item[0] + '"><span>' + item[1] + '</span>' + esc(item[2]) + '</a>';
+      }).join("") +
+      '<div class="section-title">СИСТЕМА</div>' +
+      '<a class="side-link" href="../pages/settings.html"><span>⚙</span>Настройки</a>' +
+      '<div class="sidebar-bottom">' +
+        '<div class="user-mini"><div class="avatar">' + esc(nickname.slice(0, 2).toUpperCase()) +
+        '</div><div><b>' + esc(nickname) + '</b><small>' + esc(user.position || "") + '</small></div></div>' +
+        '<button class="logout" id="logout" type="button">Выйти</button>' +
+      '</div>';
+    sidebar.innerHTML =
+      '<div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
+      groupHtml;
+
+    document.documentElement.classList.toggle(
+      "theme-light",
+      String(user.theme || "dark").toLowerCase() === "light"
+    );
+
+    document.getElementById("adminContent").innerHTML =
+      '<div class="box"><div class="stats-toolbar-actions">' +
+        '<button class="button button-secondary is-active" id="adminCreateTab" type="button">Создать администратора</button>' +
+        '<button class="button button-secondary" id="adminDeleteTab" type="button">Удалить администратора</button>' +
+      '</div></div>' +
+
+      '<section id="adminCreatePanel">' +
+        '<div class="box">' +
+          '<div class="page-toolbar"><div><small>GOOGLE SHEETS</small><b>Создать администратора</b></div>' +
+          '<div><span id="adminGoogleCount" class="field-hint">Загрузка данных...</span></div></div>' +
+          '<form id="adminCreateForm">' +
+            '<div class="form-grid">' +
+              '<div class="form-field form-full"><label>Раздел таблицы</label><select id="adminSection" class="form-select"><option value="АДМИНИСТРАТОРЫ">АДМИНИСТРАТОРЫ</option></select></div>' +
+              '<div class="form-field"><label>Никнейм</label><input id="adminNickname" class="form-input" required placeholder="Например: Nikita_Zvezda"></div>' +
+              '<div class="form-field"><label>Возраст</label><input id="adminAge" class="form-input" type="number" min="1" max="100" placeholder="Возраст"></div>' +
+              '<div class="form-field"><label>Доступ с ПК</label><select id="adminPcAccess" class="form-select"><option value="">Не указано</option><option value="Да">Да</option><option value="Нет">Нет</option></select></div>' +
+              '<div class="form-field"><label>Должность</label><input id="adminPosition" class="form-input" placeholder="Должность"></div>' +
+              '<div class="form-field"><label>Неактивы</label><input id="adminInactives" class="form-input" value="0/14" placeholder="0/14"></div>' +
+              '<div class="form-field"><label>Баллы активности</label><input id="adminActivityPoints" class="form-input" type="number" min="0" value="0"></div>' +
+              '<div class="form-field"><label>Дни на посту / уровне</label><input id="adminPostDays" class="form-input" type="number" min="0" value="0"></div>' +
+              '<div class="form-field"><label>Страйки</label><input id="adminStrikes" class="form-input" type="number" min="0" value="0"></div>' +
+              '<div class="form-field"><label>Предупреждения</label><input id="adminWarnings" class="form-input" type="number" min="0" value="0"></div>' +
+              '<div class="form-field"><label>Баллы</label><input id="adminPoints" class="form-input" type="number" min="0" value="0"></div>' +
+              '<div class="form-field"><label>Последнее повышение</label><input id="adminLastPromotion" class="form-input" placeholder="Дата / значение"></div>' +
+            '</div>' +
+            '<div id="adminCreateStatus" class="settings-status" hidden></div>' +
+            '<div class="form-actions"><button class="button button-primary" id="adminCreateSubmit" type="submit">Добавить в таблицу</button></div>' +
+          '</form>' +
+        '</div>' +
+      '</section>' +
+
+      '<section id="adminDeletePanel" hidden>' +
+        '<div class="box">' +
+          '<div class="page-toolbar"><div><small>GOOGLE SHEETS</small><b>Удалить администратора</b></div></div>' +
+          '<form id="adminDeleteForm">' +
+            '<div class="form-grid"><div class="form-field form-full"><label>Никнейм администратора</label>' +
+            '<input id="adminDeleteNickname" class="form-input" list="adminNicknameList" autocomplete="off" required placeholder="Выберите или введите никнейм">' +
+            '<datalist id="adminNicknameList"></datalist>' +
+            '<span class="field-hint">Поиск по всей Google Таблице. Свою учётную запись удалить нельзя.</span></div></div>' +
+            '<div id="adminDeleteStatus" class="settings-status" hidden></div>' +
+            '<div class="form-actions"><button class="button button-primary" id="adminDeleteSubmit" type="submit">Удалить администратора</button></div>' +
+          '</form>' +
+        '</div>' +
+      '</section>';
+
+    bindPage(user);
+  }
+
+  function bindPage(user) {
+    var state = { nicknames: [], sections: [] };
+
+    function status(id, message, success) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.hidden = !message;
+      el.textContent = message || "";
+      el.className = "settings-status" + (success ? " is-success" : " is-error");
+    }
+
+    function token() {
+      var session = readSession();
       if (!session || !session.user || !session.user.token) {
         throw new Error("Сессия истекла. Войдите в панель заново.");
       }
       return session.user.token;
     }
 
-    function setTab(name) {
-      state.section = name === "delete" ? "delete" : "create";
-
-      var createPanel = document.getElementById("adminCreatePanel");
-      var deletePanel = document.getElementById("adminDeletePanel");
-      var createTab = document.getElementById("adminCreateTab");
-      var deleteTab = document.getElementById("adminDeleteTab");
-
-      if (createPanel) createPanel.hidden = state.section !== "create";
-      if (deletePanel) deletePanel.hidden = state.section !== "delete";
-      if (createTab) createTab.classList.toggle("is-active", state.section === "create");
-      if (deleteTab) deleteTab.classList.toggle("is-active", state.section === "delete");
-    }
-
-    function setStatus(id, message, good) {
-      var root = document.getElementById(id);
-      if (!root) return;
-
-      root.hidden = !message;
-      root.textContent = message || "";
-      root.className = "settings-status" + (good ? " is-success" : " is-error");
-    }
-
-    function renderSectionOptions() {
-      var select = document.getElementById("adminSection");
-      if (!select) return;
-
-      var values = state.sections.length
-        ? state.sections
-        : ["АДМИНИСТРАТОРЫ"];
-
-      select.innerHTML = values.map(function (section) {
-        return '<option value="' + esc(section) + '">' + esc(section) + "</option>";
-      }).join("");
-
-      var preferred = values.find(function (section) {
-        return String(section).toLowerCase() === "администраторы";
+    function renderData(result) {
+      var rows = Array.isArray(result && result.rows) ? result.rows : [];
+      var headers = Array.isArray(result && result.headers) ? result.headers : [];
+      var nicknameIndex = headers.findIndex(function (h) {
+        return ["никнейм","ник","nickname","nick","логин","login","username"]
+          .indexOf(String(h || "").trim().toLowerCase()) >= 0;
       });
 
-      select.value = preferred || values[0];
-    }
+      state.nicknames = rows.map(function (row) {
+        return nicknameIndex >= 0 ? String(row[nicknameIndex] || "").trim() : "";
+      }).filter(Boolean);
 
-    function refreshGoogleData() {
-      return window.BR_API.adminsGoogleList(sessionToken()).then(function (result) {
-        var rows = Array.isArray(result && result.rows) ? result.rows : [];
-        var headers = Array.isArray(result && result.headers) ? result.headers : [];
-        var nicknameIndex = headers.findIndex(function (header) {
-          var value = String(header || "").trim().toLowerCase();
-          return ["никнейм", "ник", "nickname", "nick", "логин", "login", "username"].indexOf(value) >= 0;
-        });
-
-        state.nicknames = rows.map(function (row) {
-          return nicknameIndex >= 0
-            ? String(row[nicknameIndex] || "").trim()
-            : "";
-        }).filter(Boolean).sort(function (a, b) {
-          return a.localeCompare(b, "ru");
-        });
-
-        state.nicknames = state.nicknames.filter(function (nickname) {
-          return nickname.toLowerCase() !== state.currentNickname.toLowerCase();
-        });
-        state.nicknames = Array.from(new Set(state.nicknames));
-
-        state.sections = Array.isArray(result && result.sections)
-          ? result.sections.map(function (item) {
-              return String(item && item.title || "").trim();
-            }).filter(Boolean)
-          : [];
-
-        state.sections = Array.from(new Set(state.sections));
-
-        renderSectionOptions();
-
-        var datalist = document.getElementById("adminNicknameList");
-        if (datalist) {
-          datalist.innerHTML = state.nicknames.map(function (nickname) {
-            return '<option value="' + esc(nickname) + '"></option>';
-          }).join("");
-        }
-
-        var count = document.getElementById("adminGoogleCount");
-        if (count) {
-          count.textContent = "Администраторов в таблице: " + state.nicknames.length;
-        }
-      }).catch(function (error) {
-        setStatus("adminCreateStatus", error.message || "Не удалось получить данные Google Таблицы.", false);
-        setStatus("adminDeleteStatus", error.message || "Не удалось получить данные Google Таблицы.", false);
+      var me = normalizeNickname(user.nickname);
+      state.nicknames = Array.from(new Set(state.nicknames.filter(function (name) {
+        return normalizeNickname(name) !== me;
+      }))).sort(function (a, b) {
+        return a.localeCompare(b, "ru");
       });
+
+      state.sections = Array.isArray(result && result.sections)
+        ? Array.from(new Set(result.sections.map(function (item) {
+            return String(item && item.title || "").trim();
+          }).filter(Boolean)))
+        : [];
+
+      var sectionSelect = document.getElementById("adminSection");
+      if (sectionSelect && state.sections.length) {
+        sectionSelect.innerHTML = state.sections.map(function (name) {
+          return '<option value="' + esc(name) + '">' + esc(name) + '</option>';
+        }).join("");
+        sectionSelect.value = state.sections.find(function (name) {
+          return normalizeNickname(name) === normalizeNickname("АДМИНИСТРАТОРЫ");
+        }) || state.sections[0];
+      }
+
+      var list = document.getElementById("adminNicknameList");
+      if (list) {
+        list.innerHTML = state.nicknames.map(function (name) {
+          return '<option value="' + esc(name) + '"></option>';
+        }).join("");
+      }
+
+      var count = document.getElementById("adminGoogleCount");
+      if (count) count.textContent = "Администраторов в таблице: " + state.nicknames.length;
     }
 
-    function clearCreateForm() {
-      var form = document.getElementById("adminCreateForm");
-      if (form) form.reset();
-      renderSectionOptions();
+    async function refresh() {
+      try {
+        renderData(await window.BR_API.adminsGoogleList(token()));
+      } catch (error) {
+        status("adminCreateStatus", error.message || "Не удалось получить данные Google Таблицы.", false);
+        status("adminDeleteStatus", error.message || "Не удалось получить данные Google Таблицы.", false);
+      }
     }
 
-    return {
-      managementOnly: true,
-      title: "Создание / удаление администратора",
-      subtitle: "Управление администраторами в Google Таблице",
+    document.getElementById("adminCreateTab").onclick = function () {
+      document.getElementById("adminCreatePanel").hidden = false;
+      document.getElementById("adminDeletePanel").hidden = true;
+      this.classList.add("is-active");
+      document.getElementById("adminDeleteTab").classList.remove("is-active");
+    };
 
-      render: function () {
-        return '<div class="box">' +
-          '<div class="stats-toolbar-actions">' +
-            '<button class="button button-secondary is-active" id="adminCreateTab" type="button">Создать администратора</button>' +
-            '<button class="button button-secondary" id="adminDeleteTab" type="button">Удалить администратора</button>' +
-          '</div>' +
-        '</div>' +
+    document.getElementById("adminDeleteTab").onclick = function () {
+      document.getElementById("adminCreatePanel").hidden = true;
+      document.getElementById("adminDeletePanel").hidden = false;
+      this.classList.add("is-active");
+      document.getElementById("adminCreateTab").classList.remove("is-active");
+    };
 
-        '<section id="adminCreatePanel">' +
-          '<div class="box">' +
-            '<div class="page-toolbar">' +
-              '<div><small>GOOGLE SHEETS</small><b>Создать администратора</b></div>' +
-              '<div><span id="adminGoogleCount" class="field-hint">Загрузка данных...</span></div>' +
-            '</div>' +
+    document.getElementById("adminCreateForm").onsubmit = async function (event) {
+      event.preventDefault();
+      var nickname = document.getElementById("adminNickname").value.trim();
+      if (!nickname) {
+        status("adminCreateStatus", "Укажите никнейм.", false);
+        return;
+      }
 
-            '<form id="adminCreateForm">' +
-              '<div class="form-grid">' +
+      if (!window.confirm("Добавить администратора " + nickname + " в Google Таблицу?")) return;
 
-                '<div class="form-field form-full">' +
-                  '<label>Раздел таблицы</label>' +
-                  '<select id="adminSection" class="form-select"></select>' +
-                '</div>' +
+      var button = document.getElementById("adminCreateSubmit");
+      button.disabled = true;
+      button.textContent = "Добавление…";
 
-                '<div class="form-field">' +
-                  '<label>Никнейм</label>' +
-                  '<input id="adminNickname" class="form-input" required placeholder="Например: Nikita_Zvezda">' +
-                '</div>' +
+      try {
+        await window.BR_API.adminCreateGoogle(token(), {
+          section: document.getElementById("adminSection").value.trim(),
+          admin: {
+            nickname: nickname,
+            age: document.getElementById("adminAge").value,
+            pc_access: document.getElementById("adminPcAccess").value,
+            position: document.getElementById("adminPosition").value.trim(),
+            inactives: document.getElementById("adminInactives").value.trim(),
+            activity_points: document.getElementById("adminActivityPoints").value,
+            post_days: document.getElementById("adminPostDays").value,
+            strikes: document.getElementById("adminStrikes").value,
+            warnings: document.getElementById("adminWarnings").value,
+            points: document.getElementById("adminPoints").value,
+            last_promotion: document.getElementById("adminLastPromotion").value.trim()
+          }
+        });
 
-                '<div class="form-field">' +
-                  '<label>Возраст</label>' +
-                  '<input id="adminAge" class="form-input" type="number" min="1" max="100" placeholder="Возраст">' +
-                '</div>' +
-
-                '<div class="form-field">' +
-                  '<label>Доступ с ПК</label>' +
-                  '<select id="adminPcAccess" class="form-select">' +
-                    '<option value="">Не указано</option>' +
-                    '<option value="Да">Да</option>' +
-                    '<option value="Нет">Нет</option>' +
-                  '</select>' +
-                '</div>' +
-
-                '<div class="form-field">' +
-                  '<label>Должность</label>' +
-                  '<input id="adminPosition" class="form-input" placeholder="Должность">' +
-                '</div>' +
-
-                '<div class="form-field">' +
-                  '<label>Неактивы</label>' +
-                  '<input id="adminInactives" class="form-input" value="0/14" placeholder="0/14">' +
-                '</div>' +
-
-                '<div class="form-field">' +
-                  '<label>Баллы активности</label>' +
-                  '<input id="adminActivityPoints" class="form-input" type="number" min="0" value="0">' +
-                '</div>' +
-
-                '<div class="form-field">' +
-                  '<label>Дни на посту / уровне</label>' +
-                  '<input id="adminPostDays" class="form-input" type="number" min="0" value="0">' +
-                '</div>' +
-
-                '<div class="form-field">' +
-                  '<label>Страйки</label>' +
-                  '<input id="adminStrikes" class="form-input" type="number" min="0" value="0">' +
-                '</div>' +
-
-                '<div class="form-field">' +
-                  '<label>Предупреждения</label>' +
-                  '<input id="adminWarnings" class="form-input" type="number" min="0" value="0">' +
-                '</div>' +
-
-                '<div class="form-field">' +
-                  '<label>Баллы</label>' +
-                  '<input id="adminPoints" class="form-input" type="number" min="0" value="0">' +
-                '</div>' +
-
-                '<div class="form-field">' +
-                  '<label>Последнее повышение</label>' +
-                  '<input id="adminLastPromotion" class="form-input" placeholder="Дата / значение">' +
-                '</div>' +
-
-              '</div>' +
-
-              '<div id="adminCreateStatus" class="settings-status" hidden></div>' +
-
-              '<div class="form-actions">' +
-                '<button class="button button-primary" id="adminCreateSubmit" type="submit">Добавить в таблицу</button>' +
-              '</div>' +
-            '</form>' +
-          '</div>' +
-        '</section>' +
-
-        '<section id="adminDeletePanel" hidden>' +
-          '<div class="box">' +
-            '<div class="page-toolbar">' +
-              '<div><small>GOOGLE SHEETS</small><b>Удалить администратора</b></div>' +
-            '</div>' +
-
-            '<form id="adminDeleteForm">' +
-              '<div class="form-grid">' +
-                '<div class="form-field form-full">' +
-                  '<label>Никнейм администратора</label>' +
-                  '<input id="adminDeleteNickname" class="form-input" list="adminNicknameList" autocomplete="off" required placeholder="Выберите или введите никнейм">' +
-                  '<datalist id="adminNicknameList"></datalist>' +
-                  '<span class="field-hint">Никнейм ищется по всей Google Таблице. Свою учётную запись удалить нельзя.</span>' +
-                '</div>' +
-              '</div>' +
-
-              '<div id="adminDeleteStatus" class="settings-status" hidden></div>' +
-
-              '<div class="form-actions">' +
-                '<button class="button button-primary" id="adminDeleteSubmit" type="submit">Удалить администратора</button>' +
-              '</div>' +
-            '</form>' +
-          '</div>' +
-        '</section>';
-      },
-
-      bind: function () {
-        var createTab = document.getElementById("adminCreateTab");
-        var deleteTab = document.getElementById("adminDeleteTab");
-        var createForm = document.getElementById("adminCreateForm");
-        var deleteForm = document.getElementById("adminDeleteForm");
-
-        if (createTab) createTab.onclick = function () { setTab("create"); };
-        if (deleteTab) deleteTab.onclick = function () { setTab("delete"); };
-
-        if (createForm) {
-          createForm.onsubmit = async function (event) {
-            event.preventDefault();
-            setStatus("adminCreateStatus", "", true);
-
-            var nickname = document.getElementById("adminNickname").value.trim();
-            var section = document.getElementById("adminSection").value.trim();
-
-            if (!nickname) {
-              setStatus("adminCreateStatus", "Укажите никнейм.", false);
-              return;
-            }
-
-            if (!window.confirm(
-              "Добавить администратора " + nickname + " в Google Таблицу?"
-            )) {
-              return;
-            }
-
-            var button = document.getElementById("adminCreateSubmit");
-            if (button) {
-              button.disabled = true;
-              button.textContent = "Добавление…";
-            }
-
-            try {
-              var result = await window.BR_API.adminCreateGoogle(
-                sessionToken(),
-                {
-                  section: section,
-                  admin: {
-                    nickname: nickname,
-                    age: document.getElementById("adminAge").value,
-                    pc_access: document.getElementById("adminPcAccess").value,
-                    position: document.getElementById("adminPosition").value.trim(),
-                    inactives: document.getElementById("adminInactives").value.trim(),
-                    activity_points: document.getElementById("adminActivityPoints").value,
-                    post_days: document.getElementById("adminPostDays").value,
-                    strikes: document.getElementById("adminStrikes").value,
-                    warnings: document.getElementById("adminWarnings").value,
-                    points: document.getElementById("adminPoints").value,
-                    last_promotion: document.getElementById("adminLastPromotion").value.trim()
-                  }
-                }
-              );
-
-              setStatus(
-                "adminCreateStatus",
-                "Администратор " + nickname + " добавлен в Google Таблицу.",
-                true
-              );
-
-              clearCreateForm();
-              await refreshGoogleData();
-            } catch (error) {
-              setStatus(
-                "adminCreateStatus",
-                error.message || "Не удалось добавить администратора.",
-                false
-              );
-            } finally {
-              if (button) {
-                button.disabled = false;
-                button.textContent = "Добавить в таблицу";
-              }
-            }
-          };
-        }
-
-        if (deleteForm) {
-          deleteForm.onsubmit = async function (event) {
-            event.preventDefault();
-            setStatus("adminDeleteStatus", "", true);
-
-            var nickname =
-              document.getElementById("adminDeleteNickname").value.trim();
-
-            if (!nickname) {
-              setStatus("adminDeleteStatus", "Укажите никнейм.", false);
-              return;
-            }
-
-            if (
-              state.currentNickname &&
-              nickname.toLowerCase() === state.currentNickname.toLowerCase()
-            ) {
-              setStatus(
-                "adminDeleteStatus",
-                "Нельзя удалить самого себя.",
-                false
-              );
-              return;
-            }
-
-            if (!state.nicknames.some(function (item) {
-              return item.toLowerCase() === nickname.toLowerCase();
-            })) {
-              setStatus(
-                "adminDeleteStatus",
-                "Такого администратора сейчас нет в загруженной таблице.",
-                false
-              );
-              return;
-            }
-
-            if (!window.confirm(
-              "Вы действительно хотите удалить администратора " +
-              nickname +
-              " из Google Таблицы?\n\nБудут удалены найденные строки целиком."
-            )) {
-              return;
-            }
-
-            var button =
-              document.getElementById("adminDeleteSubmit");
-
-            if (button) {
-              button.disabled = true;
-              button.textContent = "Удаление…";
-            }
-
-            try {
-              var result =
-                await window.BR_API.adminDeleteGoogle(
-                  sessionToken(),
-                  nickname
-                );
-
-              var deletedCount =
-                result &&
-                result.result &&
-                Number(result.result.deleted_rows || 0);
-
-              setStatus(
-                "adminDeleteStatus",
-                "Администратор " +
-                  nickname +
-                  " удалён. Строк удалено: " +
-                  (deletedCount || 1) +
-                  ".",
-                true
-              );
-
-              document.getElementById("adminDeleteNickname").value = "";
-              await refreshGoogleData();
-            } catch (error) {
-              setStatus(
-                "adminDeleteStatus",
-                error.message || "Не удалось удалить администратора.",
-                false
-              );
-            } finally {
-              if (button) {
-                button.disabled = false;
-                button.textContent = "Удалить администратора";
-              }
-            }
-          };
-        }
-
-        setTab("create");
-        refreshGoogleData();
+        status("adminCreateStatus", "Администратор " + nickname + " добавлен в Google Таблицу.", true);
+        document.getElementById("adminCreateForm").reset();
+        await refresh();
+      } catch (error) {
+        status("adminCreateStatus", error.message || "Не удалось добавить администратора.", false);
+      } finally {
+        button.disabled = false;
+        button.textContent = "Добавить в таблицу";
       }
     };
+
+    document.getElementById("adminDeleteForm").onsubmit = async function (event) {
+      event.preventDefault();
+
+      var nickname = document.getElementById("adminDeleteNickname").value.trim();
+      if (!nickname) {
+        status("adminDeleteStatus", "Укажите никнейм.", false);
+        return;
+      }
+
+      if (normalizeNickname(nickname) === normalizeNickname(user.nickname)) {
+        status("adminDeleteStatus", "Нельзя удалить самого себя.", false);
+        return;
+      }
+
+      var exists = state.nicknames.some(function (name) {
+        return normalizeNickname(name) === normalizeNickname(nickname);
+      });
+
+      if (!exists) {
+        status("adminDeleteStatus", "Такого администратора сейчас нет в загруженной таблице.", false);
+        return;
+      }
+
+      if (!window.confirm("Вы действительно хотите удалить администратора " + nickname + "?\n\nБудет удалена найденная строка из Google Таблицы.")) {
+        return;
+      }
+
+      var button = document.getElementById("adminDeleteSubmit");
+      button.disabled = true;
+      button.textContent = "Удаление…";
+
+      try {
+        var result = await window.BR_API.adminDeleteGoogle(token(), nickname);
+        var deleted = Number(result && result.result && result.result.deleted_rows || 0);
+        status("adminDeleteStatus", "Администратор " + nickname + " удалён. Строк удалено: " + (deleted || 1) + ".", true);
+        document.getElementById("adminDeleteNickname").value = "";
+        await refresh();
+      } catch (error) {
+        status("adminDeleteStatus", error.message || "Не удалось удалить администратора.", false);
+      } finally {
+        button.disabled = false;
+        button.textContent = "Удалить администратора";
+      }
+    };
+
+    document.getElementById("logout").onclick = goLogin;
+
+    var mobileMenu = document.getElementById("mobileMenu");
+    var sidebar = document.getElementById("sidebar");
+    var backdrop = document.getElementById("mobileMenuBackdrop");
+
+    function closeMenu() {
+      if (!sidebar) return;
+      sidebar.classList.remove("open");
+      if (backdrop) {
+        backdrop.classList.remove("open");
+        backdrop.setAttribute("aria-hidden", "true");
+      }
+      if (mobileMenu) {
+        mobileMenu.textContent = "☰";
+        mobileMenu.setAttribute("aria-label", "Открыть меню");
+      }
+    }
+
+    if (mobileMenu) {
+      mobileMenu.onclick = function (event) {
+        event.preventDefault();
+        var open = !sidebar.classList.contains("open");
+        sidebar.classList.toggle("open", open);
+        if (backdrop) {
+          backdrop.classList.toggle("open", open);
+          backdrop.setAttribute("aria-hidden", open ? "false" : "true");
+        }
+        mobileMenu.textContent = open ? "×" : "☰";
+        mobileMenu.setAttribute("aria-label", open ? "Закрыть меню" : "Открыть меню");
+      };
+    }
+
+    if (backdrop) backdrop.onclick = closeMenu;
+    sidebar.querySelectorAll("a").forEach(function (link) {
+      link.onclick = closeMenu;
+    });
+
+    document.addEventListener("click", touchActivity, { capture: true });
+    document.addEventListener("keydown", touchActivity, { capture: true });
+    document.addEventListener("touchstart", touchActivity, { capture: true });
+    document.addEventListener("pointerdown", touchActivity, { capture: true });
+    document.addEventListener("wheel", touchActivity, { capture: true });
+    document.addEventListener("scroll", touchActivity, { capture: true });
+
+    function tick() {
+      var seconds = sessionSeconds();
+      var timerEl = document.getElementById("sessionTimer");
+
+      if (seconds < 0 || seconds <= 0) {
+        goLogin();
+        return;
+      }
+
+      if (timerEl) {
+        timerEl.textContent =
+          "Сессия " +
+          Math.floor(seconds / 60) +
+          ":" +
+          String(seconds % 60).padStart(2, "0");
+      }
+    }
+
+    tick();
+    if (timer) clearInterval(timer);
+    timer = setInterval(tick, 1000);
+
+    if (heartbeat) clearInterval(heartbeat);
+    heartbeat = setInterval(function () {
+      if (document.visibilityState === "hidden") return;
+      var current = readSession();
+      if (!current) {
+        goLogin();
+        return;
+      }
+      if (window.BR_API && typeof window.BR_API.me === "function") {
+        window.BR_API.me(current.user.token).catch(function () {});
+      }
+    }, 30000);
+
+    refresh();
   }
 
   function boot() {
-    try {
-      var session = window.BRApp.getSession();
+    var session = readSession();
 
-      if (!session || !session.user) {
-      window.BRApp.clearSession();
-      location.replace(new URL("../index.html", location.href).href);
+    if (!session || !session.user) {
+      goLogin();
       return;
     }
 
-      window.BRApp.init(buildPage(session.user));
-    } catch (error) {
-      console.error("[BR AdminTools] admin-management boot error:", error);
-      var root = document.getElementById("app");
-      if (root) {
-        root.innerHTML =
-          '<div class="box" style="margin:24px">' +
-          '<h2>Не удалось открыть раздел</h2>' +
-          '<p style="margin-top:8px">Произошла ошибка загрузки страницы. Обновите страницу с Ctrl+F5.</p>' +
-          '<p style="margin-top:8px;opacity:.7">' +
-          esc(error && error.message ? error.message : String(error)) +
-          '</p></div>';
-      }
-    }
+    renderShell(session.user);
   }
 
   if (document.readyState === "loading") {
