@@ -1,3 +1,5 @@
 # Google Sheets Bridge
 
-The production data source for administration statistics is the installed Google Apps Script bridge.
+The Google Apps Script bridge is the source of truth for administration statistics and normative marks.
+
+Supported actions: get, normative_mark, update_existing_field, update_existing_fields.
