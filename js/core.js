@@ -240,7 +240,12 @@
 
     var current = location.pathname.split("/").pop();
     var active = current === item[0].replace("pages/", "") ? " active" : "";
-    return '<a class="side-link' + active + '" href="../' + item[0] + '">' +
+    var target = item[0];
+    if (page === "admin-management") {
+      target += "?v=20261004-2315";
+    }
+
+    return '<a class="side-link' + active + '" href="../' + target + '">' +
       "<span>" + item[1] + "</span>" + esc(item[2]) + "</a>";
   }
 
