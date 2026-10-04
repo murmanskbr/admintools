@@ -272,12 +272,37 @@
     '</div>';
   }
 
+  function clearLegacyAppCache() {
+    if (!("serviceWorker" in navigator)) return;
+
+    navigator.serviceWorker.getRegistrations().then(function (registrations) {
+      registrations.forEach(function (registration) {
+        registration.unregister().catch(function () {});
+      });
+    }).catch(function () {});
+
+    if (!("caches" in window)) return;
+
+    caches.keys().then(function (keys) {
+      return Promise.all(
+        keys
+          .filter(function (key) {
+            return /^br-admin/i.test(key);
+          })
+          .map(function (key) {
+            return caches.delete(key);
+          })
+      );
+    }).catch(function () {});
+  }
+
   function init(options) {
     var root = document.getElementById("app");
 
     if (!root) return;
 
-    // Кэш статистики живёт только в рамках текущего сеанса навигации.
+    clearLegacyAppCache();
+
     // При полноценном F5 / Ctrl+R его очищаем, чтобы страница получила
     // действительно свежие данные.
     clearReloadCaches();
