@@ -1000,12 +1000,12 @@
     function normalizeNormativeDate(value) {
       var text = rawCellValue(value).trim();
 
-      var match = text.match(/^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/);
+      var match = text.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
       if (match) {
         return match[3] + "-" + match[2] + "-" + match[1];
       }
 
-      var slash = text.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+      var slash = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
       if (slash) {
         return slash[3] + "-" + slash[2] + "-" + slash[1];
       }
