@@ -528,6 +528,63 @@
       return -1;
     }
 
+    var normativeToastTimer = null;
+
+    function showNormativeResult(message, type) {
+      var old = document.getElementById("brNormativeToast");
+      if (old) old.remove();
+
+      var toast = document.createElement("div");
+      toast.id = "brNormativeToast";
+      toast.className = "br-normative-toast " + (
+        type === "success" ? "is-success" : "is-error"
+      );
+
+      toast.innerHTML =
+        '<span class="br-normative-toast-icon">' +
+        (type === "success" ? "✓" : "!") +
+        '</span>' +
+        '<span class="br-normative-toast-message">' +
+        E(String(message || "")) +
+        '</span>';
+
+      document.body.appendChild(toast);
+
+      window.clearTimeout(normativeToastTimer);
+      window.requestAnimationFrame(function () {
+        toast.classList.add("is-visible");
+      });
+
+      normativeToastTimer = window.setTimeout(function () {
+        toast.classList.remove("is-visible");
+        window.setTimeout(function () {
+          if (toast.parentNode) toast.remove();
+        }, 220);
+      }, type === "success" ? 4200 : 5200);
+    }
+
+    function normativeErrorMessage(error) {
+      var code = error && error.code ? String(error.code) : "";
+
+      if (code === "GOOGLE_SCRIPT_NOT_FOUND") {
+        return "Статус сохранён, но обновление таблицы не удалось: публичная ссылка Google Apps Script сейчас недоступна.";
+      }
+
+      if (code === "GOOGLE_SCRIPT_TIMEOUT" || code === "STATISTICS_TIMEOUT") {
+        return "Статус сохранён, но Google Apps Script не ответил вовремя. Текущие данные оставлены на экране.";
+      }
+
+      if (code === "APPS_SCRIPT_UNAUTHORIZED") {
+        return "Статус не удалось подтвердить: секрет Google Apps Script не совпадает.";
+      }
+
+      return String(
+        error && error.message
+          ? error.message
+          : "Не удалось завершить операцию."
+      );
+    }
+
     function sourceData(result) {
       var headers = Array.isArray(result && result.headers)
         ? result.headers.slice()
@@ -1266,16 +1323,57 @@
             if (google.inactives_updated) {
               details.push("Неактивы: " + String(google.inactives_value));
             }
+            if (google.strikes_updated) {
+              details.push("Страйки: " + String(google.strikes_value));
+            }
+
+            // The mutation response already contains a fresh Google snapshot.
+            // Render it immediately so the operator sees the new state even if
+            // a subsequent refresh request fails.
+            if (
+              result &&
+              Array.isArray(result.headers) &&
+              Array.isArray(result.rows)
+            ) {
+              lastResult = result;
+              renderTable();
+            }
+
+            var successMessage =
+              "Статус «" + (labels[status] || status) +
+              "» проставлен для " + nickname +
+              " за " + formatDateOnly(selectedDate);
+
+            if (details.length) {
+              successMessage += " • " + details.join(" • ");
+            }
 
             showNormativeResult(
-              "✅ " + (labels[status] || status) +
-              " проставлена для " + nickname +
-              " за " + formatDateOnly(selectedDate) +
-              (details.length ? " • " + details.join(" • ") : ""),
+              successMessage,
               "success"
             );
 
-            await load(user, true);
+            try {
+              await load(user, true);
+              showNormativeResult(
+                "✅ " + (labels[status] || status) +
+                " проставлен для " + nickname +
+                ". Данные обновлены.",
+                "success"
+              );
+            } catch (refreshError) {
+              console.warn(
+                "[BR AdminTools] Статус сохранён, но повторное обновление статистики не удалось:",
+                refreshError
+              );
+
+              showNormativeResult(
+                "✅ " + (labels[status] || status) +
+                " проставлен для " + nickname +
+                ". Текущие данные сохранены на экране, повторное обновление не удалось.",
+                "error"
+              );
+            }
           } catch (error) {
             showNormativeResult(
               normativeErrorMessage(error),
@@ -1421,12 +1519,24 @@
         refresh.textContent = forceRefresh ? "Обновление…" : "Загрузка…";
       }
 
-      root.innerHTML =
-        '<div class="box"><div class="empty">' +
-        (forceRefresh
-          ? "Получение актуальной статистики из Google Таблицы..."
-          : "Загрузка актуальной статистики...") +
-        '</div></div>';
+      var hasRenderedData =
+        lastResult &&
+        Array.isArray(lastResult.headers) &&
+        Array.isArray(lastResult.rows);
+
+      if (!hasRenderedData) {
+        root.innerHTML =
+          '<div class="box"><div class="empty">' +
+          (forceRefresh
+            ? "Получение актуальной статистики из Google Таблицы..."
+            : "Загрузка актуальной статистики...") +
+          '</div></div>';
+      } else if (forceRefresh) {
+        showNormativeResult(
+          "Обновление статистики из Google Таблицы…",
+          "success"
+        );
+      }
 
       return window.BR_API.allStatistics(
         user.token,
@@ -1436,6 +1546,15 @@
         renderTable();
       }).catch(function (error) {
         console.error("[BR AdminTools] Ошибка общей статистики:", error);
+
+        if (hasRenderedData) {
+          showNormativeResult(
+            "Не удалось обновить статистику. Текущие данные оставлены без изменений.",
+            "error"
+          );
+          return;
+        }
+
         lastResult = null;
         lastData = [];
         lastHeaders = [];
