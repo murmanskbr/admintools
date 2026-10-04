@@ -286,28 +286,365 @@
     return "";
   }
 
-  function dashboard(user) {
+  function gameActivity(user) {
+    var refreshTimer = null;
+
+    function stateLabel(state) {
+      return state === "in_game" ? "В игре" : "Не в игре";
+    }
+
+    function stateClass(state) {
+      return state === "in_game" ? "badge-green" : "badge-gray";
+    }
+
+    function eventLabel(state) {
+      return state === "in_game" ? "Вошёл в игру" : "Вышел из игры";
+    }
+
+    function showToast(message, type) {
+      var old = document.getElementById("brGameActivityToast");
+      if (old) old.remove();
+
+      var toast = document.createElement("div");
+      toast.id = "brGameActivityToast";
+      toast.className =
+        "br-game-activity-toast " +
+        (type === "success" ? "is-success" : "is-error");
+
+      toast.innerHTML =
+        '<span class="br-game-activity-toast-icon">' +
+        (type === "success" ? "✓" : "!") +
+        '</span><span>' +
+        E(String(message || "")) +
+        '</span>';
+
+      document.body.appendChild(toast);
+
+      window.requestAnimationFrame(function () {
+        toast.classList.add("is-visible");
+      });
+
+      window.setTimeout(function () {
+        toast.classList.remove("is-visible");
+        window.setTimeout(function () {
+          if (toast.parentNode) toast.remove();
+        }, 220);
+      }, type === "success" ? 3500 : 5000);
+    }
+
+    function render(root, mine, control, keepContent) {
+      var mineState =
+        mine && mine.state === "in_game"
+          ? "in_game"
+          : "out_game";
+
+      var lastEvent =
+        mine && mine.last_event
+          ? mine.last_event
+          : null;
+
+      var summary =
+        control && control.summary
+          ? control.summary
+          : {
+              in_game: 0,
+              total_active: 0,
+              out_game: 0
+            };
+
+      var current =
+        control && Array.isArray(control.current)
+          ? control.current
+          : [];
+
+      var recent =
+        control && Array.isArray(control.recent)
+          ? control.recent
+          : [];
+
+      var currentRows = current.map(function (item) {
+        var state =
+          item && item.state === "in_game"
+            ? "in_game"
+            : "out_game";
+
+        return (
+          '<tr>' +
+            '<td><b>' + E(item && item.nickname || "—") + '</b></td>' +
+            '<td>' + E(item && item.position || "—") + '</td>' +
+            '<td><span class="badge ' +
+              stateClass(state) +
+            '">' +
+              E(stateLabel(state)) +
+            '</span></td>' +
+            '<td>' +
+              E(item && item.last_event_at ? formatDateTime(item.last_event_at) : "—") +
+            '</td>' +
+          '</tr>'
+        );
+      }).join("");
+
+      if (!currentRows) {
+        currentRows =
+          '<tr><td colspan="4" class="table-empty">Других активных пользователей нет.</td></tr>';
+      }
+
+      var recentRows = recent.map(function (item) {
+        var state =
+          item && item.status === "in_game"
+            ? "in_game"
+            : "out_game";
+
+        return (
+          '<tr>' +
+            '<td>' +
+              E(item && item.event_at ? formatDateTime(item.event_at) : "—") +
+            '</td>' +
+            '<td><b>' + E(item && item.nickname || "—") + '</b></td>' +
+            '<td><span class="badge ' +
+              stateClass(state) +
+            '">' +
+              E(eventLabel(state)) +
+            '</span></td>' +
+          '</tr>'
+        );
+      }).join("");
+
+      if (!recentRows) {
+        recentRows =
+          '<tr><td colspan="3" class="table-empty">Событий пока нет.</td></tr>';
+      }
+
+      var html =
+        '<div class="game-activity-grid">' +
+          '<section class="box game-activity-card">' +
+            '<div class="game-activity-head">' +
+              '<div><small>ИГРОВОЙ СТАТУС</small><h2>Ваш статус в игре</h2></div>' +
+              '<span class="badge ' +
+                stateClass(mineState) +
+              '">' +
+                E(stateLabel(mineState)) +
+              '</span>' +
+            '</div>' +
+            '<div class="game-activity-current">' +
+              '<div class="game-activity-current-icon">' +
+                (mineState === "in_game" ? "●" : "○") +
+              '</div>' +
+              '<div><strong>' +
+                E(stateLabel(mineState)) +
+                '</strong><span>' +
+                (
+                  lastEvent && lastEvent.event_at
+                    ? "Последнее изменение: " + E(formatDateTime(lastEvent.event_at))
+                    : "Вы ещё не отмечали вход или выход"
+                ) +
+              '</span></div>' +
+            '</div>' +
+            '<div class="game-activity-buttons">' +
+              '<button class="button button-primary" id="gameEnterButton" type="button"' +
+                (mineState === "in_game" ? " disabled" : "") +
+                '>Вошёл в игру</button>' +
+              '<button class="button button-secondary" id="gameExitButton" type="button"' +
+                (mineState !== "in_game" ? " disabled" : "") +
+                '>Вышел из игры</button>' +
+            '</div>' +
+            '<div class="game-activity-note">Нажмите кнопку только при фактическом входе или выходе из игры. Событие сохраняется в журнале.</div>' +
+          '</section>' +
+
+          '<div class="game-control-grid">' +
+            '<div class="box game-online-card">' +
+              '<small>СЕЙЧАС В ИГРЕ</small>' +
+              '<strong>' + E(String(summary.in_game == null ? 0 : summary.in_game)) + '</strong>' +
+              '<span>из ' + E(String(summary.total_active == null ? 0 : summary.total_active)) + ' остальных активных пользователей</span>' +
+            '</div>' +
+            '<div class="box game-online-card">' +
+              '<small>НЕ В ИГРЕ</small>' +
+              '<strong>' + E(String(summary.out_game == null ? 0 : summary.out_game)) + '</strong>' +
+              '<span>последний зафиксированный статус</span>' +
+            '</div>' +
+            '<div class="box game-online-card">' +
+              '<small>ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ</small>' +
+              '<strong>' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</strong>' +
+              '<span>данные из Supabase</span>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="page-toolbar game-control-toolbar">' +
+            '<div><small>КОНТРОЛЬ</small><b>Кто сейчас в игре</b></div>' +
+            '<button class="button button-secondary" id="gameActivityRefresh" type="button">↻ Обновить</button>' +
+          '</div>' +
+
+          '<div class="box table-box game-activity-table-box">' +
+            '<table class="game-activity-table"><thead><tr>' +
+              '<th>Никнейм</th><th>Должность</th><th>Статус</th><th>Последнее изменение</th>' +
+            '</tr></thead><tbody>' +
+              currentRows +
+            '</tbody></table>' +
+          '</div>' +
+
+          '<div class="page-toolbar game-control-toolbar">' +
+            '<div><small>ЖУРНАЛ</small><b>Последние входы и выходы</b></div>' +
+          '</div>' +
+
+          '<div class="box table-box game-activity-table-box">' +
+            '<table class="game-activity-table"><thead><tr>' +
+              '<th>Время</th><th>Никнейм</th><th>Событие</th>' +
+            '</tr></thead><tbody>' +
+              recentRows +
+            '</tbody></table>' +
+          '</div>' +
+        '</div>';
+
+      if (!keepContent) {
+        root.innerHTML = html;
+      } else {
+        root.innerHTML = html;
+      }
+
+      var state = mineState;
+
+      function setButtons(disabled) {
+        var enter = document.getElementById("gameEnterButton");
+        var exit = document.getElementById("gameExitButton");
+
+        if (enter) {
+          enter.disabled = disabled || state === "in_game";
+          enter.textContent = disabled ? "Сохранение…" : "Вошёл в игру";
+        }
+
+        if (exit) {
+          exit.disabled = disabled || state !== "in_game";
+          exit.textContent = disabled ? "Сохранение…" : "Вышел из игры";
+        }
+      }
+
+      function setState(nextState) {
+        setButtons(true);
+
+        window.BR_API.gamePresenceSet(user.token, nextState)
+          .then(function (result) {
+            state =
+              result && result.state
+                ? result.state
+                : nextState;
+
+            showToast(
+              "✅ " + eventLabel(state) + ". Статус сохранён.",
+              "success"
+            );
+
+            return Promise.all([
+              window.BR_API.gamePresenceMine(user.token),
+              window.BR_API.gamePresenceControl(user.token, 200)
+            ]);
+          })
+          .then(function (result) {
+            render(
+              root,
+              result[0],
+              result[1],
+              false
+            );
+          })
+          .catch(function (error) {
+            showToast(
+              error && error.message
+                ? error.message
+                : "Не удалось сохранить игровой статус.",
+              "error"
+            );
+            setButtons(false);
+          });
+      }
+
+      var enter = document.getElementById("gameEnterButton");
+      var exit = document.getElementById("gameExitButton");
+
+      if (enter) {
+        enter.onclick = function () {
+          setState("in_game");
+        };
+      }
+
+      if (exit) {
+        exit.onclick = function () {
+          setState("out_game");
+        };
+      }
+
+      var refresh = document.getElementById("gameActivityRefresh");
+      if (refresh) {
+        refresh.onclick = function () {
+          load(root, false);
+        };
+      }
+    }
+
+    function load(root, silent) {
+      if (!silent) {
+        root.innerHTML =
+          '<div class="box"><div class="empty">Загрузка контроля онлайна...</div></div>';
+      }
+
+      Promise.all([
+        window.BR_API.gamePresenceMine(user.token),
+        window.BR_API.gamePresenceControl(user.token, 200)
+      ])
+        .then(function (result) {
+          render(root, result[0], result[1], silent);
+        })
+        .catch(function (error) {
+          if (silent && root.innerHTML) {
+            showToast(
+              error && error.message
+                ? error.message
+                : "Не удалось обновить контроль онлайна.",
+              "error"
+            );
+            return;
+          }
+
+          root.innerHTML =
+            '<div class="box"><div class="empty">' +
+              E(error && error.message
+                ? error.message
+                : "Не удалось загрузить контроль онлайна.") +
+            '</div></div>';
+        });
+    }
+
     return {
       title: "Вход и контроль игры",
       subtitle: "Отметьте свой вход или выход и смотрите статус всех остальных пользователей с активным доступом",
       render: function () {
-        return '<div id="gameActivityRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
+        return (
+          '<div id="gameActivityRoot">' +
+            '<div class="box"><div class="empty">Загрузка...</div></div>' +
+          '</div>'
+        );
       },
       bind: function () {
         var root = document.getElementById("gameActivityRoot");
         if (!root) return;
 
-        loadManagement(root, false);
+        if (refreshTimer) {
+          window.clearInterval(refreshTimer);
+          refreshTimer = null;
+        }
+
+        load(root, false);
 
         refreshTimer = window.setInterval(function () {
-          if (!document.getElementById("gameActivityRoot")) {
-            return;
-          }
-
-          loadManagement(root, true);
+          var currentRoot = document.getElementById("gameActivityRoot");
+          if (!currentRoot) return;
+          load(currentRoot, true);
         }, 30000);
       }
     };
+  }
+
+  function dashboard(user) {
+    return gameActivity(user);
   }
 
   function notifications(user) {
