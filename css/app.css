@@ -3653,3 +3653,157 @@ body{font-size:16px}
     touch-action:pan-y;
   }
 }
+
+/* Unified mobile data cards — all regular tables use the same safe layout as administration statistics. */
+@media(max-width:1100px){
+  #app .table-box table[data-mobile-cards]{
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    table-layout:auto!important;
+    border-collapse:separate!important;
+    border-spacing:0!important;
+  }
+
+  #app .table-box table[data-mobile-cards] thead{
+    display:none!important;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody{
+    display:grid!important;
+    gap:10px;
+    width:100%;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody tr{
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0;
+    padding:4px 12px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:var(--surface);
+    box-shadow:0 8px 22px rgba(0,0,0,.08);
+    overflow:hidden;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody tr:last-child{
+    margin-bottom:0;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td{
+    display:grid!important;
+    grid-template-columns:minmax(88px,38%) minmax(0,1fr);
+    align-items:start;
+    gap:10px;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    min-height:0;
+    padding:9px 0!important;
+    border-bottom:1px solid rgba(127,137,153,.12)!important;
+    background:transparent!important;
+    color:var(--text);
+    text-align:left!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:break-word!important;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td:last-child{
+    border-bottom:0!important;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td::before{
+    content:attr(data-mobile-label);
+    min-width:0;
+    color:#737d8e;
+    font-size:10px;
+    line-height:1.35;
+    font-weight:750;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td:first-child{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:4px;
+    padding-top:11px!important;
+    padding-bottom:10px!important;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td:first-child::before{
+    color:#697486;
+    font-size:9px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td > *{
+    min-width:0;
+    max-width:100%;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td a{
+    overflow-wrap:anywhere!important;
+    word-break:break-word!important;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td img{
+    display:block;
+    max-width:100%;
+    height:auto;
+    object-fit:contain;
+    border-radius:8px;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td .actions,
+  #app .table-box table[data-mobile-cards] tbody td .normative-row-actions,
+  #app .table-box table[data-mobile-cards] tbody td .stats-norm-actions,
+  #app .table-box table[data-mobile-cards] tbody td .admin-menu-wrap{
+    min-width:0;
+    max-width:100%;
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td button,
+  #app .table-box table[data-mobile-cards] tbody td .small-button,
+  #app .table-box table[data-mobile-cards] tbody td .button{
+    max-width:100%;
+  }
+
+  .theme-light #app .table-box table[data-mobile-cards] tbody tr{
+    background:#fff;
+    box-shadow:0 8px 22px rgba(20,30,50,.06);
+  }
+
+  .theme-light #app .table-box table[data-mobile-cards] tbody td{
+    border-bottom-color:#e8ecf1!important;
+  }
+}
+
+@media(max-width:520px){
+  #app .table-box table[data-mobile-cards] tbody tr{
+    padding:3px 11px;
+    border-radius:13px;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td{
+    grid-template-columns:minmax(82px,40%) minmax(0,1fr);
+    gap:8px;
+    padding:8px 0!important;
+    font-size:14px!important;
+    line-height:1.5!important;
+  }
+
+  #app .table-box table[data-mobile-cards] tbody td::before{
+    font-size:9px;
+  }
+}
