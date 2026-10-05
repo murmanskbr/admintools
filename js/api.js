@@ -766,6 +766,9 @@
                     device_id:
                         getDeviceId(),
 
+                    device_type:
+                        "computer",
+
                     remember:
                         remember === true
                 });
