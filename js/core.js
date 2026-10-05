@@ -591,6 +591,9 @@
         }
       });
 
+    // A cached mobile page must never restore a stale menu lock.
+    document.body.classList.remove("mobile-menu-open");
+
     window.addEventListener("pageshow", function (event) {
       if (!event.persisted) return;
 
