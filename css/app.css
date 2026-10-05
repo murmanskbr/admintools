@@ -3922,3 +3922,67 @@ body{font-size:16px}
     box-shadow:0 -12px 24px rgba(20,25,34,.10)!important;
   }
 }
+
+/* Final Android drawer fix: native drawer scroll + always-visible account footer. */
+@media(max-width:800px){
+  body.mobile-menu-open{
+    position:static!important;
+    width:auto!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow:hidden!important;
+    touch-action:auto!important;
+  }
+
+  body.mobile-menu-open .main{
+    pointer-events:none!important;
+  }
+
+  .sidebar{
+    position:fixed!important;
+    top:0!important;
+    right:auto!important;
+    bottom:0!important;
+    left:0!important;
+    z-index:2147483647!important;
+    width:min(86vw,320px)!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-y:contain!important;
+    touch-action:pan-y!important;
+    isolation:isolate;
+  }
+
+  .sidebar-bottom{
+    position:sticky!important;
+    bottom:0!important;
+    z-index:5!important;
+    margin-top:18px!important;
+    padding:12px 0 calc(2px + env(safe-area-inset-bottom))!important;
+    background:linear-gradient(
+      to bottom,
+      rgba(13,16,22,.72),
+      #0d1016 22px,
+      #0d1016
+    )!important;
+  }
+
+  .theme-light .sidebar-bottom{
+    background:linear-gradient(
+      to bottom,
+      rgba(255,255,255,.72),
+      #fff 22px,
+      #fff
+    )!important;
+  }
+
+  .sidebar .side-link,
+  .sidebar .section-title,
+  .sidebar .brand,
+  .sidebar-bottom{
+    touch-action:pan-y!important;
+  }
+}
