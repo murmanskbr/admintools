@@ -49,68 +49,6 @@
             }
         );
     }
-
-    function getDeviceId() {
-        var key = "br_device_id";
-        var value = localStorage.getItem(key);
-
-        if (value) {
-            return value;
-        }
-
-        if (
-            window.crypto &&
-            typeof window.crypto.randomUUID ===
-                "function"
-        ) {
-            value = window.crypto.randomUUID();
-        } else if (
-            window.crypto &&
-            typeof window.crypto.getRandomValues ===
-                "function"
-        ) {
-            var randomBytes =
-                new Uint8Array(16);
-
-            window.crypto.getRandomValues(
-                randomBytes
-            );
-
-            randomBytes[6] =
-                (randomBytes[6] & 0x0f) | 0x40;
-
-            randomBytes[8] =
-                (randomBytes[8] & 0x3f) | 0x80;
-
-            value =
-                "web-" +
-                Array.from(
-                    randomBytes
-                )
-                    .map(function (byte) {
-                        return byte
-                            .toString(16)
-                            .padStart(2, "0");
-                    })
-                    .join("");
-        } else {
-            value =
-                "web-" +
-                Date.now() +
-                "-" +
-                Math.random()
-                    .toString(16)
-                    .slice(2);
-        }
-
-        localStorage.setItem(
-            key,
-            value
-        );
-
-        return value;
-    }
-
     function notifySessionExpired(code) {
         if (
             [
@@ -147,9 +85,6 @@
         if (token) {
             headers.Authorization =
                 "Bearer " + token;
-
-            headers["x-device-id"] =
-                getDeviceId();
         }
 
         var response;
@@ -429,9 +364,6 @@
         if (token) {
             headers.Authorization =
                 "Bearer " + token;
-
-            headers["x-device-id"] =
-                getDeviceId();
         }
 
         var response;
@@ -632,7 +564,6 @@
 
         if (token) {
             headers.Authorization = "Bearer " + token;
-            headers["x-device-id"] = getDeviceId();
         }
 
         var response;
@@ -743,17 +674,12 @@
             STATISTICS_URL,
 
         deviceId:
-            getDeviceId,
 
         request:
             request,
 
         login:
-            function (
-                login,
-                password,
-                remember
-            ) {
+            function (login, password) {
                 return request({
                     action:
                         "login",
@@ -764,14 +690,6 @@
                     password:
                         password,
 
-                    device_id:
-                        getDeviceId(),
-
-                    device_type:
-                        "computer",
-
-                    remember:
-                        remember === true
                 });
             },
 
