@@ -3985,7 +3985,7 @@
             '<div class="access-details-grid">' +
               '<div><small>IP</small><b>' + E(item.last_login_ip || "—") + '</b></div>' +
               '<div><small>ПОСЛЕДНИЙ ВХОД</small><b>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</b></div>' +
-              '<div><small>ПРИВЯЗКА</small><b>' + (item.device_bound ? "Привязано" : "Не привязано") + '</b></div>' +
+
               '<div><small>АКТИВНЫЕ СЕССИИ</small><b>' + E(item.active_sessions || 0) + '</b></div>' +
             '</div>' +
             '<form id="accessEditForm">' +
