@@ -6,7 +6,6 @@
   var SESSION_IDLE_MS = 180000;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var timer = null;
-  var heartbeatTimer = null;
   var lastActivitySync = 0;
 
   var NAV = {
@@ -159,6 +158,7 @@
     var session = getSession();
     if (!session) return;
 
+    // Только реальное действие пользователя продлевает локальный idle-таймер.
     session.idle_until = Date.now() + SESSION_IDLE_MS;
     persistSession(session);
 
@@ -167,6 +167,8 @@
 
     lastActivitySync = Date.now();
 
+    // Этот запрос специально используется как явная отметка активности.
+    // Обычные API-запросы больше не продлевают idle-сессию на сервере.
     window.BR_API.me(session.user.token)
       .then(function (result) {
         if (result && result.session && result.session.last_activity_at) {
@@ -445,12 +447,6 @@
     updateTimer();
     if (timer) clearInterval(timer);
     timer = setInterval(updateTimer, 1000);
-
-    if (heartbeatTimer) clearInterval(heartbeatTimer);
-    heartbeatTimer = setInterval(function () {
-      if (document.visibilityState === "hidden") return;
-      touchActivity();
-    }, 30000);
 
     document.addEventListener("click", touchActivity, { passive: true, capture: true });
     document.addEventListener("keydown", touchActivity, { passive: true, capture: true });
