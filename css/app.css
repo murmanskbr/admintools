@@ -3520,3 +3520,70 @@ body{font-size:16px}
     display:none;
   }
 }
+
+/* Mobile navigation — fixed drawer with its own scrolling layer. */
+.mobile-menu-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:90;
+  display:none;
+  background:rgba(3,5,9,.58);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  touch-action:none;
+}
+
+@media(max-width:800px){
+  .sidebar{
+    top:0;
+    right:auto;
+    bottom:0;
+    left:0;
+    width:min(86vw,320px);
+    height:100dvh;
+    min-height:100dvh;
+    max-height:100dvh;
+    padding:16px 12px calc(16px + env(safe-area-inset-bottom));
+    overflow-x:hidden;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    transform:translateX(-105%);
+  }
+
+  .sidebar.open{
+    transform:translateX(0);
+  }
+
+  .mobile-menu-backdrop{
+    display:none;
+  }
+
+  .mobile-menu-backdrop.open{
+    display:block;
+  }
+
+  .sidebar .brand{
+    flex:0 0 auto;
+    padding-bottom:18px;
+  }
+
+  .sidebar .section-title{
+    flex:0 0 auto;
+  }
+
+  .sidebar .side-link{
+    flex:0 0 auto;
+    min-height:46px;
+  }
+
+  .sidebar-bottom{
+    flex:0 0 auto;
+    margin-top:18px;
+    padding-bottom:2px;
+  }
+
+  body{
+    overflow-x:hidden;
+  }
+}
