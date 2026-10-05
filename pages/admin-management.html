@@ -579,6 +579,7 @@
     function closeMenu() {
       if (!sidebar) return;
       sidebar.classList.remove("open");
+      document.body.classList.remove("mobile-menu-open");
       if (backdrop) {
         backdrop.classList.remove("open");
         backdrop.setAttribute("aria-hidden", "true");
@@ -594,6 +595,7 @@
         event.preventDefault();
         var open = !sidebar.classList.contains("open");
         sidebar.classList.toggle("open", open);
+        document.body.classList.toggle("mobile-menu-open", open);
         if (backdrop) {
           backdrop.classList.toggle("open", open);
           backdrop.setAttribute("aria-hidden", open ? "false" : "true");
