@@ -23,6 +23,7 @@
   var COOKIE = "br_session";
   var timer = null;
   var heartbeat = null;
+  var lastLocalActivityTouch = 0;
 
   function esc(value) {
     return String(value == null ? "" : value)
@@ -130,8 +131,14 @@
       return;
     }
 
-    session.idle_until = Date.now() + SESSION_IDLE_MS;
+    // Не перезаписываем cookie на каждое событие: особенно важно для
+    // прокрутки на мобильных устройствах, где события могут идти десятками в секунду.
+    var now = Date.now();
+    if (now - lastLocalActivityTouch < 5000) return;
+
+    session.idle_until = now + SESSION_IDLE_MS;
     saveSession(session);
+    lastLocalActivityTouch = now;
   }
 
   function sessionSeconds() {
@@ -614,8 +621,6 @@
     document.addEventListener("keydown", touchActivity, { capture: true });
     document.addEventListener("touchstart", touchActivity, { capture: true });
     document.addEventListener("pointerdown", touchActivity, { capture: true });
-    document.addEventListener("wheel", touchActivity, { capture: true });
-    document.addEventListener("scroll", touchActivity, { capture: true });
 
     function tick() {
       var seconds = sessionSeconds();
