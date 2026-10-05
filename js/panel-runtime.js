@@ -3524,7 +3524,7 @@
         }
         var rankA = accessPositionRank(a.position);
         var rankB = accessPositionRank(b.position);
-        if (rankA !== rankB) return rankA - rankB;
+        if (rankA !== rankB) return rankB - rankA;
         var positionCompare = String(a.position || "").localeCompare(String(b.position || ""), "ru", { sensitivity: "base" });
         if (positionCompare !== 0) return positionCompare;
         return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru", { sensitivity: "base" });
