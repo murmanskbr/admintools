@@ -3540,9 +3540,23 @@
     }
 
     function bindingLabel(item) {
-      return item.device_bound
-        ? '<span class="badge badge-blue">Привязано</span>'
-        : '<span class="badge">Нет привязки</span>';
+      var badges = [];
+
+      if (item.phone_bound) {
+        badges.push('<span class="badge badge-blue">📱 Телефон</span>');
+      }
+
+      if (item.computer_bound) {
+        badges.push('<span class="badge badge-blue">💻 Компьютер</span>');
+      }
+
+      if (!badges.length && item.device_bound) {
+        badges.push('<span class="badge badge-blue">Привязано</span>');
+      }
+
+      return badges.length
+        ? badges.join(" ")
+        : '<span class="badge">Нет привязок</span>';
     }
 
     // Иерархия должностей: от младшего модератора к главному администратору.
@@ -3718,7 +3732,7 @@
                   '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
                   '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
                     '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
-                    (item.device_bound ? '<button type="button" data-access-action="unbind" data-admin-id="' + E(item.id) + '">Сбросить привязку</button>' : '') +
+                    (item.device_bound ? '<button type="button" data-access-action="unbind" data-admin-id="' + E(item.id) + '">Сбросить все привязки</button>' : '') +
                     (item.blocked_at
                       ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
                       : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
