@@ -209,6 +209,56 @@
     goToLogin();
   }
 
+  function prepareMobileTables(root) {
+    var scope = root || document;
+    if (!scope || typeof scope.querySelectorAll !== "function") return;
+
+    scope.querySelectorAll("#app .table-box table").forEach(function (table) {
+      if (
+        table.id === "allStatsTable" ||
+        table.classList.contains("google-row-table") ||
+        table.classList.contains("normative-table-desktop")
+      ) {
+        return;
+      }
+
+      var headerCells = table.querySelectorAll("thead th");
+      if (!headerCells.length) return;
+
+      var headers = Array.from(headerCells).map(function (cell) {
+        return String(cell.textContent || "").trim();
+      });
+
+      table.querySelectorAll("tbody tr").forEach(function (row) {
+        if (row.classList.contains("stats-section-row")) return;
+
+        Array.from(row.children).forEach(function (cell, index) {
+          if (cell.tagName !== "TD") return;
+
+          var label = headers[index] || "Данные";
+          if (!cell.getAttribute("data-mobile-label")) {
+            cell.setAttribute("data-mobile-label", label);
+          }
+        });
+      });
+    });
+  }
+
+  function watchMobileTables() {
+    prepareMobileTables(document);
+
+    if (!window.MutationObserver || !document.body) return;
+
+    var observer = new MutationObserver(function () {
+      prepareMobileTables(document);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
   function applyTheme(theme) {
     var value = String(theme || "dark").toLowerCase() === "light" ? "light" : "dark";
     document.documentElement.classList.toggle("theme-light", value === "light");
