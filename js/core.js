@@ -200,16 +200,24 @@
     if (!scope || typeof scope.querySelectorAll !== "function") return;
 
     scope.querySelectorAll("#app .table-box table").forEach(function (table) {
+      var tableBox = table.closest(".table-box");
+
       if (
         table.id === "allStatsTable" ||
         table.classList.contains("google-row-table") ||
         table.classList.contains("normative-table-desktop")
       ) {
         table.removeAttribute("data-mobile-cards");
+        if (tableBox) {
+          tableBox.removeAttribute("data-mobile-cards-container");
+        }
         return;
       }
 
       table.setAttribute("data-mobile-cards", "true");
+      if (tableBox) {
+        tableBox.setAttribute("data-mobile-cards-container", "true");
+      }
 
       var headerCells = table.querySelectorAll("thead th");
       if (!headerCells.length) return;
