@@ -407,6 +407,7 @@
       if (!menu || !sidebar) return;
 
       sidebar.classList.toggle("open", open);
+      document.body.classList.toggle("mobile-menu-open", open);
 
       if (menuBackdrop) {
         menuBackdrop.classList.toggle("open", open);
