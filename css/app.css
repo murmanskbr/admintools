@@ -3482,3 +3482,41 @@ body{font-size:16px}
     justify-content:center;
   }
 }
+
+/* Mobile watermark: keep the mark fully inside the viewport and behind content. */
+@media(max-width:1100px){
+  .watermark{
+    top:64px!important;
+    right:0!important;
+    bottom:68px!important;
+    left:0!important;
+    z-index:1!important;
+    display:grid;
+    place-items:center;
+    overflow:hidden;
+    opacity:.78;
+  }
+
+  .watermark-mark{
+    max-width:88vw;
+    padding:16px 22px!important;
+    gap:10px!important;
+    transform:rotate(-12deg) scale(.78)!important;
+    border-radius:20px;
+  }
+
+  .watermark-mark strong{
+    font-size:clamp(54px,17vw,92px)!important;
+  }
+
+  .watermark-mark span{
+    max-width:38vw;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-size:clamp(28px,9vw,54px)!important;
+  }
+
+  .watermark-mark small{
+    display:none;
+  }
+}
