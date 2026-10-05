@@ -673,8 +673,6 @@
         statisticsUrl:
             STATISTICS_URL,
 
-        deviceId:
-
         request:
             request,
 
@@ -688,8 +686,7 @@
                         login,
 
                     password:
-                        password,
-
+                        password
                 });
             },
 
