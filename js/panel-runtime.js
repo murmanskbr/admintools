@@ -2680,8 +2680,10 @@
     function openNormativeModal(options) {
       var modalRoot = document.getElementById("normativeModal");
       if (!modalRoot) return;
+
+      var fallbackNickname = String(options.nickname || "").trim() || "Администратор";
       modalRoot.innerHTML = '<div class="modal-backdrop" id="normativeBackdrop"><div class="modal-card">' +
-        '<div class="modal-head"><div><small>ПРОВЕРКА НОРМАТИВА</small><h2>Загрузка...</h2></div><button class="modal-close" id="normativeClose" type="button">×</button></div>' +
+        '<div class="modal-head"><div><small>ПРОВЕРКА НОРМАТИВА</small><h2>' + E(fallbackNickname) + '</h2></div><button class="modal-close" id="normativeClose" type="button">×</button></div>' +
         '<div id="normativeDetailRoot"><div class="empty">Загрузка данных...</div></div>' +
       '</div></div>';
 
@@ -2694,8 +2696,16 @@
         options.date
       ).then(function (result) {
         var s = result.submission;
-        var title = s ? E(s.nickname) : E("Норматив не сдан");
+        var actualNickname = s
+          ? String(s.nickname || "").trim()
+          : fallbackNickname;
+        var title = E(actualNickname || "Администратор");
         var meta = s ? "Дата норматива: " + E(s.submission_date) : "Дата норматива: " + E(options.date || "—");
+
+        var modalTitle = document.querySelector("#normativeBackdrop .modal-head h2");
+        if (modalTitle) {
+          modalTitle.textContent = actualNickname || "Администратор";
+        }
 
         var files = Array.isArray(result.files) ? result.files : [];
         var images = files.map(function (file) {
@@ -2708,11 +2718,12 @@
               '<div class="review-current">Текущий результат: ' + normativeStatus(currentStatus) + '</div>' +
               '<textarea id="reviewComment" class="form-textarea" placeholder="Комментарий проверки"></textarea>' +
               '<div class="review-actions">' +
-                '<button class="button button-secondary" type="button" data-review="rework">Перенорма</button>' +
-                '<button class="button button-primary" type="button" data-review="norm">Норма</button>' +
+                '<button class="button button-secondary" type="button" data-review="rework"' + (!s ? ' disabled' : '') + '>Перенорма</button>' +
+                '<button class="button button-primary" type="button" data-review="norm"' + (!s ? ' disabled' : '') + '>Норма</button>' +
                 '<button class="button button-danger" type="button" data-review="no_norm">Нет нормы</button>' +
-                '<button class="button button-secondary" type="button" data-review="inactive">Неактив</button>' +
+                '<button class="button button-secondary" type="button" data-review="inactive"' + (!s ? ' disabled' : '') + '>Неактив</button>' +
               '</div>' +
+              (!s ? '<small class="muted">Норматив за эту дату не отправлен. Можно зафиксировать результат «Нет нормы».</small>' : '') +
             '</div>'
           : '<div class="notice">Результат проверки: ' + normativeStatus(currentStatus) + (s && s.reviewed_at ? '<br><small>Проверено: ' + E(formatDateTime(s.reviewed_at)) + '</small>' : '') + '</div>';
 
