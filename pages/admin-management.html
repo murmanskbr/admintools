@@ -617,6 +617,9 @@
       link.onclick = closeMenu;
     });
 
+    // Reset stale mobile-menu state when this page is restored from browser cache.
+    window.addEventListener("pageshow", function () { closeMenu(); }, { once: true });
+
     document.addEventListener("click", touchActivity, { capture: true });
     document.addEventListener("keydown", touchActivity, { capture: true });
     document.addEventListener("touchstart", touchActivity, { capture: true });
