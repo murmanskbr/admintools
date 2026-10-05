@@ -3885,3 +3885,40 @@ body{font-size:16px}
     user-select:none!important;
   }
 }
+
+/* Mobile menu final UX: keep the account/logout block visible while menu links scroll. */
+@media(max-width:800px){
+  .sidebar{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+  }
+
+  .sidebar-bottom{
+    position:sticky!important;
+    bottom:0!important;
+    z-index:20!important;
+    flex:0 0 auto!important;
+    margin-top:12px!important;
+    padding:10px 2px calc(2px + env(safe-area-inset-bottom))!important;
+    background:rgba(13,16,22,.98)!important;
+    border-top:1px solid var(--line)!important;
+    box-shadow:0 -12px 24px rgba(8,10,15,.72)!important;
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+
+  .sidebar-bottom .user-mini{
+    min-width:0;
+  }
+
+  .sidebar-bottom .logout{
+    min-height:42px!important;
+  }
+
+  .theme-light .sidebar-bottom{
+    background:rgba(255,255,255,.98)!important;
+    box-shadow:0 -12px 24px rgba(20,25,34,.10)!important;
+  }
+}
