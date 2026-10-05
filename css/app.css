@@ -3807,3 +3807,28 @@ body{font-size:16px}
     font-size:9px;
   }
 }
+
+@media(max-width:1100px){
+  #app .table-box[data-mobile-cards-container]{
+    overflow:visible!important;
+    max-width:100%;
+  }
+
+  #app .box,
+  #app .card,
+  #app .page-toolbar,
+  #app .notice,
+  #app .notification,
+  #app .detail-grid>div,
+  #app .settings-status{
+    min-width:0;
+    max-width:100%;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+
+  #app .table-box[data-mobile-cards-container] .table-empty{
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+}
