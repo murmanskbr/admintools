@@ -3986,3 +3986,44 @@ body{font-size:16px}
     touch-action:pan-y!important;
   }
 }
+
+
+/* Global scroll safety: mobile navigation must never freeze the page itself. */
+@media(max-width:800px){
+  html,
+  body{
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    height:auto!important;
+    max-height:none!important;
+    touch-action:auto!important;
+  }
+
+  body.mobile-menu-open{
+    position:static!important;
+    width:auto!important;
+    height:auto!important;
+    min-height:100%;
+    max-height:none!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    touch-action:auto!important;
+    overscroll-behavior:auto!important;
+  }
+
+  body.mobile-menu-open .main{
+    pointer-events:auto!important;
+    user-select:auto!important;
+  }
+
+  .mobile-menu-backdrop.open{
+    touch-action:auto!important;
+  }
+
+  .panel,
+  .main,
+  .content{
+    height:auto!important;
+    max-height:none!important;
+  }
+}
