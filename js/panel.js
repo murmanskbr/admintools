@@ -1319,6 +1319,107 @@
         rows = '<tr><td colspan="' + (lastHeaders.length + 2) + '" class="table-empty">В Google Таблице нет строк данных.</td></tr>';
       }
 
+      function mobileRecordsHtml() {
+        var lastMobileSection = "";
+        var html = displayRecords.map(function (record, displayIndex) {
+          var row = record.row;
+          var sectionTitle = record.sectionTitle || "";
+          var section = "";
+
+          if (sectionTitle && sectionTitle !== lastMobileSection) {
+            lastMobileSection = sectionTitle;
+            section =
+              '<div class="stats-mobile-section">' +
+                E(sectionTitle) +
+              '</div>';
+          }
+
+          var nickname = lastNicknameIndex >= 0
+            ? rawCellValue(row[lastNicknameIndex]).trim()
+            : "";
+
+          if (!nickname) {
+            return section;
+          }
+
+          var positionIndex = -1;
+          for (var p = 0; p < lastHeaders.length; p += 1) {
+            var h = normalizeHeader(lastHeaders[p]);
+            if (h === "должность" || h === "position") {
+              positionIndex = p;
+              break;
+            }
+          }
+
+          var position = positionIndex >= 0
+            ? rawCellValue(row[positionIndex]).trim()
+            : "";
+
+          var status = normativeDisplayStatus(
+            lastResult && lastResult.normatives,
+            nickname
+          );
+
+          var mobileActions =
+            '<div class="stats-mobile-actions">' +
+              '<button class="normative-icon-button normative-mark-norm" type="button" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
+              '<button class="normative-icon-button normative-mark-rework" type="button" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
+              '<button class="normative-icon-button normative-mark-no-norm" type="button" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
+              '<button class="normative-icon-button normative-mark-inactive" type="button" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
+              '<button class="admin-edit-inline stats-mobile-edit" type="button" data-edit-row-index="' + displayIndex + '">Изменить</button>' +
+            '</div>';
+
+          var detailFields = [];
+          for (var columnIndex = 0; columnIndex < lastHeaders.length; columnIndex += 1) {
+            var header = String(lastHeaders[columnIndex] == null ? "" : lastHeaders[columnIndex]).trim();
+            if (!header) continue;
+
+            var normalized = normalizeHeader(header);
+            if (
+              normalized === "никнейм" ||
+              normalized === "ник" ||
+              normalized === "nickname" ||
+              normalized === "nick" ||
+              normalized === "логин" ||
+              normalized === "login" ||
+              normalized === "username" ||
+              normalized === "должность" ||
+              normalized === "position"
+            ) {
+              continue;
+            }
+
+            var value = rawCellValue(row[columnIndex]).trim();
+            detailFields.push(
+              '<div class="stats-mobile-field">' +
+                '<span>' + E(header) + '</span>' +
+                '<b>' + E(value || "—") + '</b>' +
+              '</div>'
+            );
+          }
+
+          return section +
+            '<article class="stats-mobile-card">' +
+              '<div class="stats-mobile-card-head">' +
+                '<div class="stats-mobile-identity">' +
+                  '<b>' + E(nickname) + '</b>' +
+                  '<span>' + E(position || "Должность не указана") + '</span>' +
+                '</div>' +
+                '<span class="stats-mobile-status">' + normativeStatusBadge(status || "Не сдан") + '</span>' +
+              '</div>' +
+              mobileActions +
+              '<details class="stats-mobile-details">' +
+                '<summary>Показать данные <span>⌄</span></summary>' +
+                '<div class="stats-mobile-fields">' +
+                  (detailFields.length ? detailFields.join("") : '<div class="stats-mobile-empty">Дополнительных данных нет.</div>') +
+                '</div>' +
+              '</details>' +
+            '</article>';
+        }).join("");
+
+        return html || '<div class="stats-mobile-empty-card">В Google Таблице нет сотрудников.</div>';
+      }
+
       root.innerHTML =
         '<div class="box table-box">' +
           '<div class="stats-table-head"><div>' +
@@ -1328,6 +1429,7 @@
           '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
             E(lastResult && lastResult.source && lastResult.source.sheet_name ? lastResult.source.sheet_name : "Google Sheets") +
           '</span></div>' +
+          '<div class="stats-mobile-list">' + mobileRecordsHtml() + '</div>' +
           '<table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
