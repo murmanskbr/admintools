@@ -2695,10 +2695,10 @@
               '<div class="review-current">Текущий результат: ' + normativeStatus(currentStatus) + '</div>' +
               '<textarea id="reviewComment" class="form-textarea" placeholder="Комментарий проверки"></textarea>' +
               '<div class="review-actions">' +
-                '<button class="button button-secondary" data-review="rework">Перенорма</button>' +
-                '<button class="button button-primary" data-review="norm">Норма</button>' +
-                '<button class="button button-danger" data-review="no_norm">Нет нормы</button>' +
-                '<button class="button button-secondary" data-review="inactive">Неактив</button>' +
+                '<button class="button button-secondary" type="button" data-review="rework">Перенорма</button>' +
+                '<button class="button button-primary" type="button" data-review="norm">Норма</button>' +
+                '<button class="button button-danger" type="button" data-review="no_norm">Нет нормы</button>' +
+                '<button class="button button-secondary" type="button" data-review="inactive">Неактив</button>' +
               '</div>' +
             '</div>'
           : '<div class="notice">Результат проверки: ' + normativeStatus(currentStatus) + (s && s.reviewed_at ? '<br><small>Проверено: ' + E(formatDateTime(s.reviewed_at)) + '</small>' : '') + '</div>';
@@ -2717,25 +2717,49 @@
 
         if (options.management) {
           document.querySelectorAll("[data-review]").forEach(function (button) {
-            button.onclick = async function () {
-              var comment = document.getElementById("reviewComment").value.trim();
+            button.onclick = async function (event) {
+              if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+
+              var commentInput = document.getElementById("reviewComment");
+              var comment = commentInput ? commentInput.value.trim() : "";
+              var reviewStatus = button.getAttribute("data-review") || "";
+
+              if (!reviewStatus) {
+                alert("Не выбран результат проверки.");
+                return;
+              }
+
               button.disabled = true;
+
+              var reviewButtons = document.querySelectorAll("[data-review]");
+              reviewButtons.forEach(function (item) {
+                item.disabled = true;
+              });
+
               try {
-                var reviewResult = await window.BR_API.normativeReview(
+                await window.BR_API.normativeReview(
                   options.token,
                   options.submissionId,
                   options.adminId,
                   options.date,
-                  button.dataset.review,
+                  reviewStatus,
                   comment
                 );
+
                 modalRoot.innerHTML = "";
+
                 if (document.body.getAttribute("data-page") === "normatives-all") {
                   await loadDaily();
                 }
               } catch (e) {
                 alert(e.message || "Не удалось сохранить решение.");
-                button.disabled = false;
+
+                reviewButtons.forEach(function (item) {
+                  item.disabled = false;
+                });
               }
             };
           });
