@@ -3622,26 +3622,6 @@
       return '<span class="badge">Доступ удалён</span>';
     }
 
-    function bindingLabel(item) {
-      var badges = [];
-
-      if (item.phone_bound) {
-        badges.push('<span class="badge badge-blue">📱 Телефон</span>');
-      }
-
-      if (item.computer_bound) {
-        badges.push('<span class="badge badge-blue">💻 Компьютер</span>');
-      }
-
-      if (!badges.length && item.device_bound) {
-        badges.push('<span class="badge badge-blue">Привязано</span>');
-      }
-
-      return badges.length
-        ? badges.join(" ")
-        : '<span class="badge">Нет привязок</span>';
-    }
-
     // Иерархия должностей: от младшего модератора к главному администратору.
     function accessPositionRank(position) {
       var text = String(position || "")
@@ -3806,7 +3786,6 @@
               '<td>' + E(roleLabel(item.role)) + '</td>' +
               '<td>' + E(item.position || "—") + '</td>' +
               '<td>' + statusLabel(item) + '</td>' +
-              '<td>' + bindingLabel(item) + '</td>' +
               '<td>' + E(item.last_login_ip || "—") + '</td>' +
               '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
               '<td>' + E(String(item.active_sessions || 0)) + '</td>' +
@@ -3815,7 +3794,6 @@
                   '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
                   '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
                     '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
-                    (item.device_bound ? '<button type="button" data-access-action="unbind" data-admin-id="' + E(item.id) + '">Сбросить все привязки</button>' : '') +
                     (item.blocked_at
                       ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
                       : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
@@ -3840,7 +3818,7 @@
               '</div>' +
               '<div class="admins-source-row"><span>Текущие доступы из Supabase</span><span>Младший модератор → Главный администратор</span></div>' +
               '<table id="accessRegistryTable"><thead><tr>' +
-                '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>Привязка</th><th>IP</th><th>Последний вход</th><th>Сессии</th><th>Действия</th>' +
+                '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>IP</th><th>Последний вход</th><th>Сессии</th><th>Действия</th>' +
               '</tr></thead><tbody>' + rows + '</tbody></table>' +
             '</div>';
 
@@ -3933,15 +3911,12 @@
 
           closeMenus();
 
-          if (!item) return;
-
-          if (action === "details") {
+          if (!item) return;          if (action === "details") {
             openAccessEdit(item);
             return;
           }
 
           var messages = {
-            unbind: "Сбросить привязку устройства у " + item.nickname + "?",
             block: "Заблокировать " + item.nickname + "?",
             unblock: "Разблокировать " + item.nickname + "?",
             remove: "Удалить доступ у " + item.nickname + "?"
