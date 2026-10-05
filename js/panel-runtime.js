@@ -2586,7 +2586,8 @@
         root.innerHTML =
           '<div class="box table-box"><div class="stats-table-head"><div><small>НОРМАТИВЫ ЗА ДАТУ</small><b>' +
           E(formatDateOnly(selectedDate)) +
-          '</b></div><span class="muted">' + E(String(list.length)) + ' администраторов</span></div>' +
+          '</b></div><span class="muted">' + E(String(list.length)) + ' аккаунтов с доступом</span></div>' +
+          '<div class="admins-source-row"><span>Источник: активные доступы из Supabase</span><span>Синхронизация со списком доступа к сайту</span></div>' +
           statusButtons +
           '<table id="normativeJournalTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Дата</th><th>Время</th><th>Статус</th><th>Файлы</th><th>Решение</th><th>Действия</th></tr></thead><tbody>' +
           (rows || '<tr><td colspan="8" class="table-empty">Администраторов в реестре нет.</td></tr>') +
