@@ -3986,3 +3986,26 @@ body{font-size:16px}
     touch-action:pan-y!important;
   }
 }
+
+
+/* Prevent stale mobile-menu state from locking document scrolling. */
+@media(max-width:800px){
+  html, body{
+    overflow-y:auto!important;
+    height:auto!important;
+    max-height:none!important;
+  }
+
+  body.mobile-menu-open{
+    position:static!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    touch-action:auto!important;
+  }
+
+  body.mobile-menu-open .main{
+    pointer-events:auto!important;
+    user-select:auto!important;
+  }
+}
