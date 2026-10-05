@@ -3268,7 +3268,7 @@ body{font-size:16px}
   display:none;
 }
 
-@media(max-width:700px){
+@media(max-width:1100px){
   #allStatsRoot .table-box{
     overflow:visible!important;
     width:100%;
