@@ -116,7 +116,8 @@
             [
                 "SESSION_IDLE_EXPIRED",
                 "SESSION_EXPIRED",
-                "UNAUTHORIZED"
+                "UNAUTHORIZED",
+                "DEVICE_MISMATCH"
             ].indexOf(code) === -1
         ) {
             return;
