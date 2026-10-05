@@ -3484,6 +3484,54 @@
         : '<span class="badge">Нет привязки</span>';
     }
 
+    // Иерархия должностей: от младшего модератора к главному администратору.
+    function accessPositionRank(position) {
+      var text = String(position || "")
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .replace(/[().,;:]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (!text) return 999;
+      if (text.indexOf("главный администратор") >= 0 && text.indexOf("заместитель") < 0) return 15;
+      if (text.indexOf("заместитель главного администратора") >= 0 || text.indexOf("зам. главного администратора") >= 0) return 14;
+      if (text.indexOf("куратор администрации") >= 0) {
+        return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 12 : 13;
+      }
+      if (text.indexOf("куратор агентов поддержки") >= 0) {
+        return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 10 : 11;
+      }
+      if (text.indexOf("куратор организаций") >= 0) {
+        return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 8 : 9;
+      }
+      if (text.indexOf("старший следящий") >= 0 || text.indexOf("ст. след") >= 0) return 6;
+      if (text.indexOf("старший администратор") >= 0) return 7;
+      if (text.indexOf("старший модератор") >= 0) return 4;
+      if (text.indexOf("младший модератор") >= 0) return 1;
+      if (text === "следящий" || text.indexOf(" следящий") >= 0) return 2;
+      if (text.indexOf("модератор") >= 0) return 3;
+      if (text === "администратор" || text.indexOf(" администратор") >= 0) return 5;
+      return 999;
+    }
+
+    function sortAccessAccounts(list, mode) {
+      var items = Array.isArray(list) ? list.slice() : [];
+      items.sort(function (a, b) {
+        if (mode === "nickname") {
+          return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru", { sensitivity: "base" });
+        }
+        var rankA = accessPositionRank(a.position);
+        var rankB = accessPositionRank(b.position);
+        if (rankA !== rankB) return rankA - rankB;
+        var positionCompare = String(a.position || "").localeCompare(String(b.position || ""), "ru", { sensitivity: "base" });
+        if (positionCompare !== 0) return positionCompare;
+        return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru", { sensitivity: "base" });
+      });
+      return items;
+    }
+
     function generatePassword() {
       var alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
       var length = 10;
