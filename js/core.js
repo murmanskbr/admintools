@@ -193,9 +193,7 @@
   function goToLogin() {
     clearStorage();
     if (timer) clearInterval(timer);
-    if (heartbeatTimer) clearInterval(heartbeatTimer);
     timer = null;
-    heartbeatTimer = null;
 
     var loginUrl = new URL(
       document.body && document.body.dataset.page
