@@ -3636,43 +3636,67 @@
           return;
         }
 
-        var rows = state.accounts.map(function (item) {
-          return '<tr>' +
-            '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
-            '<td>' + E(roleLabel(item.role)) + '</td>' +
-            '<td>' + E(item.position || "—") + '</td>' +
-            '<td>' + statusLabel(item) + '</td>' +
-            '<td>' + bindingLabel(item) + '</td>' +
-            '<td>' + E(item.last_login_ip || "—") + '</td>' +
-            '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
-            '<td>' + E(String(item.active_sessions || 0)) + '</td>' +
-            '<td class="access-actions-cell">' +
-              '<div class="admin-menu-wrap access-menu-wrap">' +
-                '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
-                '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
-                  '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
-                  (item.device_bound ? '<button type="button" data-access-action="unbind" data-admin-id="' + E(item.id) + '">Сбросить привязку</button>' : '') +
-                  (item.blocked_at
-                    ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
-                    : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
-                  '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button>' +
+        function renderAccessRegistry(mode) {
+          var sortedAccounts = sortAccessAccounts(
+            state.accounts,
+            mode || "position"
+          );
+
+          var rows = sortedAccounts.map(function (item) {
+            return '<tr>' +
+              '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
+              '<td>' + E(roleLabel(item.role)) + '</td>' +
+              '<td>' + E(item.position || "—") + '</td>' +
+              '<td>' + statusLabel(item) + '</td>' +
+              '<td>' + bindingLabel(item) + '</td>' +
+              '<td>' + E(item.last_login_ip || "—") + '</td>' +
+              '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
+              '<td>' + E(String(item.active_sessions || 0)) + '</td>' +
+              '<td class="access-actions-cell">' +
+                '<div class="admin-menu-wrap access-menu-wrap">' +
+                  '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
+                  '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
+                    '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
+                    (item.device_bound ? '<button type="button" data-access-action="unbind" data-admin-id="' + E(item.id) + '">Сбросить привязку</button>' : '') +
+                    (item.blocked_at
+                      ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
+                      : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
+                    '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button>' +
+                  '</div>' +
+                '</div>' +
+              '</td>' +
+            '</tr>';
+          }).join("");
+
+          root.innerHTML =
+            '<div class="box table-box access-registry">' +
+              '<div class="stats-table-head access-registry-head">' +
+                '<div><small>РЕЕСТР ДОСТУПОВ</small><b>' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
+                '<div class="access-registry-toolbar">' +
+                  '<span class="muted">Сортировка</span>' +
+                  '<select id="accessRegistrySort" class="form-select access-registry-sort" aria-label="Сортировка реестра доступов">' +
+                    '<option value="position"' + (mode === "nickname" ? "" : " selected") + '>По должности</option>' +
+                    '<option value="nickname"' + (mode === "nickname" ? " selected" : "") + '>По никнейму</option>' +
+                  '</select>' +
                 '</div>' +
               '</div>' +
-            '</td>' +
-          '</tr>';
-        }).join("");
+              '<div class="admins-source-row"><span>Текущие доступы из Supabase</span><span>Младший модератор → Главный администратор</span></div>' +
+              '<table id="accessRegistryTable"><thead><tr>' +
+                '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>Привязка</th><th>IP</th><th>Последний вход</th><th>Сессии</th><th>Действия</th>' +
+              '</tr></thead><tbody>' + rows + '</tbody></table>' +
+            '</div>';
 
-        root.innerHTML =
-          '<div class="box table-box access-registry">' +
-            '<div class="stats-table-head access-registry-head">' +
-              '<div><small>РЕЕСТР ДОСТУПОВ</small><b>' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
-              '<span class="muted">IP и время берутся с сервера при входе</span>' +
-            '</div>' +
-            '<div class="admins-source-row"><span>Текущие доступы из Supabase</span><span>Привязка устройства • сессии</span></div>' +
-            '<table id="accessRegistryTable"><thead><tr>' +
-              '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>Привязка</th><th>IP</th><th>Последний вход</th><th>Сессии</th><th>Действия</th>' +
-            '</tr></thead><tbody>' + rows + '</tbody></table>' +
-          '</div>';
+          bindAccessMenus();
+
+          var sortSelect = document.getElementById("accessRegistrySort");
+          if (sortSelect) {
+            sortSelect.onchange = function () {
+              renderAccessRegistry(sortSelect.value);
+            };
+          }
+        }
+
+        renderAccessRegistry("position");
 
         bindAccessMenus();
       } catch (error) {
