@@ -4027,3 +4027,23 @@ body{font-size:16px}
     max-height:none!important;
   }
 }
+
+
+/* Reliable page scroll container: content scrolls inside the panel independently. */
+.panel{
+  min-height:100dvh!important;
+}
+
+.main{
+  height:100dvh!important;
+  max-height:100dvh!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:auto!important;
+}
+
+.content{
+  min-height:100%!important;
+  height:auto!important;
+}
