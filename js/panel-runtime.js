@@ -2526,12 +2526,33 @@
 
     var selectedDate = dateIso(0);
 
-    function loadDaily() {
+    async function loadDaily() {
       var root = document.getElementById("normRoot");
       var dateInput = document.getElementById("controlDate");
-      if (dateInput) selectedDate = dateInput.value;
-      return window.BR_API.normativesDailyLocal(user.token, selectedDate).then(function (result) {
-        var list = Array.isArray(result.administrators) ? result.administrators : [];
+      if (!root) return null;
+      if (dateInput && dateInput.value) selectedDate = dateInput.value;
+
+      try {
+        root.setAttribute("aria-busy", "true");
+
+        var result = await window.BR_API.normativesDailyLocal(user.token, selectedDate);
+        var list = Array.isArray(result.administrators) ? result.administrators.slice() : [];
+
+        // Сначала руководители по иерархии должностей, затем никнейм.
+        var positionRank = {};
+        POSITIONS.forEach(function (position, index) {
+          positionRank[String(position).trim().toLowerCase()] = index;
+        });
+        list.sort(function (a, b) {
+          var aRank = Object.prototype.hasOwnProperty.call(positionRank, String(a.position || "").trim().toLowerCase())
+            ? positionRank[String(a.position || "").trim().toLowerCase()]
+            : POSITIONS.length + 1;
+          var bRank = Object.prototype.hasOwnProperty.call(positionRank, String(b.position || "").trim().toLowerCase())
+            ? positionRank[String(b.position || "").trim().toLowerCase()]
+            : POSITIONS.length + 1;
+          if (aRank !== bRank) return aRank - bRank;
+          return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
+        });
 
         var rows = list.map(function (item) {
           var action = item.submission_id
@@ -2624,8 +2645,21 @@
           };
         });
 
-
-      });
+        root.setAttribute(
+          "data-updated-at",
+          new Date().toISOString()
+        );
+        root.setAttribute("aria-busy", "false");
+        return result;
+      } catch (error) {
+        root.setAttribute("aria-busy", "false");
+        console.error("[BR AdminTools] Не удалось обновить нормативы администрации:", error);
+        root.innerHTML =
+          '<div class="box"><div class="empty">' +
+          E(error && error.message ? error.message : "Не удалось обновить нормативы.") +
+          '</div></div>';
+        throw error;
+      }
     }
 
     function openNormativeModal(options) {
@@ -2739,17 +2773,42 @@
         var today = document.getElementById("dateToday");
         var refresh = document.getElementById("normDailyRefresh");
 
+        async function refreshDaily(showAlert) {
+          if (refresh) {
+            refresh.disabled = true;
+            refresh.textContent = "Загрузка…";
+          }
+
+          try {
+            await loadDaily();
+          } catch (error) {
+            console.error("[BR AdminTools] Ошибка обновления нормативов:", error);
+            if (showAlert) {
+              alert(
+                error && error.message
+                  ? error.message
+                  : "Не удалось обновить нормативы."
+              );
+            }
+          } finally {
+            if (refresh) {
+              refresh.disabled = false;
+              refresh.textContent = "↻ Обновить";
+            }
+          }
+        }
+
         function setDate(value) {
           selectedDate = value;
           if (input) input.value = value;
-          loadDaily();
+          refreshDaily(false);
         }
 
         if (input) input.onchange = function () { setDate(input.value); };
         if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
         if (next) next.onclick = function () { setDate(dateIso(1)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
-        if (refresh) refresh.onclick = loadDaily;
+        if (refresh) refresh.onclick = function () { refreshDaily(true); };
       },
       load: loadDaily
     };
