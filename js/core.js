@@ -2,8 +2,8 @@
   "use strict";
 
   var COOKIE = "br_session";
-  var REMEMBER_DAYS = 30;
-  var SESSION_IDLE_MS = 180000;
+  var REMEMBER_DAYS = 365;
+  var SESSION_IDLE_MS = 0;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var timer = null;
   var lastActivitySync = 0;
@@ -97,20 +97,11 @@
     try {
       var session = JSON.parse(raw);
       var expires = Number(session.expires);
-      var idleUntil = Number(session.idle_until);
-
       if (!session.user || !session.user.token || !Number.isFinite(expires) || expires <= Date.now()) {
         clearStorage();
         return null;
       }
 
-      if (
-        Number.isFinite(idleUntil) &&
-        idleUntil <= Date.now()
-      ) {
-        clearStorage();
-        return null;
-      }
 
       return session;
     } catch (_) {
@@ -129,11 +120,7 @@
       document.cookie = COOKIE + "=; Max-Age=0; Path=/; Secure; SameSite=Lax";
     } catch (_) {}
 
-    if (session.remember === true) {
-      saveCookie(COOKIE, data, REMEMBER_DAYS * 86400);
-    } else {
-      try { sessionStorage.setItem("br_session", data); } catch (_) {}
-    }
+    saveCookie(COOKIE, data, REMEMBER_DAYS * 86400);
   }
 
   function saveSession(user, expires, remember, lastActivityAt) {
@@ -144,8 +131,7 @@
       user: user,
       token: user.token,
       expires: expires,
-      remember: remember === true,
-      idle_until: activityAt + SESSION_IDLE_MS
+      remember: true
     };
 
     try { localStorage.removeItem("br_session"); } catch (_) {}
@@ -472,36 +458,15 @@
       var current = getSession();
       var el = document.getElementById("sessionTimer");
 
-      // getSession() returns null after idle/absolute expiration and clears
-      // the stored session. Do not leave the page visible at 00:00.
       if (!current) {
-        if (timer) clearInterval(timer);
-        timer = null;
-        if (el) el.textContent = "Сессия 0:00";
         goToLogin();
         return;
       }
 
-      var idleUntil = Number(current.idle_until);
-      var seconds = Math.max(0, Math.ceil((idleUntil - Date.now()) / 1000));
-      if (el) el.textContent = "Сессия " + Math.floor(seconds / 60) + ":" + String(seconds % 60).padStart(2, "0");
-
-      if (!Number.isFinite(idleUntil) || idleUntil <= Date.now() || seconds <= 0) {
-        logout();
-        return;
-      }
+      if (el) el.textContent = "Сессия активна";
     }
 
     updateTimer();
-    if (timer) clearInterval(timer);
-    timer = setInterval(updateTimer, 1000);
-
-    document.addEventListener("click", touchActivity, { passive: true, capture: true });
-    document.addEventListener("keydown", touchActivity, { passive: true, capture: true });
-    document.addEventListener("touchstart", touchActivity, { passive: true, capture: true });
-    document.addEventListener("pointerdown", touchActivity, { passive: true, capture: true });
-    document.addEventListener("wheel", touchActivity, { passive: true, capture: true });
-    document.addEventListener("scroll", touchActivity, { passive: true, capture: true });
 
     if (options.bind) {
       try {
