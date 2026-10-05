@@ -3,7 +3,7 @@
 
   var COOKIE = "br_session";
   var REMEMBER_DAYS = 365;
-  var SESSION_IDLE_MS = 0;
+  var SESSION_IDLE_MS = 180000;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var timer = null;
   var lastActivitySync = 0;
