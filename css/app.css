@@ -3261,3 +3261,224 @@ body{font-size:16px}
 /* Access registry sorting */
 .access-registry-toolbar{display:flex;align-items:center;gap:8px;min-width:210px;justify-content:flex-end}
 .access-registry-toolbar .access-registry-sort{width:150px;min-height:34px;padding:7px 10px;font-size:10px}
+
+
+/* Mobile administration statistics: cards instead of a squeezed Google Sheets table. */
+.stats-mobile-list{
+  display:none;
+}
+
+@media(max-width:700px){
+  #allStatsRoot .table-box{
+    overflow:visible!important;
+    width:100%;
+  }
+
+  #allStatsRoot #allStatsTable{
+    display:none!important;
+  }
+
+  #allStatsRoot .stats-mobile-list{
+    display:grid;
+    gap:10px;
+    padding:10px;
+  }
+
+  #allStatsRoot .stats-mobile-section{
+    padding:10px 4px 6px;
+    color:var(--text);
+    font-size:11px;
+    font-weight:850;
+    line-height:1.35;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+  }
+
+  #allStatsRoot .stats-mobile-card{
+    display:block;
+    width:100%;
+    min-width:0;
+    margin:0;
+    padding:13px;
+    box-sizing:border-box;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:var(--surface);
+    box-shadow:0 8px 22px rgba(0,0,0,.10);
+  }
+
+  #allStatsRoot .stats-mobile-card-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    min-width:0;
+  }
+
+  #allStatsRoot .stats-mobile-identity{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:0;
+  }
+
+  #allStatsRoot .stats-mobile-identity > b{
+    min-width:0;
+    color:var(--text);
+    font-size:15px;
+    line-height:1.25;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+
+  #allStatsRoot .stats-mobile-identity > span{
+    color:#7f8999;
+    font-size:10px;
+    line-height:1.35;
+    overflow-wrap:anywhere;
+  }
+
+  #allStatsRoot .stats-mobile-status{
+    flex:0 0 auto;
+  }
+
+  #allStatsRoot .stats-mobile-status .badge{
+    white-space:nowrap;
+    font-size:10px;
+  }
+
+  #allStatsRoot .stats-mobile-actions{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-wrap:wrap;
+    margin-top:12px;
+  }
+
+  #allStatsRoot .stats-mobile-actions .normative-icon-button{
+    flex:0 0 38px;
+    width:38px;
+    min-width:38px;
+    height:38px;
+    padding:0;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  #allStatsRoot .stats-mobile-actions .stats-mobile-edit{
+    margin-left:auto;
+    min-height:38px;
+    padding:0 11px;
+    font-size:10px;
+  }
+
+  #allStatsRoot .stats-mobile-details{
+    margin-top:10px;
+    border-top:1px solid var(--line);
+    padding-top:10px;
+  }
+
+  #allStatsRoot .stats-mobile-details summary{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    cursor:pointer;
+    list-style:none;
+    color:#9aa4b4;
+    font-size:11px;
+    font-weight:750;
+    user-select:none;
+  }
+
+  #allStatsRoot .stats-mobile-details summary::-webkit-details-marker{
+    display:none;
+  }
+
+  #allStatsRoot .stats-mobile-details summary span{
+    font-size:15px;
+    line-height:1;
+    transition:transform .18s ease;
+  }
+
+  #allStatsRoot .stats-mobile-details[open] summary span{
+    transform:rotate(180deg);
+  }
+
+  #allStatsRoot .stats-mobile-fields{
+    display:grid;
+    gap:0;
+    margin-top:9px;
+    border-top:1px solid rgba(127,137,153,.12);
+  }
+
+  #allStatsRoot .stats-mobile-field{
+    display:grid;
+    grid-template-columns:minmax(90px,42%) minmax(0,1fr);
+    gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid rgba(127,137,153,.10);
+  }
+
+  #allStatsRoot .stats-mobile-field:last-child{
+    border-bottom:0;
+  }
+
+  #allStatsRoot .stats-mobile-field > span{
+    color:#727d8d;
+    font-size:9px;
+    line-height:1.35;
+    overflow-wrap:anywhere;
+  }
+
+  #allStatsRoot .stats-mobile-field > b{
+    min-width:0;
+    color:var(--text);
+    font-size:10px;
+    line-height:1.4;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+
+  #allStatsRoot .stats-mobile-empty,
+  #allStatsRoot .stats-mobile-empty-card{
+    color:#7e8999;
+    font-size:11px;
+    line-height:1.45;
+  }
+
+  #allStatsRoot .stats-mobile-empty-card{
+    padding:14px;
+  }
+
+  .theme-light #allStatsRoot .stats-mobile-card{
+    background:#fff;
+    box-shadow:0 8px 22px rgba(20,30,50,.07);
+  }
+
+  .theme-light #allStatsRoot .stats-mobile-fields,
+  .theme-light #allStatsRoot .stats-mobile-details{
+    border-color:#e4e8ed;
+  }
+
+  .theme-light #allStatsRoot .stats-mobile-field{
+    border-bottom-color:#e9edf2;
+  }
+}
+
+@media(max-width:380px){
+  #allStatsRoot .stats-mobile-list{
+    padding:8px;
+  }
+
+  #allStatsRoot .stats-mobile-card{
+    padding:11px;
+  }
+
+  #allStatsRoot .stats-mobile-actions .stats-mobile-edit{
+    margin-left:0;
+    width:100%;
+    justify-content:center;
+  }
+}
