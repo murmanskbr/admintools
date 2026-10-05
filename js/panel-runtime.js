@@ -2324,7 +2324,7 @@
     var date;
     var base = String(baseValue || "").trim();
 
-    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(base)) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(base)) {
       date = new Date(base + "T12:00:00");
     } else {
       date = new Date();
