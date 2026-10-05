@@ -205,8 +205,11 @@
         table.classList.contains("google-row-table") ||
         table.classList.contains("normative-table-desktop")
       ) {
+        table.removeAttribute("data-mobile-cards");
         return;
       }
+
+      table.setAttribute("data-mobile-cards", "true");
 
       var headerCells = table.querySelectorAll("thead th");
       if (!headerCells.length) return;
@@ -398,6 +401,8 @@
 
     var logoutButton = document.getElementById("logout");
     if (logoutButton) logoutButton.onclick = logout;
+
+    watchMobileTables();
 
     var menu = document.getElementById("mobileMenu");
     var sidebar = document.getElementById("sidebar");
