@@ -2560,7 +2560,7 @@
             ? '<button class="small-button" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Проверить</button>'
             : '<span class="muted">Нет файла</span>';
 
-          return '<tr>' +
+          return '<tr data-admin-id="' + E(item.admin_id || 0) + '">' +
             '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + E(item.nickname) + '</button></td>' +
             '<td>' + E(item.position || "—") + '</td>' +
             '<td>' + E(formatDateOnly(selectedDate)) + '</td>' +
@@ -2740,7 +2740,7 @@
               });
 
               try {
-                await window.BR_API.normativeReview(
+                var reviewResult = await window.BR_API.normativeReview(
                   options.token,
                   options.submissionId,
                   options.adminId,
@@ -2749,10 +2749,45 @@
                   comment
                 );
 
+                // Показываем сохранённый результат сразу в текущей строке.
+                // Повторная загрузка списка ниже служит синхронизацией,
+                // а не единственным способом обновить интерфейс.
+                var savedStatus =
+                  reviewResult && reviewResult.status
+                    ? String(reviewResult.status)
+                    : reviewStatus;
+
+                var targetRow = document.querySelector(
+                  '#normativeJournalTable tbody tr[data-admin-id="' +
+                    String(options.adminId || 0) +
+                    '"]'
+                );
+
+                if (targetRow) {
+                  var cells = targetRow.children;
+
+                  if (cells[4]) {
+                    cells[4].innerHTML = normativeStatus(savedStatus);
+                  }
+
+                  if (cells[6]) {
+                    cells[6].textContent = comment || "—";
+                  }
+
+                  targetRow.setAttribute("data-normative-status", savedStatus);
+                }
+
                 modalRoot.innerHTML = "";
 
                 if (document.body.getAttribute("data-page") === "normatives-all") {
-                  await loadDaily();
+                  try {
+                    await loadDaily();
+                  } catch (refreshError) {
+                    console.warn(
+                      "[BR AdminTools] Статус сохранён, но список нормативов не удалось синхронизировать:",
+                      refreshError
+                    );
+                  }
                 }
               } catch (e) {
                 alert(e.message || "Не удалось сохранить решение.");
