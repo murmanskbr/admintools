@@ -11,7 +11,6 @@
           '<label>Логин</label><input class="login-input" id="login" autocomplete="username" required>' +
           '<label>Пароль</label><div class="password-wrap"><input class="login-input" id="password" type="password" autocomplete="current-password" required>' +
           '<button class="password-eye" id="passwordEye" type="button">◉</button></div>' +
-          '<div class="remember-row"><label class="remember-label"><input id="rememberMe" type="checkbox" class="remember-checkbox"><span>Запомнить меня</span></label><small>Сохранять вход на этом устройстве</small></div>' +
           '<div class="login-error" id="loginError"></div><button class="login-submit" id="loginSubmit" type="submit">Войти</button>' +
         '</form>' +
       '</section></main>';
@@ -33,8 +32,7 @@
       try {
         var result = await window.BR_API.login(
           document.getElementById("login").value.trim(),
-          password.value,
-          document.getElementById("rememberMe").checked
+          password.value
         );
 
         var user = {
@@ -53,14 +51,7 @@
         var lastActivityAt = result.session && result.session.last_activity_at
           ? new Date(result.session.last_activity_at).getTime()
           : Date.now();
-
-        var remember = document.getElementById("rememberMe").checked;
-        window.BRApp.saveSession(
-          user,
-          expires,
-          remember,
-          lastActivityAt
-        );
+        window.BRApp.saveSession(user, expires, true, lastActivityAt);
 
         // Before opening the panel, remove any legacy service worker/cache.
         // This prevents an old cached page.js from showing a blank screen.
