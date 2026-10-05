@@ -2320,9 +2320,22 @@
     });
   }
 
-  function dateIso(offset) {
-    var date = new Date();
+  function dateIso(offset, baseValue) {
+    var date;
+    var base = String(baseValue || "").trim();
+
+    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(base)) {
+      date = new Date(base + "T12:00:00");
+    } else {
+      date = new Date();
+    }
+
+    if (Number.isNaN(date.getTime())) {
+      date = new Date();
+    }
+
     date.setDate(date.getDate() + (offset || 0));
+
     return date.getFullYear() + "-" +
       String(date.getMonth() + 1).padStart(2, "0") + "-" +
       String(date.getDate()).padStart(2, "0");
@@ -2866,8 +2879,8 @@
         }
 
         if (input) input.onchange = function () { setDate(input.value); };
-        if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
-        if (next) next.onclick = function () { setDate(dateIso(1)); };
+        if (prev) prev.onclick = function () { setDate(dateIso(-1, selectedDate)); };
+        if (next) next.onclick = function () { setDate(dateIso(1, selectedDate)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
         if (refresh) refresh.onclick = function () { refreshDaily(true); };
       },
