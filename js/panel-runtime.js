@@ -2225,6 +2225,7 @@
             try {
               await window.BR_API.notificationRead(user.token, Number(button.dataset.readNotification));
               await loadNotifications();
+              window.dispatchEvent(new Event("br:notifications-updated"));
             } catch (e) {
               alert(e.message || "Не удалось отметить уведомление.");
               button.disabled = false;
