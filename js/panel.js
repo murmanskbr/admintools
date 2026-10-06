@@ -531,6 +531,7 @@
     var lastData = [];
     var lastHeaders = [];
     var lastNicknameIndex = -1;
+    var nicknameSearch = "";
 
     function normalizeHeader(header) {
       return String(header == null ? "" : header)
@@ -1234,6 +1235,18 @@
             };
           });
 
+      var totalDisplayRecords = displayRecords.length;
+      var searchValue = normalizeHeader(nicknameSearch);
+
+      if (searchValue) {
+        displayRecords = displayRecords.filter(function (record) {
+          var nickname = lastNicknameIndex >= 0
+            ? rawCellValue(record.row[lastNicknameIndex]).trim()
+            : "";
+          return normalizeHeader(nickname).indexOf(searchValue) !== -1;
+        });
+      }
+
       lastData = displayRecords.map(function (record) {
         var row = record.row;
         var sourceItem = record.sourceItem || {};
@@ -1424,8 +1437,18 @@
         '<div class="box table-box">' +
           '<div class="stats-table-head"><div>' +
             '<small>СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
-            '<b>' + E(String(displayRecords.length)) + ' сотрудников</b>' +
-          '</div><span class="muted">Актуальные данные</span></div>' +
+            '<b>' + E(searchValue
+              ? String(displayRecords.length) + ' из ' + String(totalDisplayRecords) + ' сотрудников'
+              : String(displayRecords.length) + ' сотрудников') + '</b>' +
+          '</div>' +
+          '<form class="stats-nickname-search" id="statsNicknameSearchForm" autocomplete="off">' +
+            '<input class="form-input" id="statsNicknameSearch" type="search" value="' + E(nicknameSearch) + '"' +
+              ' placeholder="Поиск по никнейму" aria-label="Поиск по никнейму">' +
+            '<button class="button button-secondary" type="submit">Найти</button>' +
+            '<button class="button button-secondary" id="statsNicknameSearchClear" type="button"' +
+              (nicknameSearch ? '' : ' disabled') + '>Сбросить</button>' +
+          '</form>' +
+          '</div>' +
           '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
             "Данные получены" +
           '</span></div>' +
@@ -1435,6 +1458,25 @@
             '<th>Норматив</th><th>Действия</th>' +
           '</tr></thead><tbody>' + rows + '</tbody></table>' +
         '</div><div id="adminEditModal"></div>';
+
+      var searchForm = document.getElementById("statsNicknameSearchForm");
+      var searchInput = document.getElementById("statsNicknameSearch");
+      var searchClear = document.getElementById("statsNicknameSearchClear");
+
+      if (searchForm && searchInput) {
+        searchForm.onsubmit = function (event) {
+          event.preventDefault();
+          nicknameSearch = searchInput.value.trim();
+          renderTable();
+        };
+      }
+
+      if (searchClear) {
+        searchClear.onclick = function () {
+          nicknameSearch = "";
+          renderTable();
+        };
+      }
 
       document.querySelectorAll("#allStatsTable tbody tr").forEach(function (row) {
         row.addEventListener("click", function (event) {
