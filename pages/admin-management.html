@@ -213,7 +213,7 @@
             '<div class="top-right"><span id="sessionTimer">Сессия</span></div>' +
           '</header>' +
           '<section class="content">' +
-            '<div class="head"><h1>Создание / удаление администратора</h1><p>Управление администраторами в Google Таблице</p></div>' +
+            '<div class="head"><h1>Создание / удаление администратора</h1><p>Управление администраторами</p></div>' +
             '<div id="adminContent"></div>' +
           '</section>' +
           '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><strong>BR</strong><span>' +
@@ -294,10 +294,10 @@
       '<section id="adminCreatePanel">' +
         '<div class="box">' +
           '<div class="page-toolbar"><div><small>ДАННЫЕ</small><b>Создать администратора</b></div>' +
-          '<div><span id="adminGoogleCount" class="field-hint">Загрузка данных...</span></div></div>' +
+          '<div><span id="adminGoogleCount" class="field-hint">Загрузка данных…</span></div></div>' +
           '<form id="adminCreateForm">' +
             '<div id="adminCreateFields" class="form-grid">' +
-              '<div class="field-hint form-full">Загрузка колонок из Google Таблицы…</div>' +
+              '<div class="field-hint form-full">Загрузка данных…</div>' +
             '</div>' +
             '<div id="adminCreateStatus" class="settings-status" hidden></div>' +
             '<div class="form-actions"><button class="button button-primary" id="adminCreateSubmit" type="submit">Добавить в таблицу</button></div>' +
@@ -312,7 +312,7 @@
             '<div class="form-grid"><div class="form-field form-full"><label>Никнейм администратора</label>' +
             '<input id="adminDeleteNickname" class="form-input" list="adminNicknameList" autocomplete="off" required placeholder="Выберите или введите никнейм">' +
             '<datalist id="adminNicknameList"></datalist>' +
-            '<span class="field-hint">Поиск по всей Google Таблице. Свою учётную запись удалить нельзя.</span></div></div>' +
+            '<span class="field-hint">Поиск по администраторам. Свою учётную запись удалить нельзя.</span></div></div>' +
             '<div id="adminDeleteStatus" class="settings-status" hidden></div>' +
             '<div class="form-actions"><button class="button button-primary" id="adminDeleteSubmit" type="submit">Удалить администратора</button></div>' +
           '</form>' +
@@ -383,7 +383,7 @@
 
       if (!source.length) {
         root.innerHTML =
-          '<div class="field-hint form-full">Не удалось определить колонки Google Таблицы.</div>';
+          '<div class="field-hint form-full">Не удалось определить данные для формы.</div>';
         return;
       }
 
@@ -487,7 +487,7 @@
       try {
         renderData(await window.BR_API.adminsGoogleList(token()));
       } catch (error) {
-        status("adminCreateStatus", error.message || "Не удалось получить данные Google Таблицы.", false);
+        status("adminCreateStatus", error.message || "Не удалось получить данные.", false);
         status("adminDeleteStatus", error.message || "Не удалось получить данные Google Таблицы.", false);
       }
     }
@@ -532,14 +532,14 @@
       }
 
       if (!position) {
-        status("adminCreateStatus", "Укажите должность. По ней система определит нужную группу в Google Таблице.", false);
+        status("adminCreateStatus", "Укажите должность. По ней система определит нужную группу.", false);
         return;
       }
 
       if (!window.confirm(
         "Добавить администратора " + nickname +
-        " с должностью «" + position + "» в Google Таблицу?\n\n" +
-        "Скрипт автоматически найдёт соответствующую группу и вставит строку в неё."
+        " с должностью «" + position + "»?\n\n" +
+        "Система автоматически определит нужную группу и добавит администратора."
       )) return;
 
       var button = document.getElementById("adminCreateSubmit");
@@ -549,14 +549,14 @@
       button.textContent = "Добавление…";
 
       try {
-        await window.BR_API.adminCreateGoogle(token(), {
+        var result = await window.BR_API.adminCreateGoogle(token(), {
           auto_section: true,
           admin: admin
         });
 
-        status("adminCreateStatus", "Администратор " + nickname + " добавлен в Google Таблицу.", true);
+        status("adminCreateStatus", "Администратор " + nickname + " добавлен.", true);
         document.getElementById("adminCreateForm").reset();
-        await refresh();
+        renderData(result);
       } catch (error) {
         status("adminCreateStatus", error.message || "Не удалось добавить администратора.", false);
       } finally {
@@ -590,7 +590,7 @@
         return;
       }
 
-      if (!window.confirm("Вы действительно хотите удалить администратора " + nickname + "?\n\nБудет удалена найденная строка из Google Таблицы.")) {
+      if (!window.confirm("Вы действительно хотите удалить администратора " + nickname + "?\n\nБудет удалена найденная запись.")) {
         return;
       }
 
@@ -605,7 +605,7 @@
         var deleted = Number(result && result.result && result.result.deleted_rows || 0);
         status("adminDeleteStatus", "Администратор " + nickname + " удалён. Строк удалено: " + (deleted || 1) + ".", true);
         document.getElementById("adminDeleteNickname").value = "";
-        await refresh();
+        renderData(result);
       } catch (error) {
         status("adminDeleteStatus", error.message || "Не удалось удалить администратора.", false);
       } finally {
