@@ -141,8 +141,6 @@
 
   function goToLogin() {
     clearStorage();
-    if (timer) clearInterval(timer);
-    timer = null;
 
     var loginUrl = new URL(
       document.body && document.body.dataset.page
