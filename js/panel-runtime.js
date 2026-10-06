@@ -2070,14 +2070,64 @@
       }[value] || value || "—";
     }
 
+    function moscowDateTime(value) {
+      if (!value) return "—";
+      var date = new Date(value);
+      if (!Number.isFinite(date.getTime())) return "—";
+      return date.toLocaleString("ru-RU", {
+        timeZone: "Europe/Moscow",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function moscowInputValue(offsetMinutes) {
+      var date = new Date(Date.now() + Number(offsetMinutes || 0) * 60000);
+      var parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Moscow",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).formatToParts(date);
+      var map = {};
+      parts.forEach(function (part) {
+        map[part.type] = part.value;
+      });
+      return map.year + "-" + map.month + "-" + map.day + "T" + map.hour + ":" + map.minute;
+    }
+
+    function parseMoscowInput(value) {
+      var raw = String(value || "").trim();
+      if (!raw) return null;
+      var date = new Date(raw + ":00+03:00");
+      return Number.isFinite(date.getTime()) ? date : null;
+    }
+
+    function reminderLabel(value) {
+      return {
+        1440: "за 24 часа",
+        180: "за 3 часа",
+        30: "за 30 минут"
+      }[Number(value)] || ("за " + value + " мин.");
+    }
+
     return {
       title: "Уведомления",
-      subtitle: "Новости, объявления и сообщения администрации",
+      subtitle: "Новости, объявления и умные напоминания администрации",
       render: function () {
-        var create = user.role === "management"
+        var createControls = user.role === "management"
           ? '<div class="page-toolbar">' +
-              '<div><small>УПРАВЛЕНИЕ</small><b>Центр уведомлений</b></div>' +
-              '<button class="button button-primary" id="openNotificationForm" type="button">＋ Создать уведомление</button>' +
+              '<div><small>УПРАВЛЕНИЕ</small><b>Центр уведомлений</b><span class="muted">Мероприятия автоматически напомнят участникам о сборе.</span></div>' +
+              '<div class="page-toolbar-actions">' +
+                '<button class="button button-secondary" id="openNotificationForm" type="button">＋ Уведомление</button>' +
+                '<button class="button button-primary" id="openEventForm" type="button">＋ Создать сбор</button>' +
+              '</div>' +
             '</div>' +
             '<div id="notificationCreateRoot" class="box compact-box notification-create-root" hidden>' +
               '<form id="notificationForm">' +
@@ -2092,11 +2142,36 @@
                   '<button class="button button-secondary" id="cancelNotification" type="button">Отмена</button>' +
                 '</div>' +
               '</form>' +
+            '</div>' +
+            '<div id="eventCreateRoot" class="box compact-box notification-create-root event-create-root" hidden>' +
+              '<form id="eventForm">' +
+                '<div class="form-grid">' +
+                  '<div class="form-field"><label>Название сбора</label><input id="eTitle" class="form-input" maxlength="160" required placeholder="Например: Общий сбор администрации"></div>' +
+                  '<div class="form-field"><label>Получатели</label><select id="eTarget" class="form-select"><option value="all">Вся администрация</option><option value="admin">Только администраторы</option><option value="management">Только руководство</option></select></div>' +
+                  '<div class="form-field form-full"><label>Дата и время (МСК)</label><input id="eAt" class="form-input" type="datetime-local" required></div>' +
+                  '<div class="form-field form-full"><label>Задание / описание <span class="muted">необязательно</span></label><textarea id="eText" class="form-textarea" maxlength="5000" placeholder="Что нужно подготовить или сделать на сборе"></textarea></div>' +
+                  '<div class="form-field form-full"><label>Напоминания</label>' +
+                    '<div class="event-reminder-options">' +
+                      '<label class="event-reminder-option"><input id="eReminder24" type="checkbox" value="1440" checked><span>За 24 часа</span></label>' +
+                      '<label class="event-reminder-option"><input id="eReminder3" type="checkbox" value="180" checked><span>За 3 часа</span></label>' +
+                      '<label class="event-reminder-option"><input id="eReminder30" type="checkbox" value="30" checked><span>За 30 минут</span></label>' +
+                    '</div>' +
+                    '<span class="field-hint">Напоминание появится в личном кабинете выбранных получателей.</span>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="form-actions">' +
+                  '<button class="button button-primary" type="submit">Создать сбор</button>' +
+                  '<button class="button button-secondary" id="cancelEvent" type="button">Отмена</button>' +
+                '</div>' +
+              '</form>' +
             '</div>'
           : '';
 
-        return create +
-          '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>';
+        return createControls +
+          '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>' +
+          (user.role === "management"
+            ? '<div id="eventsRoot" class="events-root"><div class="box"><div class="empty">Загрузка мероприятий...</div></div></div>'
+            : '');
       },
       bind: function () {
         var open = document.getElementById("openNotificationForm");
@@ -2104,10 +2179,23 @@
         var cancel = document.getElementById("cancelNotification");
         var form = document.getElementById("notificationForm");
 
+        var openEvent = document.getElementById("openEventForm");
+        var eventRoot = document.getElementById("eventCreateRoot");
+        var cancelEvent = document.getElementById("cancelEvent");
+        var eventForm = document.getElementById("eventForm");
+        var eventAt = document.getElementById("eAt");
+
+        if (eventAt) {
+          eventAt.min = moscowInputValue(60);
+          eventAt.value = moscowInputValue(120);
+        }
+
         if (open && root) {
           open.onclick = function () {
+            if (eventRoot) eventRoot.hidden = true;
             root.hidden = false;
             open.hidden = true;
+            if (openEvent) openEvent.hidden = false;
             var title = document.getElementById("nTitle");
             if (title) title.focus();
           };
@@ -2120,60 +2208,149 @@
           };
         }
 
-        if (!form) return;
+        if (openEvent && eventRoot) {
+          openEvent.onclick = function () {
+            if (root) root.hidden = true;
+            if (open) open.hidden = false;
+            eventRoot.hidden = false;
+            openEvent.hidden = true;
+            if (eventAt) {
+              eventAt.min = moscowInputValue(30);
+              if (!eventAt.value) eventAt.value = moscowInputValue(120);
+            }
+            var title = document.getElementById("eTitle");
+            if (title) title.focus();
+          };
+        }
 
-        form.onsubmit = async function (event) {
-          event.preventDefault();
+        if (cancelEvent && eventRoot && openEvent) {
+          cancelEvent.onclick = function () {
+            eventRoot.hidden = true;
+            openEvent.hidden = false;
+          };
+        }
 
-          var title = document.getElementById("nTitle").value.trim();
-          var text = document.getElementById("nText").value.trim();
-          var target = document.getElementById("nTarget").value;
-          var expiresInput = document.getElementById("nExpires").value;
-          var submit = form.querySelector("button[type=submit]");
+        if (form) {
+          form.onsubmit = async function (event) {
+            event.preventDefault();
 
-          if (!title || !text) return;
+            var title = document.getElementById("nTitle").value.trim();
+            var text = document.getElementById("nText").value.trim();
+            var target = document.getElementById("nTarget").value;
+            var expiresInput = document.getElementById("nExpires").value;
+            var submit = form.querySelector("button[type=submit]");
 
-          var expiresAt = "";
-          if (expiresInput) {
-            var expiration = new Date(expiresInput);
-            if (!Number.isFinite(expiration.getTime())) {
-              alert("Некорректная дата окончания уведомления.");
+            if (!title || !text) return;
+
+            var expiresAt = "";
+            if (expiresInput) {
+              var expiration = new Date(expiresInput);
+              if (!Number.isFinite(expiration.getTime())) {
+                alert("Некорректная дата окончания уведомления.");
+                return;
+              }
+              expiresAt = expiration.toISOString();
+            }
+
+            if (submit) {
+              submit.disabled = true;
+              submit.textContent = "Публикация…";
+            }
+
+            try {
+              await window.BR_API.notificationCreate(
+                user.token,
+                title,
+                text,
+                target,
+                expiresAt
+              );
+              form.reset();
+              if (root && open) {
+                root.hidden = true;
+                open.hidden = false;
+              }
+              await loadNotifications();
+            } catch (e) {
+              alert(e.message || "Не удалось опубликовать уведомление.");
+            } finally {
+              if (submit) {
+                submit.disabled = false;
+                submit.textContent = "Опубликовать";
+              }
+            }
+          };
+        }
+
+        if (eventForm) {
+          eventForm.onsubmit = async function (event) {
+            event.preventDefault();
+
+            var title = document.getElementById("eTitle").value.trim();
+            var text = document.getElementById("eText").value.trim();
+            var target = document.getElementById("eTarget").value;
+            var parsedEventAt = parseMoscowInput(document.getElementById("eAt").value);
+            var reminderOffsets = [];
+
+            ["eReminder24", "eReminder3", "eReminder30"].forEach(function (id) {
+              var checkbox = document.getElementById(id);
+              if (checkbox && checkbox.checked) reminderOffsets.push(Number(checkbox.value));
+            });
+
+            if (!title || !parsedEventAt) {
+              alert("Укажите название и корректное время сбора.");
               return;
             }
-            expiresAt = expiration.toISOString();
-          }
 
-          if (submit) {
-            submit.disabled = true;
-            submit.textContent = "Публикация…";
-          }
-
-          try {
-            await window.BR_API.notificationCreate(
-              user.token,
-              title,
-              text,
-              target,
-              expiresAt
-            );
-            form.reset();
-            if (root && open) {
-              root.hidden = true;
-              open.hidden = false;
+            if (!reminderOffsets.length) {
+              alert("Выберите хотя бы одно напоминание.");
+              return;
             }
-            await loadNotifications();
-          } catch (e) {
-            alert(e.message || "Не удалось опубликовать уведомление.");
-          } finally {
+
+            var submit = eventForm.querySelector("button[type=submit]");
             if (submit) {
-              submit.disabled = false;
-              submit.textContent = "Опубликовать";
+              submit.disabled = true;
+              submit.textContent = "Создание…";
             }
-          }
-        };
+
+            try {
+              await window.BR_API.eventCreate(
+                user.token,
+                title,
+                text,
+                parsedEventAt.toISOString(),
+                target,
+                reminderOffsets
+              );
+
+              eventForm.reset();
+              ["eReminder24", "eReminder3", "eReminder30"].forEach(function (id) {
+                var checkbox = document.getElementById(id);
+                if (checkbox) checkbox.checked = true;
+              });
+              if (eventAt) {
+                eventAt.min = moscowInputValue(30);
+                eventAt.value = moscowInputValue(120);
+              }
+              if (eventRoot && openEvent) {
+                eventRoot.hidden = true;
+                openEvent.hidden = false;
+              }
+              await loadEvents();
+            } catch (e) {
+              alert(e.message || "Не удалось создать сбор.");
+            } finally {
+              if (submit) {
+                submit.disabled = false;
+                submit.textContent = "Создать сбор";
+              }
+            }
+          };
+        }
       },
       load: async function () {
         await loadNotifications();
+        if (user.role === "management") await loadEvents();
       }
     };
 
@@ -2248,6 +2425,61 @@
         });
       } catch (error) {
         root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить уведомления.") + '</div></div>';
+      }
+    }
+
+    async function loadEvents() {
+      var root = document.getElementById("eventsRoot");
+      if (!root) return;
+
+      try {
+        var result = await window.BR_API.eventsList(user.token);
+        var list = Array.isArray(result.events) ? result.events : [];
+
+        if (!list.length) {
+          root.innerHTML = '<div class="page-toolbar event-list-head"><div><small>МЕРОПРИЯТИЯ</small><b>Запланированных сборов нет</b></div></div>';
+          return;
+        }
+
+        var cards = list.map(function (item) {
+          var cancelled = !!item.cancelled_at;
+          var reminderText = Array.isArray(item.reminder_offsets)
+            ? item.reminder_offsets.map(reminderLabel).join(" • ")
+            : "—";
+          var action = cancelled
+            ? '<span class="badge">Отменено</span>'
+            : '<button class="small-button notification-delete" data-cancel-event="' + E(item.id) + '">Отменить</button>';
+
+          return '<article class="event-card' + (cancelled ? ' event-card-cancelled' : '') + '">' +
+            '<div class="event-card-head">' +
+              '<div><small>СБОР</small><h3>' + E(item.title) + '</h3>' +
+              '<div class="notification-meta">' + E(moscowDateTime(item.event_at)) + ' МСК • ' + E(targetLabel(item.target_role)) + '</div></div>' +
+              '<div class="notification-actions">' + action + '</div>' +
+            '</div>' +
+            (item.body ? '<div class="notification-text">' + E(item.body) + '</div>' : '') +
+            '<div class="event-card-reminders"><span>Напоминания: ' + E(reminderText) + '</span></div>' +
+          '</article>';
+        }).join("");
+
+        root.innerHTML =
+          '<div class="page-toolbar event-list-head"><div><small>МЕРОПРИЯТИЯ</small><b>Сборы и расписание</b></div><span class="muted">' + E(String(list.length)) + ' мероприятий</span></div>' +
+          '<div class="event-list">' + cards + '</div>';
+
+        document.querySelectorAll("[data-cancel-event]").forEach(function (button) {
+          button.onclick = async function () {
+            if (!confirm("Отменить этот сбор?")) return;
+            button.disabled = true;
+            try {
+              await window.BR_API.eventDelete(user.token, Number(button.dataset.cancelEvent));
+              await loadEvents();
+            } catch (e) {
+              alert(e.message || "Не удалось отменить сбор.");
+              button.disabled = false;
+            }
+          };
+        });
+      } catch (error) {
+        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить мероприятия.") + '</div></div>';
       }
     }
   }
