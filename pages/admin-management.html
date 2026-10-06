@@ -106,9 +106,7 @@
   }
 
   function goLogin() {
-    if (timer) clearInterval(timer);
     if (heartbeat) clearInterval(heartbeat);
-    timer = null;
     heartbeat = null;
     clearSession();
     location.replace(new URL("../index.html", location.href).href);
