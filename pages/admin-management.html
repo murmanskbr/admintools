@@ -277,6 +277,7 @@
     sidebar.innerHTML =
       '<div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
       groupHtml;
+    refreshNotificationBadge();
 
     document.documentElement.classList.toggle(
       "theme-light",
@@ -699,7 +700,6 @@
     }
 
     renderShell(session.user);
-    refreshNotificationBadge();
   }
 
   if (document.readyState === "loading") {
