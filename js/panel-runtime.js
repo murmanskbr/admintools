@@ -3686,9 +3686,9 @@
             '<div class="form-field">' +
               '<label for="logsCleanupPeriod">Период</label>' +
               '<select id="logsCleanupPeriod" class="form-select">' +
-                '<option value="older_7_days">Старше 7 дней</option>' +
-                '<option value="older_30_days">Старше 1 месяца</option>' +
-                '<option value="older_180_days" selected>Старше 6 месяцев</option>' +
+                '<option value="older_7_days">За последние 7 дней</option>' +
+                '<option value="older_30_days">За последние 30 дней</option>' +
+                '<option value="older_180_days" selected>За последние 6 месяцев</option>' +
                 '<option value="all">Весь журнал</option>' +
               '</select>' +
             '</div>' +
@@ -3713,9 +3713,9 @@
               : "older_180_days";
 
             var labels = {
-              older_7_days: "все записи старше 7 дней",
-              older_30_days: "все записи старше 1 месяца",
-              older_180_days: "все записи старше 6 месяцев",
+              older_7_days: "все записи за последние 7 дней",
+              older_30_days: "все записи за последние 30 дней",
+              older_180_days: "все записи за последние 6 месяцев",
               all: "весь журнал действий"
             };
 
@@ -3748,7 +3748,7 @@
               window.alert(
                 deleted
                   ? "Журнал очищен. Удалено записей: " + deleted
-                  : "Записей для удаления не найдено."
+                  : "За выбранный период записей нет."
               );
 
               await load(user, false);
