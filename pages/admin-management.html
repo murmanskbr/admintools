@@ -19,12 +19,8 @@
 (function () {
   "use strict";
 
-  var SESSION_IDLE_MS = 180000;
   var COOKIE = "br_session";
-  var timer = null;
   var heartbeat = null;
-  var lastLocalActivityTouch = 0;
-  var adminMutationInProgress = false;
 
   function esc(value) {
     return String(value == null ? "" : value)
@@ -81,14 +77,7 @@
       }
 
       var expires = Number(session.expires);
-      var idleUntil = Number(session.idle_until);
-
       if (Number.isFinite(expires) && expires <= Date.now()) {
-        clearSession();
-        return null;
-      }
-
-      if (Number.isFinite(idleUntil) && idleUntil <= Date.now()) {
         clearSession();
         return null;
       }
@@ -125,36 +114,6 @@
     location.replace(new URL("../index.html", location.href).href);
   }
 
-  function touchActivity() {
-    var session = readSession();
-    if (!session) {
-      goLogin();
-      return;
-    }
-
-    // Не перезаписываем cookie на каждое событие: особенно важно для
-    // прокрутки на мобильных устройствах, где события могут идти десятками в секунду.
-    var now = Date.now();
-    if (now - lastLocalActivityTouch < 5000) return;
-
-    session.idle_until = now + SESSION_IDLE_MS;
-    saveSession(session);
-    lastLocalActivityTouch = now;
-  }
-
-  function sessionSeconds() {
-    var session = readSession();
-    if (!session) return -1;
-
-    var idleUntil = Number(session.idle_until);
-    if (!Number.isFinite(idleUntil)) {
-      session.idle_until = Date.now() + SESSION_IDLE_MS;
-      saveSession(session);
-      idleUntil = session.idle_until;
-    }
-
-    return Math.ceil((idleUntil - Date.now()) / 1000);
-  }
 
   function renderShell(user) {
     var nickname = String(user.nickname || "BR");
@@ -210,7 +169,7 @@
           '<header class="top">' +
             '<button class="mobile-menu" id="mobileMenu" type="button" aria-label="Открыть меню">☰</button>' +
             '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span>' +
-            '<div class="top-right"><span id="sessionTimer">Сессия</span></div>' +
+            '<div class="top-right"></div>' +
           '</header>' +
           '<section class="content">' +
             '<div class="head"><h1>Создание / удаление администратора</h1><p>Управление администраторами</p></div>' +
@@ -543,9 +502,7 @@
       )) return;
 
       var button = document.getElementById("adminCreateSubmit");
-      adminMutationInProgress = true;
-      touchActivity();
-      button.disabled = true;
+            button.disabled = true;
       button.textContent = "Добавление…";
 
       try {
@@ -560,9 +517,7 @@
       } catch (error) {
         status("adminCreateStatus", error.message || "Не удалось добавить администратора.", false);
       } finally {
-        adminMutationInProgress = false;
-        touchActivity();
-        button.disabled = false;
+                button.disabled = false;
         button.textContent = "Добавить в таблицу";
       }
     };
@@ -586,9 +541,7 @@
       }
 
       var button = document.getElementById("adminDeleteSubmit");
-      adminMutationInProgress = true;
-      touchActivity();
-      button.disabled = true;
+            button.disabled = true;
       button.textContent = "Удаление…";
 
       try {
@@ -600,9 +553,7 @@
       } catch (error) {
         status("adminDeleteStatus", error.message || "Не удалось удалить администратора.", false);
       } finally {
-        adminMutationInProgress = false;
-        touchActivity();
-        button.disabled = false;
+                button.disabled = false;
         button.textContent = "Удалить администратора";
       }
     };
@@ -650,26 +601,6 @@
     // Reset stale mobile-menu state when this page is restored from browser cache.
     window.addEventListener("pageshow", function () { closeMenu(); }, { once: true });
 
-    document.addEventListener("click", touchActivity, { capture: true });
-    document.addEventListener("keydown", touchActivity, { capture: true });
-
-    function tick() {
-      var seconds = sessionSeconds();
-      var timerEl = document.getElementById("sessionTimer");
-
-      if (!adminMutationInProgress && (seconds < 0 || seconds <= 0)) {
-        goLogin();
-        return;
-      }
-
-      if (timerEl) {
-        timerEl.textContent =
-          "Сессия " +
-          Math.floor(seconds / 60) +
-          ":" +
-          String(seconds % 60).padStart(2, "0");
-      }
-    }
 
     renderCreateFields(state.headers);
     var count = document.getElementById("adminGoogleCount");
