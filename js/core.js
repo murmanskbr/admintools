@@ -4,7 +4,7 @@
   var COOKIE = "br_session";
   var REMEMBER_DAYS = 365;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
-  var timer = null;
+  var notificationBadgeTimer = null;
 
   var NAV = {
     dashboard: ["pages/dashboard.html", "⌂", "Главная"],
@@ -387,8 +387,8 @@
 
     applyTheme(session.user.theme || "dark");
 
-    // API requests also report an expired server-side session. Redirect
-    // immediately instead of waiting for the local countdown.
+    // API requests also report an expired server-side session.
+    // There is no local idle/session countdown on the panel.
     window.addEventListener("br:session-expired", function (event) {
       console.error(
         "[BR AdminTools] Сервер завершил сессию:",
@@ -415,6 +415,19 @@
     );
 
     refreshNotificationBadge(session.user.token);
+
+    if (notificationBadgeTimer) {
+      clearInterval(notificationBadgeTimer);
+    }
+
+    notificationBadgeTimer = setInterval(function () {
+      if (document.visibilityState === "hidden") return;
+      var current = getSession();
+      if (!current || !current.user || !current.user.token) {
+        return;
+      }
+      refreshNotificationBadge(current.user.token);
+    }, 20000);
 
     window.addEventListener("br:notifications-updated", function () {
       refreshNotificationBadge(session.user.token);
