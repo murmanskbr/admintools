@@ -3497,103 +3497,30 @@ body{font-size:16px}
   }
 }
 
-/* Mobile navigation — fixed drawer with its own scrolling layer. */
+
+/* Stable mobile navigation: one drawer, one optional backdrop, no document scroll lock. */
 .mobile-menu-backdrop{
   position:fixed;
   inset:0;
   z-index:90;
   display:none;
   background:rgba(3,5,9,.58);
-  backdrop-filter:blur(2px);
-  -webkit-backdrop-filter:blur(2px);
-  touch-action:none;
+  pointer-events:none;
+}
+
+.mobile-menu-backdrop.open{
+  display:block;
+  pointer-events:auto;
 }
 
 @media(max-width:800px){
-  .sidebar{
-    top:0;
-    right:auto;
-    bottom:0;
-    left:0;
-    width:min(86vw,320px);
-    height:100dvh;
-    min-height:100dvh;
-    max-height:100dvh;
-    padding:16px 12px calc(16px + env(safe-area-inset-bottom));
-    overflow-x:hidden;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior:contain;
-    transform:translateX(-105%);
-  }
-
-  .sidebar.open{
-    transform:translateX(0);
-  }
-
-  .mobile-menu-backdrop{
-    display:none;
-  }
-
-  .mobile-menu-backdrop.open{
-    display:block;
-  }
-
-  .sidebar .brand{
-    flex:0 0 auto;
-    padding-bottom:18px;
-  }
-
-  .sidebar .section-title{
-    flex:0 0 auto;
-  }
-
-  .sidebar .side-link{
-    flex:0 0 auto;
-    min-height:46px;
-  }
-
-  .sidebar-bottom{
-    flex:0 0 auto;
-    margin-top:18px;
-    padding-bottom:2px;
-  }
-
-  body{
-    overflow-x:hidden;
-  }
-}
-
-/* Final mobile drawer behavior: menu and overlay must stay above the sticky header and own the touch scroll. */
-@media(max-width:800px){
-  html{
-    overflow-x:hidden;
-  }
-  .top{
-    z-index:10!important;
-  }
-
-  .mobile-menu-backdrop{
-    position:fixed!important;
-    inset:0!important;
-    z-index:9998!important;
-    width:100vw!important;
-    height:100dvh!important;
-    display:none!important;
-    touch-action:none!important;
-  }
-
-  .mobile-menu-backdrop.open{
-    display:block!important;
-  }
-
   .sidebar{
     position:fixed!important;
     top:0!important;
     right:auto!important;
     bottom:0!important;
     left:0!important;
-    z-index:9999!important;
+    z-index:100!important;
     width:min(86vw,320px)!important;
     height:100dvh!important;
     min-height:100dvh!important;
@@ -3603,9 +3530,9 @@ body{font-size:16px}
     overflow-x:hidden!important;
     overflow-y:auto!important;
     -webkit-overflow-scrolling:touch!important;
-    overscroll-behavior-y:contain!important;
+    overscroll-behavior:contain!important;
     touch-action:pan-y!important;
-    transform:translate3d(-105%,0,0);
+    transform:translate3d(-105%,0,0)!important;
     will-change:transform;
   }
 
@@ -3797,78 +3724,24 @@ body{font-size:16px}
   }
 }
 
-/* Absolute mobile navigation layer — must cover the sticky header on Android browsers. */
+
+/* Mobile navigation is intentionally not allowed to lock html/body scrolling. */
 @media(max-width:800px){
-  html,
-  body{
-    overscroll-behavior:none!important;
+  html, body{
+    overflow-x:hidden;
   }
 
-  .mobile-menu-backdrop{
-    position:fixed!important;
-    inset:0!important;
-    z-index:2147483646!important;
-    width:100%!important;
-    height:100%!important;
-    max-width:none!important;
+  body.mobile-menu-open{
+    overflow:visible!important;
+    position:static!important;
+    width:auto!important;
+    height:auto!important;
     max-height:none!important;
+    touch-action:auto!important;
   }
 
-  .sidebar{
-    position:fixed!important;
-    inset:0 auto 0 0!important;
-    z-index:2147483647!important;
-    width:min(86vw,320px)!important;
-    height:100dvh!important;
-    max-height:100dvh!important;
-    margin:0!important;
-    overflow-x:hidden!important;
-    overflow-y:scroll!important;
-    -webkit-overflow-scrolling:touch!important;
-    overscroll-behavior:contain!important;
-    touch-action:pan-y!important;
-    transform:translate3d(-110%,0,0)!important;
-    will-change:transform;
-    isolation:isolate;
-  }
-
-  .sidebar.open{
-    transform:translate3d(0,0,0)!important;
-  }}
-
-/* Mobile menu final UX: keep the account/logout block visible while menu links scroll. */
-@media(max-width:800px){
-  .sidebar{
-    display:flex!important;
-    flex-direction:column!important;
-    align-items:stretch!important;
-    justify-content:flex-start!important;
-  }
-
-  .sidebar-bottom{
-    position:sticky!important;
-    bottom:0!important;
-    z-index:20!important;
-    flex:0 0 auto!important;
-    margin-top:12px!important;
-    padding:10px 2px calc(2px + env(safe-area-inset-bottom))!important;
-    background:rgba(13,16,22,.98)!important;
-    border-top:1px solid var(--line)!important;
-    box-shadow:0 -12px 24px rgba(8,10,15,.72)!important;
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
-  }
-
-  .sidebar-bottom .user-mini{
-    min-width:0;
-  }
-
-  .sidebar-bottom .logout{
-    min-height:42px!important;
-  }
-
-  .theme-light .sidebar-bottom{
-    background:rgba(255,255,255,.98)!important;
-    box-shadow:0 -12px 24px rgba(20,25,34,.10)!important;
+  body.mobile-menu-open .main{
+    pointer-events:auto!important;
+    user-select:auto!important;
   }
 }
