@@ -220,26 +220,55 @@
         '</main>' +
       '</div>';
 
+    function renderMenuLink(item) {
+      var active = item[0].replace("pages/", "") === current ? " active" : "";
+      var label = esc(item[2]);
+      var badge = "";
+
+      if (item[0] === "pages/notifications.html") {
+        label = '<span class="side-link-label">' + label + "</span>";
+        badge = '<span class="notification-menu-badge" id="notificationMenuBadge" aria-hidden="true"></span>';
+      }
+
+      return '<a class="side-link' + active + '" href="../' + item[0] + '"><span>' +
+        item[1] + "</span>" + label + badge + "</a>";
+    }
+
+    function refreshNotificationBadge() {
+      var badge = document.getElementById("notificationMenuBadge");
+      if (!badge || !window.BR_API || typeof window.BR_API.notificationsList !== "function") return;
+
+      window.BR_API.notificationsList(user.token)
+        .then(function (result) {
+          var list = result && Array.isArray(result.notifications) ? result.notifications : [];
+          var hasUnread = list.some(function (item) { return !item.is_read; });
+          badge.classList.toggle("is-visible", hasUnread);
+          badge.setAttribute("aria-hidden", hasUnread ? "false" : "true");
+        })
+        .catch(function (error) {
+          console.warn("[BR AdminTools] Не удалось обновить индикатор уведомлений:", error);
+        });
+    }
     // Replace the combined link list with explicit menu groups.
     var sidebar = document.getElementById("sidebar");
     var groupHtml =
       '<div class="section-title">ПАНЕЛЬ</div>' +
       nav.slice(0, 2).map(function (item) {
         var active = item[0].replace("pages/", "") === current ? " active" : "";
-        return '<a class="side-link' + active + '" href="../' + item[0] + '"><span>' + item[1] + '</span>' + esc(item[2]) + '</a>';
+        return renderMenuLink(item);
       }).join("") +
       '<div class="section-title">УПРАВЛЕНИЕ</div>' +
       nav.slice(2, 8).map(function (item) {
         var active = item[0].replace("pages/", "") === current ? " active" : "";
-        return '<a class="side-link' + active + '" href="../' + item[0] + '"><span>' + item[1] + '</span>' + esc(item[2]) + '</a>';
+        return renderMenuLink(item);
       }).join("") +
       '<div class="section-title">КОНТРОЛЬ</div>' +
       nav.slice(8, 11).map(function (item) {
         var active = item[0].replace("pages/", "") === current ? " active" : "";
-        return '<a class="side-link' + active + '" href="../' + item[0] + '"><span>' + item[1] + '</span>' + esc(item[2]) + '</a>';
+        return renderMenuLink(item);
       }).join("") +
       '<div class="section-title">СИСТЕМА</div>' +
-      '<a class="side-link" href="../pages/settings.html"><span>⚙</span>Настройки</a>' +
+       renderMenuLink(["pages/settings.html", "⚙", "Настройки"]) +
       '<div class="sidebar-bottom">' +
         '<div class="user-mini"><div class="avatar">' + esc(nickname.slice(0, 2).toUpperCase()) +
         '</div><div><b>' + esc(nickname) + '</b><small>' + esc(user.position || "") + '</small></div></div>' +
@@ -670,6 +699,7 @@
     }
 
     renderShell(session.user);
+    refreshNotificationBadge();
   }
 
   if (document.readyState === "loading") {
