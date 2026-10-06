@@ -3752,3 +3752,25 @@ body{font-size:16px}
     user-select:auto!important;
   }
 }
+
+
+/* Умные мероприятия и напоминания */
+.page-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.page-toolbar-actions .button{flex:0 0 auto}
+.event-reminder-options{display:flex;gap:8px;flex-wrap:wrap}
+.event-reminder-option{display:flex;align-items:center;gap:7px;min-height:38px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:#c9d0dc;font-size:10px;font-weight:700;cursor:pointer}
+.event-reminder-option input{width:14px;height:14px;accent-color:var(--accent)}
+.event-list{display:grid;gap:10px;margin-top:12px}
+.event-card{padding:15px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.event-card-cancelled{opacity:.6}
+.event-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.event-card-head small{display:block;margin-bottom:5px;color:#737d8e;font-size:8px;font-weight:800;letter-spacing:.1em}
+.event-card-head h3{margin:0 0 5px;font-size:13px;line-height:1.35}
+.event-card-reminders{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);color:var(--muted);font-size:9px}
+.event-list-head{margin-bottom:0}
+@media(max-width:700px){
+  .page-toolbar-actions{width:100%;justify-content:stretch}
+  .page-toolbar-actions .button{flex:1 1 150px}
+  .event-card-head{flex-direction:column}
+  .event-card-head .notification-actions{width:100%;justify-content:flex-start}
+}
