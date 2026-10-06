@@ -24,6 +24,7 @@
   var timer = null;
   var heartbeat = null;
   var lastLocalActivityTouch = 0;
+  var adminMutationInProgress = false;
 
   function esc(value) {
     return String(value == null ? "" : value)
@@ -542,6 +543,8 @@
       )) return;
 
       var button = document.getElementById("adminCreateSubmit");
+      adminMutationInProgress = true;
+      touchActivity();
       button.disabled = true;
       button.textContent = "Добавление…";
 
@@ -557,6 +560,8 @@
       } catch (error) {
         status("adminCreateStatus", error.message || "Не удалось добавить администратора.", false);
       } finally {
+        adminMutationInProgress = false;
+        touchActivity();
         button.disabled = false;
         button.textContent = "Добавить в таблицу";
       }
@@ -590,6 +595,8 @@
       }
 
       var button = document.getElementById("adminDeleteSubmit");
+      adminMutationInProgress = true;
+      touchActivity();
       button.disabled = true;
       button.textContent = "Удаление…";
 
@@ -602,6 +609,8 @@
       } catch (error) {
         status("adminDeleteStatus", error.message || "Не удалось удалить администратора.", false);
       } finally {
+        adminMutationInProgress = false;
+        touchActivity();
         button.disabled = false;
         button.textContent = "Удалить администратора";
       }
@@ -657,7 +666,7 @@
       var seconds = sessionSeconds();
       var timerEl = document.getElementById("sessionTimer");
 
-      if (seconds < 0 || seconds <= 0) {
+      if (!adminMutationInProgress && (seconds < 0 || seconds <= 0)) {
         goLogin();
         return;
       }
