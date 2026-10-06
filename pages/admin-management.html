@@ -294,7 +294,7 @@
       '<section id="adminCreatePanel">' +
         '<div class="box">' +
           '<div class="page-toolbar"><div><small>ДАННЫЕ</small><b>Создать администратора</b></div>' +
-          '<div><span id="adminGoogleCount" class="field-hint">Загрузка данных…</span></div></div>' +
+          '<div><span id="adminGoogleCount" class="field-hint">Форма готова</span></div></div>' +
           '<form id="adminCreateForm">' +
             '<div id="adminCreateFields" class="form-grid">' +
               '<div class="field-hint form-full">Загрузка данных…</div>' +
@@ -323,7 +323,23 @@
   }
 
   function bindPage(user) {
-    var state = { nicknames: [], sections: [], headers: [] };
+    var state = {
+      nicknames: [],
+      sections: [],
+      headers: [
+        "Никнейм",
+        "Возраст",
+        "Доступ с ПК",
+        "Должность",
+        "Неактивы",
+        "Баллы активности",
+        "Дни на посту",
+        "Страйки",
+        "Предупреждения",
+        "Баллы",
+        "Последнее повышение"
+      ]
+    };
 
     var FIELD_ALIASES = {
       nickname: ["никнейм","ник","nickname","nick","логин","login","username"],
@@ -437,10 +453,15 @@
 
     function renderData(result) {
       var rows = Array.isArray(result && result.rows) ? result.rows : [];
-      var headers = Array.isArray(result && result.headers) ? result.headers : [];
-      state.headers = headers.slice();
+      var headers = Array.isArray(result && result.headers) ? result.headers : state.headers.slice();
+
+      if (headers.length) {
+        state.headers = headers.slice();
+      }
+
       renderCreateFields(state.headers);
-      var nicknameIndex = headers.findIndex(function (h) {
+
+      var nicknameIndex = state.headers.findIndex(function (h) {
         return ["никнейм","ник","nickname","nick","логин","login","username"]
           .indexOf(String(h || "").trim().toLowerCase()) >= 0;
       });
@@ -456,22 +477,6 @@
         return a.localeCompare(b, "ru");
       });
 
-      state.sections = Array.isArray(result && result.sections)
-        ? Array.from(new Set(result.sections.map(function (item) {
-            return String(item && item.title || "").trim();
-          }).filter(Boolean)))
-        : [];
-
-      var sectionSelect = document.getElementById("adminSection");
-      if (sectionSelect && state.sections.length) {
-        sectionSelect.innerHTML = state.sections.map(function (name) {
-          return '<option value="' + esc(name) + '">' + esc(name) + '</option>';
-        }).join("");
-        sectionSelect.value = state.sections.find(function (name) {
-          return normalizeNickname(name) === normalizeNickname("АДМИНИСТРАТОРЫ");
-        }) || state.sections[0];
-      }
-
       var list = document.getElementById("adminNicknameList");
       if (list) {
         list.innerHTML = state.nicknames.map(function (name) {
@@ -480,15 +485,10 @@
       }
 
       var count = document.getElementById("adminGoogleCount");
-      if (count) count.textContent = "Администраторов в таблице: " + state.nicknames.length;
-    }
-
-    async function refresh() {
-      try {
-        renderData(await window.BR_API.adminsGoogleList(token()));
-      } catch (error) {
-        status("adminCreateStatus", error.message || "Не удалось получить данные.", false);
-        status("adminDeleteStatus", error.message || "Не удалось получить данные Google Таблицы.", false);
+      if (count) {
+        count.textContent = state.nicknames.length
+          ? "Загружено записей: " + state.nicknames.length
+          : "Форма готова";
       }
     }
 
@@ -578,15 +578,6 @@
 
       if (normalizeNickname(nickname) === normalizeNickname(user.nickname)) {
         status("adminDeleteStatus", "Нельзя удалить самого себя.", false);
-        return;
-      }
-
-      var exists = state.nicknames.some(function (name) {
-        return normalizeNickname(name) === normalizeNickname(nickname);
-      });
-
-      if (!exists) {
-        status("adminDeleteStatus", "Такого администратора сейчас нет в загруженной таблице.", false);
         return;
       }
 
@@ -680,6 +671,10 @@
       }
     }
 
+    renderCreateFields(state.headers);
+    var count = document.getElementById("adminGoogleCount");
+    if (count) count.textContent = "Форма готова";
+
     tick();
     if (timer) clearInterval(timer);
     timer = setInterval(tick, 1000);
@@ -697,7 +692,6 @@
       }
     }, 30000);
 
-    refresh();
   }
 
   function boot() {
