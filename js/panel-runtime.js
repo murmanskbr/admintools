@@ -1807,7 +1807,7 @@
           '<div class="box game-online-card">' +
             '<small>СЕЙЧАС В ИГРЕ</small>' +
             '<strong>' + E(String(summary.in_game == null ? 0 : summary.in_game)) + '</strong>' +
-            '<span>из ' + E(String(summary.total_active == null ? 0 : summary.total_active)) + ' остальных активных пользователей</span>' +
+            '<span>из ' + E(String(summary.total_active == null ? 0 : summary.total_active)) + ' активных пользователей</span>' +
           '</div>' +
           '<div class="box game-online-card">' +
             '<small>НЕ В ИГРЕ</small>' +
