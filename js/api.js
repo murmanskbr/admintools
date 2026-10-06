@@ -1047,6 +1047,51 @@
                 );
             },
 
+        eventsList:
+            function (token) {
+                return request(
+                    {
+                        action: "events_list"
+                    },
+                    token
+                );
+            },
+
+        eventCreate:
+            function (
+                token,
+                title,
+                body,
+                eventAt,
+                targetRole,
+                reminderOffsets
+            ) {
+                return request(
+                    {
+                        action: "event_create",
+                        title: title,
+                        body: body || "",
+                        event_at: eventAt,
+                        target_role: targetRole || "all",
+                        reminder_offsets: Array.isArray(reminderOffsets)
+                            ? reminderOffsets
+                            : [1440, 180, 30]
+                    },
+                    token
+                );
+            },
+
+        eventDelete:
+            function (token, eventId) {
+                return request(
+                    {
+                        action: "event_delete",
+                        event_id: Number(eventId)
+                    },
+                    token
+                );
+            },
+
         generalRequestsMine:
             function (token) {
                 return request(
