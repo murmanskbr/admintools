@@ -317,8 +317,10 @@
     return '<div class="panel">' +
       '<aside class="sidebar" id="sidebar">' +
         '<div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
-        '<div class="section-title">ПАНЕЛЬ</div>' +
-        link("dashboard") + link("profile") + menu +
+        '<div class="sidebar-menu">' +
+          '<div class="section-title">ПАНЕЛЬ</div>' +
+          link("dashboard") + link("profile") + menu +
+        '</div>' +
         '<div class="sidebar-bottom">' +
           '<div class="user-mini"><div class="avatar">' +
             esc(String(user.nickname || "BR").slice(0, 2).toUpperCase()) +
