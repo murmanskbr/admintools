@@ -2841,11 +2841,15 @@
         return '<div class="page-toolbar normative-toolbar">' +
           '<div><small>ВЫСТАВЛЕНИЕ И ПРОВЕРКА</small><b>Контроль норматива за выбранную дату</b></div>' +
           '<div class="date-controls">' +
-            '<button class="small-button" id="datePrev" type="button">←</button>' +
-            '<input id="controlDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
-            '<button class="small-button" id="dateNext" type="button">→</button>' +
-            '<button class="button button-secondary" id="dateToday" type="button">Сегодня</button>' +
-            '<button class="button button-secondary" id="normDailyRefresh" type="button">↻ Обновить</button>' +
+            '<div class="date-picker-nav">' +
+              '<button class="small-button" id="datePrev" type="button">←</button>' +
+              '<input id="controlDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
+              '<button class="small-button" id="dateNext" type="button">→</button>' +
+            '</div>' +
+            '<div class="date-actions">' +
+              '<button class="button button-secondary" id="dateToday" type="button">Сегодня</button>' +
+              '<button class="button button-secondary" id="normDailyRefresh" type="button">↻ Обновить</button>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         '<div id="normRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>' +
