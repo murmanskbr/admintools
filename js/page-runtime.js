@@ -389,7 +389,7 @@
             googleRowTable(result, "Профиль " + user.nickname);
         } catch (error) {
           if (error.code === "STATISTICS_NOT_FOUND") {
-            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в реестре Google Sheets. Данные профиля из таблицы не найдены.</div></div>';
+            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в данных. Профиль не найден.</div></div>';
             return;
           }
           root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить профиль.") + '</div></div>';
@@ -492,7 +492,7 @@
             googleRowTable(result, "Статистика " + user.nickname);
         } catch (error) {
           if (error.code === "STATISTICS_NOT_FOUND") {
-            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в реестре Google Sheets. Личная статистика не найдена.</div></div>';
+            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в данных. Личная статистика не найдена.</div></div>';
             return;
           }
           root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить личную статистику.") + '</div></div>';
@@ -1266,7 +1266,7 @@
           '<div class="stats-table-head"><div>' +
             '<small>СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
             '<b>' + E(String(displayRecords.length)) + ' сотрудников</b>' +
-          '</div><span class="muted">Источник: Google Таблица</span></div>' +
+          '</div><span class="muted">Актуальные данные</span></div>' +
           '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
             "Данные получены" +
           '</span></div>' +
