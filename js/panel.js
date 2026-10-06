@@ -107,7 +107,7 @@
   function googleRowTable(result, caption) {
     var data = googleRowPayload(result);
     if (!data.count) return '<div class="box"><div class="empty">В Google-таблице нет данных этой строки.</div></div>';
-    var rangeText = data.rowNumber ? "Строка " + data.rowNumber + " • диапазон " + data.firstColumn + data.rowNumber + ":" + data.lastColumn + data.rowNumber : "Полная строка Google Sheets";
+    var rangeText = data.rowNumber ? "Строка " + data.rowNumber + " • диапазон " + data.firstColumn + data.rowNumber + ":" + data.lastColumn + data.rowNumber : "Полная строка";
     function formatGoogleCellValue(_header, value) {
       // Google Sheets is the source of truth: do not parse, rename,
       // calculate, localize or otherwise alter the returned cell value.
@@ -128,7 +128,7 @@
       '</div>';
     }).join("");
 
-    return '<div class="page-toolbar"><div><small>GOOGLE ТАБЛИЦА</small><b>' + E(caption || "Полные данные строки") + '</b></div><span class="muted">' + E(rangeText) + '</span></div>' +
+    return '<div class="page-toolbar"><div><small>ДАННЫЕ</small><b>' + E(caption || "Полные данные строки") + '</b></div><span class="muted">' + E(rangeText) + '</span></div>' +
       '<div class="box table-box google-row-desktop"><table class="google-row-table"><thead><tr><th>Заголовок</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<div class="mobile-data-list google-row-mobile">' + mobileRows + '</div>';
   }
@@ -373,7 +373,7 @@
       title: "Мой профиль",
       subtitle: "Полные данные из реестра администрации",
       render: function () {
-        return '<div id="profileRoot"><div class="box"><div class="empty">Поиск администратора в Google Sheets...</div></div></div>';
+        return '<div id="profileRoot"><div class="box"><div class="empty">Поиск администратора...</div></div></div>';
       },
       load: async function (user) {
         var root = document.getElementById("profileRoot");
@@ -392,7 +392,7 @@
             root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в реестре Google Sheets. Данные профиля из таблицы не найдены.</div></div>';
             return;
           }
-          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить профиль из Google Sheets.") + '</div></div>';
+          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить профиль.") + '</div></div>';
         }
       }
     };
@@ -444,7 +444,7 @@
           }).join("") + '</tr>';
         }).join("");
         if (!bodyRows) bodyRows = '<tr><td colspan="' + (headers.length + 1) + '" class="table-empty">В таблице нет данных.</td></tr>';
-        root.innerHTML = '<div class="box table-box"><div class="stats-table-head"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div><span class="muted">Источник: Google Таблица • Google Sheets</span></div><table id="adminsTable"><thead><tr><th>Строка</th>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
+        root.innerHTML = '<div class="box table-box"><div class="stats-table-head"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div><span class="muted">Актуальные данные</span></div><table id="adminsTable"><thead><tr><th>Строка</th>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
         var search = document.getElementById("adminsSearch");
         if (search) search.oninput = function () {
           var query = search.value.trim().toLowerCase();
@@ -476,14 +476,14 @@
       title: "Моя статистика",
       subtitle: "Полная строка администратора из Google Таблица",
       render: function () {
-        return '<div id="statsRoot"><div class="box"><div class="empty">Поиск администратора в Google Sheets...</div></div></div>';
+        return '<div id="statsRoot"><div class="box"><div class="empty">Поиск администратора...</div></div></div>';
       },
       load: async function (user) {
         var root = document.getElementById("statsRoot");
         if (!root) return;
 
         root.innerHTML =
-          '<div class="box"><div class="empty">Обновление статистики из Google Sheets...</div></div>';
+          '<div class="box"><div class="empty">Обновление статистики...</div></div>';
 
         try {
           var result = await window.BR_API.myStatistics(user.token);
@@ -1316,7 +1316,7 @@
       }).join("");
 
       if (!rows) {
-        rows = '<tr><td colspan="' + (lastHeaders.length + 2) + '" class="table-empty">В Google Таблице нет строк данных.</td></tr>';
+        rows = '<tr><td colspan="' + (lastHeaders.length + 2) + '" class="table-empty">Нет строк данных.</td></tr>';
       }
 
       function mobileRecordsHtml() {
@@ -1427,7 +1427,7 @@
             '<b>' + E(String(displayRecords.length)) + ' сотрудников</b>' +
           '</div><span class="muted">Источник: Google Таблица</span></div>' +
           '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
-            E(lastResult && lastResult.source && lastResult.source.sheet_name ? lastResult.source.sheet_name : "Google Sheets") +
+            "Данные получены" +
           '</span></div>' +
           '<div class="stats-mobile-list">' + mobileRecordsHtml() + '</div>' +
           '<table id="allStatsTable"><thead><tr>' +
@@ -1646,7 +1646,7 @@
         '<div class="modal-backdrop" id="adminEditBackdrop">' +
           '<div class="modal-card admin-edit-modal-card">' +
             '<div class="modal-head">' +
-              '<div class="admin-edit-title"><small>GOOGLE ТАБЛИЦА</small><h2>Редактирование строки</h2><span>Изменяются только существующие столбцы</span></div>' +
+              '<div class="admin-edit-title"><small>ДАННЫЕ</small><h2>Редактирование строки</h2><span>Изменяются только существующие столбцы</span></div>' +
               '<button class="modal-close" id="adminEditClose" type="button">×</button>' +
             '</div>' +
             '<form id="adminEditForm">' +
@@ -3340,7 +3340,7 @@
 
         (isManagement
           ? '<section class="box settings-card settings-google-card">' +
-              '<div class="settings-card-head"><div><small>GOOGLE ТАБЛИЦА</small><h2>Web app URL</h2></div><span>Адрес активного веб-развёртывания Google Таблица</span></div>' +
+              '<div class="settings-card-head"><div><small>ДАННЫЕ</small><h2>Web app URL</h2></div><span>Адрес активного веб-развёртывания Google Таблица</span></div>' +
               '<form id="googleUrlSettingsForm">' +
                 '<div class="form-field"><label>URL Web app</label><input id="googleWebAppUrl" class="form-input settings-google-url-locked" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" value="' + E(lastSettings.web_app_url || "") + '" disabled></div>' +
                 '<p class="settings-hint">Сохранённый URL отображается только для просмотра. Нажмите «Заменить URL», чтобы разблокировать поле. После изменения нажмите «Сохранить».</p>' +
@@ -4125,7 +4125,7 @@
 
         if (!state.candidates.length) {
           root.innerHTML =
-            '<div class="access-candidates-empty">Все администраторы из Google Sheets уже имеют доступ или находятся в заблокированных.</div>';
+            '<div class="access-candidates-empty">Все администраторы уже имеют доступ или находятся в заблокированных.</div>';
           return;
         }
 
