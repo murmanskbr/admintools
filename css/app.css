@@ -3774,3 +3774,40 @@ body{font-size:16px}
   .event-card-head{flex-direction:column}
   .event-card-head .notification-actions{width:100%;justify-content:flex-start}
 }
+
+
+/* Статистика администрации — поиск по никнейму */
+.stats-nickname-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  min-width: 320px;
+}
+
+.stats-nickname-search .form-input {
+  min-width: 180px;
+  flex: 1 1 auto;
+}
+
+.stats-nickname-search .button {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .stats-nickname-search {
+    width: 100%;
+    min-width: 0;
+    margin: 12px 0 0;
+    flex-wrap: wrap;
+  }
+
+  .stats-nickname-search .form-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .stats-nickname-search .button {
+    flex: 1 1 0;
+  }
+}
