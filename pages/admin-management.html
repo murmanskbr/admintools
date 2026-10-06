@@ -207,6 +207,20 @@
           console.warn("[BR AdminTools] Не удалось обновить индикатор уведомлений:", error);
         });
     }
+
+    var notificationBadgeTimer = null;
+    function startNotificationBadgePolling() {
+      if (notificationBadgeTimer) {
+        clearInterval(notificationBadgeTimer);
+      }
+
+      notificationBadgeTimer = setInterval(function () {
+        if (document.visibilityState === "hidden") return;
+        var current = readSession();
+        if (!current || !current.user || !current.user.token) return;
+        refreshNotificationBadge();
+      }, 20000);
+    }
     // Replace the combined link list with explicit menu groups.
     var sidebar = document.getElementById("sidebar");
     var groupHtml =
@@ -236,6 +250,7 @@
       '<div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
       groupHtml;
     refreshNotificationBadge();
+    startNotificationBadgePolling();
 
     document.documentElement.classList.toggle(
       "theme-light",
