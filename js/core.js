@@ -3,10 +3,8 @@
 
   var COOKIE = "br_session";
   var REMEMBER_DAYS = 365;
-  var SESSION_IDLE_MS = 180000;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var timer = null;
-  var lastActivitySync = 0;
 
   var NAV = {
     dashboard: ["pages/dashboard.html", "⌂", "Главная"],
@@ -140,41 +138,6 @@
     persistSession(session);
   }
 
-  function touchActivity() {
-    var session = getSession();
-    if (!session) return;
-
-    // Только реальное действие пользователя продлевает локальный idle-таймер.
-    session.idle_until = Date.now() + SESSION_IDLE_MS;
-    persistSession(session);
-
-    if (!window.BR_API || typeof window.BR_API.me !== "function") return;
-    if (Date.now() - lastActivitySync < 30000) return;
-
-    lastActivitySync = Date.now();
-
-    // Этот запрос специально используется как явная отметка активности.
-    // Обычные API-запросы больше не продлевают idle-сессию на сервере.
-    window.BR_API.me(session.user.token)
-      .then(function (result) {
-        if (result && result.session && result.session.last_activity_at) {
-          var updated = getSession();
-          if (updated) {
-            var serverActivity = new Date(result.session.last_activity_at).getTime();
-            if (Number.isFinite(serverActivity)) {
-              updated.idle_until = serverActivity + SESSION_IDLE_MS;
-              persistSession(updated);
-            }
-          }
-        }
-      })
-      .catch(function (error) {
-        console.warn(
-          "[BR AdminTools] Не удалось синхронизировать сессию:",
-          error
-        );
-      });
-  }
 
   function goToLogin() {
     clearStorage();
@@ -367,7 +330,7 @@
       '<div class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-hidden="true"></div>' +
       '<main class="main">' +
         '<header class="top"><button class="mobile-menu" id="mobileMenu" type="button" aria-label="Открыть меню">☰</button>' +
-          '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span><div class="top-right"><span id="sessionTimer">Сессия</span></div>' +
+          '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span><div class="top-right"></div>' +
         '</header>' +
         '<section class="content"><div class="head"><h1>' + esc(title) + '</h1><p>' +
           esc(subtitle || "") + '</p></div>' + body + '</section>' +
@@ -518,19 +481,6 @@
       }
     });
 
-    function updateTimer() {
-      var current = getSession();
-      var el = document.getElementById("sessionTimer");
-
-      if (!current) {
-        goToLogin();
-        return;
-      }
-
-      if (el) el.textContent = "Сессия активна";
-    }
-
-    updateTimer();
 
     if (options.bind) {
       try {
@@ -544,72 +494,6 @@
       }
     }
 
-    function syncServerSession() {
-      if (!window.BR_API || typeof window.BR_API.me !== "function") {
-        return Promise.resolve(null);
-      }
-
-      if (Date.now() - lastActivitySync < 30000) {
-        return Promise.resolve(null);
-      }
-
-      lastActivitySync = Date.now();
-
-      return window.BR_API.me(session.user.token)
-        .then(function (result) {
-          if (
-            result &&
-            result.session &&
-            result.session.last_activity_at
-          ) {
-            var refreshed = getSession();
-
-            if (refreshed) {
-              var activityAt =
-                new Date(
-                  result.session.last_activity_at
-                ).getTime();
-
-              if (Number.isFinite(activityAt)) {
-                refreshed.idle_until =
-                  activityAt +
-                  SESSION_IDLE_MS;
-                persistSession(refreshed);
-              }
-            }
-          }
-
-          return result;
-        })
-        .catch(function (error) {
-          console.error(
-            "[BR AdminTools] Не удалось подтвердить серверную сессию:",
-            {
-              page:
-                options.active ||
-                document.body.getAttribute("data-page") ||
-                "unknown",
-              code:
-                error && error.code
-                  ? error.code
-                  : "SESSION_SYNC_ERROR",
-              status:
-                error && error.status
-                  ? error.status
-                  : null,
-              message:
-                error && error.message
-                  ? error.message
-                  : String(error),
-              details:
-                error && error.details
-                  ? error.details
-                  : null
-            }
-          );
-          throw error;
-        });
-    }
 
     function loadPageData() {
       if (!options.load) return Promise.resolve();
@@ -631,15 +515,7 @@
       });
     }
 
-    syncServerSession()
-      .then(function () {
-        return loadPageData();
-      })
-      .catch(function () {
-        if (getSession()) {
-          loadPageData();
-        }
-      });
+    loadPageData();
 
     // A cached mobile page must never restore a stale menu lock.
     document.body.classList.remove("mobile-menu-open");
