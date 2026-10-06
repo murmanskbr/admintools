@@ -365,7 +365,7 @@
         } catch (error) {
           root.innerHTML =
             '<div class="box dashboard-error">' +
-              '<div class="empty">' + E(error.message || "Не удалось загрузить статистику сервера.") + '</div>' +
+              '<div class="empty">' + "Не удалось загрузить статистику сервера." + '</div>' +
               '<div class="dashboard-error-action"><button class="small-button server-refresh" id="serverRefresh" type="button">↻ Повторить</button></div>' +
             '</div>';
           var retry = document.getElementById("serverRefresh");
@@ -469,7 +469,7 @@
       title: "Состав администрации",
       subtitle: "Полный состав из Google Таблица",
       render: function () {
-        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице"><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span>Источник: Google Таблица • Google Sheets</span><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
+        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице"><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
       },
       bind: function () {
         var refresh = document.getElementById("adminsRefresh");
@@ -578,15 +578,15 @@
       var code = error && error.code ? String(error.code) : "";
 
       if (code === "GOOGLE_SCRIPT_NOT_FOUND") {
-        return "Статус сохранён, но обновление таблицы не удалось: публичная ссылка Google Apps Script сейчас недоступна.";
+        return "Статус сохранён, но данные не удалось обновить.";
       }
 
       if (code === "GOOGLE_SCRIPT_TIMEOUT" || code === "STATISTICS_TIMEOUT") {
-        return "Статус сохранён, но Google Apps Script не ответил вовремя. Текущие данные оставлены на экране.";
+        return "Статус сохранён, но данные не поступили вовремя. Текущие данные оставлены на экране.";
       }
 
       if (code === "APPS_SCRIPT_UNAUTHORIZED") {
-        return "Статус не удалось подтвердить: секрет Google Apps Script не совпадает.";
+        return "Статус не удалось подтвердить. Попробуйте ещё раз.";
       }
 
       return String(
@@ -1587,7 +1587,7 @@
     return {
       managementOnly: true,
       title: "Статистика администрации",
-      subtitle: "Данные отображаются напрямую из Google Таблицы без локальных подстановок",
+      subtitle: "Актуальные данные без локальных подстановок",
       render: function () {
         return '<div class="page-toolbar stats-all-toolbar">' +
           '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Google Таблица • исходные столбцы и значения</b></div>' +
@@ -1817,7 +1817,7 @@
           '<div class="box game-online-card">' +
             '<small>ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ</small>' +
             '<strong>' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</strong>' +
-            '<span>данные из Supabase</span>' +
+            '<span>данные системы</span>' +
           '</div>' +
         '</div>' +
 
@@ -2834,7 +2834,7 @@
           '<div class="box table-box"><div class="stats-table-head"><div><small>НОРМАТИВЫ ЗА ДАТУ</small><b>' +
           E(formatDateOnly(selectedDate)) +
           '</b></div><span class="muted">' + E(String(list.length)) + ' аккаунтов с доступом</span></div>' +
-          '<div class="admins-source-row"><span>Источник: активные доступы из Supabase</span><span>Синхронизация со списком доступа к сайту</span></div>' +
+          '<div class="admins-source-row"><span>Текущие активные доступы</span><span>Синхронизация со списком доступа к сайту</span></div>' +
           statusButtons +
           '<table id="normativeJournalTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Дата</th><th>Время</th><th>Статус</th><th>Файлы</th><th>Решение</th><th>Действия</th></tr></thead><tbody>' +
           (rows || '<tr><td colspan="8" class="table-empty">Администраторов в реестре нет.</td></tr>') +
@@ -3383,7 +3383,7 @@
               lastSettings.web_app_url = saved || "";
 
               showStatus(
-                "URL Google Таблица сохранён в Supabase.",
+                "Источник данных сохранён.",
                 true
               );
 
@@ -4052,7 +4052,7 @@
                   '</select>' +
                 '</div>' +
               '</div>' +
-              '<div class="admins-source-row"><span>Текущие доступы из Supabase</span><span>Младший модератор → Главный администратор</span></div>' +
+              '<div class="admins-source-row"><span>Текущие доступы</span><span>Младший модератор → Главный администратор</span></div>' +
               '<table id="accessRegistryTable"><thead><tr>' +
                 '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>IP</th><th>Последний вход</th><th>Действия</th>' +
               '</tr></thead><tbody>' + rows + '</tbody></table>' +
@@ -4215,7 +4215,7 @@
         '<div class="modal-backdrop" id="accessEditBackdrop">' +
           '<div class="modal-card access-edit-card">' +
             '<div class="modal-head">' +
-              '<div class="admin-edit-title"><small>УПРАВЛЕНИЕ ДОСТУПОМ</small><h2>' + E(item.nickname) + '</h2><span>Серверные данные аккаунта</span></div>' +
+              '<div class="admin-edit-title"><small>УПРАВЛЕНИЕ ДОСТУПОМ</small><h2>' + E(item.nickname) + '</h2><span>Данные аккаунта</span></div>' +
               '<button class="modal-close" id="accessEditClose" type="button">×</button>' +
             '</div>' +
             '<div class="access-details-grid">' +
@@ -4529,7 +4529,7 @@
 
             '<section class="box access-card">' +
               '<div class="access-card-head"><div><small>МАССОВАЯ ВЫДАЧА</small><h2>Найти администраторов</h2></div><button class="button button-secondary" id="loadAccessCandidates" type="button">Загрузить никнеймы</button></div>' +
-              '<p class="access-description">Получаем список из Google Sheets, сравниваем его с Supabase и показываем только тех, у кого нет активного доступа.</p>' +
+              '<p class="access-description">Получаем актуальный список и показываем только тех, у кого нет активного доступа.</p>' +
               '<div id="accessCandidatesRoot" class="access-candidates-root" hidden></div>' +
               '<form id="accessBulkForm" class="access-bulk-form">' +
                 '<div class="form-grid">' +
