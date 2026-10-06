@@ -292,8 +292,52 @@
       target += "?v=20261004-2315";
     }
 
+    var label = esc(item[2]);
+    var badge = "";
+
+    if (page === "notifications") {
+      label =
+        '<span class="side-link-label">' +
+        label +
+        "</span>";
+      badge =
+        '<span class="notification-menu-badge" id="notificationMenuBadge" aria-hidden="true"></span>';
+    }
+
     return '<a class="side-link' + active + '" href="../' + target + '">' +
-      "<span>" + item[1] + "</span>" + esc(item[2]) + "</a>";
+      "<span>" + item[1] + "</span>" + label + badge + "</a>";
+  }
+
+  function refreshNotificationBadge(token) {
+    var badge = document.getElementById("notificationMenuBadge");
+
+    if (!badge || !window.BR_API || typeof window.BR_API.notificationsList !== "function") {
+      return Promise.resolve();
+    }
+
+    badge.classList.remove("is-visible");
+    badge.setAttribute("aria-hidden", "true");
+
+    return window.BR_API.notificationsList(token)
+      .then(function (result) {
+        var list =
+          result && Array.isArray(result.notifications)
+            ? result.notifications
+            : [];
+
+        var hasUnread = list.some(function (item) {
+          return !item.is_read;
+        });
+
+        badge.classList.toggle("is-visible", hasUnread);
+        badge.setAttribute("aria-hidden", hasUnread ? "false" : "true");
+      })
+      .catch(function (error) {
+        console.warn(
+          "[BR AdminTools] Не удалось обновить индикатор уведомлений:",
+          error
+        );
+      });
   }
 
   function shell(user, title, subtitle, body) {
@@ -406,6 +450,12 @@
       options.subtitle,
       options.render ? options.render(session.user) : ""
     );
+
+    refreshNotificationBadge(session.user.token);
+
+    window.addEventListener("br:notifications-updated", function () {
+      refreshNotificationBadge(session.user.token);
+    });
 
     var logoutButton = document.getElementById("logout");
     if (logoutButton) logoutButton.onclick = logout;
