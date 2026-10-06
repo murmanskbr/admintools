@@ -3811,3 +3811,58 @@ body{font-size:16px}
     flex: 1 1 0;
   }
 }
+
+
+/* Sidebar: пункты меню прокручиваются отдельно, профиль и выход всегда доступны. */
+.sidebar{
+  overflow:hidden;
+}
+
+.sidebar-menu{
+  min-height:0;
+  flex:1 1 auto;
+  overflow-x:hidden;
+  overflow-y:auto;
+  padding-right:2px;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+}
+
+.sidebar-menu::-webkit-scrollbar{
+  width:4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb{
+  background:rgba(141,150,167,.28);
+  border-radius:99px;
+}
+
+.sidebar-bottom{
+  flex:0 0 auto;
+  margin-top:0;
+  padding-top:10px;
+  padding-bottom:2px;
+  background:#0d1016;
+}
+
+@media(max-width:800px){
+  .sidebar{
+    overflow:hidden!important;
+  }
+
+  .sidebar-menu{
+    min-height:0!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    padding-right:2px!important;
+    touch-action:pan-y!important;
+  }
+
+  .sidebar-bottom{
+    flex:0 0 auto!important;
+    margin-top:0!important;
+    padding-bottom:2px!important;
+    background:#0d1016;
+  }
+}
