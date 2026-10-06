@@ -49,6 +49,123 @@
             }
         );
     }
+    function publicErrorMessage(code, status, fallback) {
+        var value = String(code || "").trim().toUpperCase();
+
+        if (
+            value === "SESSION_IDLE_EXPIRED" ||
+            value === "SESSION_EXPIRED" ||
+            value === "UNAUTHORIZED" ||
+            value === "DEVICE_MISMATCH"
+        ) {
+            return fallback || "Сессия истекла. Войдите в панель заново.";
+        }
+
+        if (
+            value === "STATISTICS_TIMEOUT" ||
+            value === "GOOGLE_SCRIPT_TIMEOUT"
+        ) {
+            return "Данные не поступили вовремя.";
+        }
+
+        if (
+            value === "STATISTICS_NOT_FOUND"
+        ) {
+            return "Данные администратора не найдены.";
+        }
+
+        if (
+            value === "ADMIN_ALREADY_EXISTS"
+        ) {
+            return "Администратор с таким никнеймом уже существует.";
+        }
+
+        if (
+            value === "ADMIN_NICKNAME_REQUIRED"
+        ) {
+            return "Не указан никнейм администратора.";
+        }
+
+        if (
+            value === "ADMIN_POSITION_REQUIRED"
+        ) {
+            return "Не указана должность администратора.";
+        }
+
+        if (
+            value === "ADMIN_DELETE_NICKNAME_REQUIRED"
+        ) {
+            return "Укажите никнейм администратора.";
+        }
+
+        if (
+            value === "ADMIN_SELF_DELETE_FORBIDDEN"
+        ) {
+            return "Нельзя удалить самого себя.";
+        }
+
+        if (
+            value === "ADMIN_NOT_FOUND"
+        ) {
+            return "Администратор не найден.";
+        }
+
+        if (
+            value === "FORBIDDEN"
+        ) {
+            return "Недостаточно прав.";
+        }
+
+        if (
+            value === "ACCOUNT_INACTIVE"
+        ) {
+            return "Аккаунт не активирован.";
+        }
+
+        if (
+            value === "ACCOUNT_BLOCKED"
+        ) {
+            return "Аккаунт заблокирован.";
+        }
+
+        if (
+            value === "INVALID_CREDENTIALS"
+        ) {
+            return "Неверный логин или пароль.";
+        }
+
+        if (
+            value === "STATISTICS_INVALID_RESPONSE" ||
+            value === "STATISTICS_RESPONSE_READ_ERROR" ||
+            value === "STATISTICS_NETWORK_ERROR" ||
+            value === "GOOGLE_SCRIPT_ERROR" ||
+            value === "GOOGLE_SCRIPT_INVALID_RESPONSE" ||
+            value === "GOOGLE_SCRIPT_NOT_FOUND" ||
+            value === "APPS_SCRIPT_NOT_CONFIGURED" ||
+            value === "APPS_SCRIPT_SECRET_NOT_CONFIGURED" ||
+            value === "APPS_SCRIPT_UNAUTHORIZED" ||
+            value === "INTERNAL_ERROR" ||
+            value === "DATABASE_ERROR" ||
+            value === "SERVER_CONFIGURATION_ERROR"
+        ) {
+            return "Не удалось получить данные.";
+        }
+
+        if (status >= 500) {
+            return "Не удалось получить данные.";
+        }
+
+        var text = String(fallback || "").trim();
+
+        if (
+            /supabase|apps?\s*script|google\s*sheet|google\s*таблиц|секрет|internal_error|functions\/v1/i.test(text)
+        ) {
+            return "Не удалось получить данные.";
+        }
+
+        return text || "Ошибка при получении данных.";
+    }
+
     function notifySessionExpired(code) {
         if (
             [
@@ -312,8 +429,11 @@
 
             var serverError =
                 new Error(
-                    message ||
-                    "Ошибка сервера."
+                    publicErrorMessage(
+                        code,
+                        response.status,
+                        message
+                    )
                 );
 
             serverError.kind =
@@ -477,7 +597,15 @@
             !data ||
             data.success === false
         ) {
-            var message =
+            var code =
+                data &&
+                (
+                    data.code ||
+                    data.error_code ||
+                    ""
+                );
+
+            var rawMessage =
                 data &&
                 (
                     data.message ||
@@ -485,12 +613,11 @@
                     ""
                 );
 
-            var code =
-                data &&
-                (
-                    data.code ||
-                    data.error_code ||
-                    ""
+            var message =
+                publicErrorMessage(
+                    code,
+                    response.status,
+                    rawMessage
                 );
 
             console.error(
@@ -639,8 +766,12 @@
         }
 
         if (!response.ok || !data || data.success === false) {
-            var message = data && (data.message || data.error || "");
             var code = data && (data.code || data.error_code || "");
+            var message = publicErrorMessage(
+                code,
+                response.status,
+                data && (data.message || data.error || "")
+            );
 
             console.error(
                 "[BR AdminTools] Ошибка загрузки норматива:",
