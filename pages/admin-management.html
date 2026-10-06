@@ -606,10 +606,6 @@
     var count = document.getElementById("adminGoogleCount");
     if (count) count.textContent = "Форма готова";
 
-    tick();
-    if (timer) clearInterval(timer);
-    timer = setInterval(tick, 1000);
-
     if (heartbeat) clearInterval(heartbeat);
     heartbeat = setInterval(function () {
       if (document.visibilityState === "hidden") return;
