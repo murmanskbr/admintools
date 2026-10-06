@@ -4025,7 +4025,6 @@
               '<td>' + statusLabel(item) + '</td>' +
               '<td>' + E(item.last_login_ip || "—") + '</td>' +
               '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
-              '<td>' + E(String(item.active_sessions || 0)) + '</td>' +
               '<td class="access-actions-cell">' +
                 '<div class="admin-menu-wrap access-menu-wrap">' +
                   '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
@@ -4055,7 +4054,7 @@
               '</div>' +
               '<div class="admins-source-row"><span>Текущие доступы из Supabase</span><span>Младший модератор → Главный администратор</span></div>' +
               '<table id="accessRegistryTable"><thead><tr>' +
-                '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>IP</th><th>Последний вход</th><th>Сессии</th><th>Действия</th>' +
+                '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>IP</th><th>Последний вход</th><th>Действия</th>' +
               '</tr></thead><tbody>' + rows + '</tbody></table>' +
             '</div>';
 
@@ -4223,7 +4222,6 @@
               '<div><small>IP</small><b>' + E(item.last_login_ip || "—") + '</b></div>' +
               '<div><small>ПОСЛЕДНИЙ ВХОД</small><b>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</b></div>' +
 
-              '<div><small>АКТИВНЫЕ СЕССИИ</small><b>' + E(item.active_sessions || 0) + '</b></div>' +
             '</div>' +
             '<form id="accessEditForm">' +
               '<div class="form-grid">' +
