@@ -622,8 +622,6 @@
 
     document.addEventListener("click", touchActivity, { capture: true });
     document.addEventListener("keydown", touchActivity, { capture: true });
-    document.addEventListener("touchstart", touchActivity, { capture: true });
-    document.addEventListener("pointerdown", touchActivity, { capture: true });
 
     function tick() {
       var seconds = sessionSeconds();
