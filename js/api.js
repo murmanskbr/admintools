@@ -860,6 +860,58 @@
                 );
             },
 
+        pushConfig:
+            function (token) {
+                return request(
+                    {
+                        action: "push_config"
+                    },
+                    token
+                );
+            },
+
+        pushStatus:
+            function (token) {
+                return request(
+                    {
+                        action: "push_status"
+                    },
+                    token
+                );
+            },
+
+        pushStatusAll:
+            function (token) {
+                return request(
+                    {
+                        action: "push_status_all"
+                    },
+                    token
+                );
+            },
+
+        pushSubscribe:
+            function (token, subscription) {
+                return request(
+                    {
+                        action: "push_subscribe",
+                        subscription: subscription
+                    },
+                    token
+                );
+            },
+
+        pushUnsubscribe:
+            function (token, endpoint) {
+                return request(
+                    {
+                        action: "push_unsubscribe",
+                        endpoint: endpoint || ""
+                    },
+                    token
+                );
+            },
+
         accessCandidates:
             function (token) {
                 return request(
