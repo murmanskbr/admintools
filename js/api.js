@@ -135,6 +135,25 @@
         }
 
         if (
+            value === "PUSH_NOT_CONFIGURED"
+        ) {
+            return "Push-уведомления пока не настроены на сервере.";
+        }
+
+        if (
+            value === "PUSH_ENDPOINT_INVALID" ||
+            value === "PUSH_KEYS_INVALID"
+        ) {
+            return "Не удалось сохранить push-подписку устройства.";
+        }
+
+        if (
+            value === "PUSH_UNSUPPORTED"
+        ) {
+            return "Push-уведомления не поддерживаются этим браузером или устройством.";
+        }
+
+        if (
             value === "STATISTICS_INVALID_RESPONSE" ||
             value === "STATISTICS_RESPONSE_READ_ERROR" ||
             value === "STATISTICS_NETWORK_ERROR" ||
