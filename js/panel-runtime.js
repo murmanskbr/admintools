@@ -2168,6 +2168,9 @@
           : '';
 
         return createControls +
+          (user.role === "management"
+            ? '<div id="pushStatusRoot" class="push-status-root"><div class="box"><div class="empty">Загрузка статуса push-подписок...</div></div></div>'
+            : '') +
           '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>' +
           (user.role === "management"
             ? '<div id="eventsRoot" class="events-root"><div class="box"><div class="empty">Загрузка мероприятий...</div></div></div>'
@@ -2350,9 +2353,88 @@
       },
       load: async function () {
         await loadNotifications();
-        if (user.role === "management") await loadEvents();
+        if (user.role === "management") {
+          await loadPushStatusAll();
+          await loadEvents();
+        }
       }
     };
+
+    async function loadPushStatusAll() {
+      var root = document.getElementById("pushStatusRoot");
+      if (!root || user.role !== "management") return;
+
+      try {
+        var result = await window.BR_API.pushStatusAll(user.token);
+        var list = Array.isArray(result.administrators)
+          ? result.administrators
+          : [];
+
+        var enabled = list.filter(function (item) {
+          return !!item.enabled;
+        }).length;
+
+        var rows = list.length
+          ? list.map(function (item) {
+              var devices = Array.isArray(item.devices)
+                ? item.devices.map(function (device) {
+                    return device === "phone"
+                      ? "Android"
+                      : device === "computer"
+                        ? "Windows / ПК"
+                        : device;
+                  })
+                : [];
+
+              var status = item.enabled
+                ? '<span class="badge badge-green">Включены</span>'
+                : '<span class="badge badge-red">Выключены</span>';
+
+              return '<tr>' +
+                '<td><b>' + E(item.nickname) + '</b></td>' +
+                '<td>' + E(item.position || "—") + '</td>' +
+                '<td>' + status + '</td>' +
+                '<td>' + E(devices.length ? devices.join(" • ") : "—") + '</td>' +
+              '</tr>';
+            }).join("")
+          : '<tr><td colspan="4">Активных аккаунтов нет.</td></tr>';
+
+        root.innerHTML =
+          '<div class="page-toolbar push-status-head">' +
+            '<div><small>СОСТОЯНИЕ PUSH</small><b>Подписки администрации</b><span class="muted">Подписка хранится отдельно для каждого устройства.</span></div>' +
+            '<div class="push-status-head-actions">' +
+              '<span class="badge badge-blue">' + E(String(enabled)) + ' из ' + E(String(list.length)) + ' подключили</span>' +
+              '<button class="button button-secondary" id="refreshPushStatus" type="button">Обновить</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="box table-box push-status-table-box">' +
+            '<table>' +
+              '<thead><tr><th>Никнейм</th><th>Должность</th><th>Push</th><th>Устройства</th></tr></thead>' +
+              '<tbody>' + rows + '</tbody>' +
+            '</table>' +
+          '</div>';
+
+        var refresh = document.getElementById("refreshPushStatus");
+        if (refresh) {
+          refresh.onclick = async function () {
+            refresh.disabled = true;
+            refresh.textContent = "Обновление…";
+            try {
+              await loadPushStatusAll();
+            } finally {
+              refresh.disabled = false;
+            }
+          };
+        }
+      } catch (error) {
+        root.innerHTML =
+          '<div class="box">' +
+            '<div class="empty">Не удалось загрузить статус push-подписок: ' +
+              E(error.message || "Ошибка") +
+            '</div>' +
+          '</div>';
+      }
+    }
 
     async function loadNotifications() {
       var root = document.getElementById("notificationsRoot");
