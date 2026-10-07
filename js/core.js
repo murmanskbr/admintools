@@ -341,14 +341,6 @@
   }
 
   function clearLegacyAppCache() {
-    if (!("serviceWorker" in navigator)) return;
-
-    navigator.serviceWorker.getRegistrations().then(function (registrations) {
-      registrations.forEach(function (registration) {
-        registration.unregister().catch(function () {});
-      });
-    }).catch(function () {});
-
     if (!("caches" in window)) return;
 
     caches.keys().then(function (keys) {
@@ -362,6 +354,35 @@
           })
       );
     }).catch(function () {});
+  }
+
+  function registerServiceWorker() {
+    if (
+      !window.isSecureContext ||
+      !("serviceWorker" in navigator)
+    ) {
+      return;
+    }
+
+    var scriptUrl = new URL(
+      document.body &&
+      document.body.dataset.page
+        ? "../sw.js"
+        : "sw.js",
+      location.href
+    ).href;
+
+    navigator.serviceWorker
+      .register(
+        scriptUrl,
+        { updateViaCache: "none" }
+      )
+      .catch(function (error) {
+        console.warn(
+          "[BR AdminTools] Не удалось зарегистрировать Service Worker:",
+          error
+        );
+      });
   }
 
   function init(options) {
@@ -406,6 +427,8 @@
       location.href = "../pages/dashboard.html";
       return;
     }
+
+    registerServiceWorker();
 
     root.innerHTML = shell(
       session.user,
