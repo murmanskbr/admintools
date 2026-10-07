@@ -889,6 +889,29 @@
                 );
             },
 
+        pushConfigGet:
+            function (token) {
+                return request(
+                    {
+                        action: "push_config_get"
+                    },
+                    token
+                );
+            },
+
+        pushConfigUpdate:
+            function (token, payload) {
+                return request(
+                    Object.assign(
+                        {
+                            action: "push_config_update"
+                        },
+                        payload || {}
+                    ),
+                    token
+                );
+            },
+
         pushStatus:
             function (token) {
                 return request(
