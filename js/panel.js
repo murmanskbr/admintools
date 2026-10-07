@@ -3380,6 +3380,19 @@
           '</form>' +
         '</section>' +
 
+        '<section class="box settings-card settings-push-card">' +
+          '<div class="settings-card-head"><div><small>УВЕДОМЛЕНИЯ</small><h2>Push-уведомления</h2></div><span>Важные сообщения от руководства могут приходить даже при закрытой панели</span></div>' +
+          '<div class="settings-push-row">' +
+            '<div class="settings-push-copy">' +
+              '<b id="pushSettingsTitle">Push на этом устройстве</b>' +
+              '<span id="pushSettingsDescription">Проверяем возможность получать уведомления.</span>' +
+            '</div>' +
+            '<button class="button button-primary" id="pushSettingsToggle" type="button">Проверка…</button>' +
+          '</div>' +
+          '<div id="pushSettingsStatus" class="settings-push-status" aria-live="polite"></div>' +
+          '<p class="settings-hint">Поддерживается на современных браузерах Android и Windows. Разрешение на уведомления выдаётся самим браузером.</p>' +
+        '</section>' +
+
         (isManagement
           ? '<section class="box settings-card settings-google-card">' +
               '<div class="settings-card-head"><div><small>ДАННЫЕ</small><h2>Web app URL</h2></div><span>Адрес активного веб-развёртывания Google Таблица</span></div>' +
@@ -3455,6 +3468,101 @@
         var passwordForm = document.getElementById("passwordSettingsForm");
         var themeForm = document.getElementById("themeSettingsForm");
         var googleForm = document.getElementById("googleUrlSettingsForm");
+        var pushToggle = document.getElementById("pushSettingsToggle");
+        var pushDescription = document.getElementById("pushSettingsDescription");
+        var pushStatus = document.getElementById("pushSettingsStatus");
+
+        function setPushView(state) {
+          if (!pushToggle || !pushDescription || !pushStatus) return;
+
+          if (!state.supported) {
+            pushToggle.disabled = true;
+            pushToggle.textContent = "Недоступно";
+            pushDescription.textContent = "Этот браузер или режим сайта не поддерживает push-уведомления.";
+            pushStatus.textContent = state.permission === "denied"
+              ? "Уведомления запрещены в настройках браузера."
+              : "Нужен HTTPS и поддержка Service Worker / Push API.";
+            pushStatus.className = "settings-push-status settings-push-status-error";
+            return;
+          }
+
+          if (state.localEnabled) {
+            pushToggle.disabled = false;
+            pushToggle.textContent = "Отключить";
+            pushToggle.className = "button button-secondary";
+            pushDescription.textContent = "Push-уведомления включены на этом устройстве.";
+            pushStatus.textContent = "Статус: включены" +
+              (state.serverCount > 1 ? " • подключено устройств: " + state.serverCount : "");
+            pushStatus.className = "settings-push-status settings-push-status-ok";
+            return;
+          }
+
+          pushToggle.disabled = false;
+          pushToggle.textContent = "Включить push";
+          pushToggle.className = "button button-primary";
+          pushDescription.textContent = state.serverEnabled
+            ? "На аккаунте уже есть push на другом устройстве."
+            : "На этом устройстве push пока не подключён.";
+          
+          if (state.permission === "denied") {
+            pushToggle.disabled = true;
+            pushToggle.textContent = "Разрешите уведомления";
+            pushStatus.textContent = "Разрешите уведомления для сайта в настройках браузера.";
+            pushStatus.className = "settings-push-status settings-push-status-error";
+          } else {
+            pushStatus.textContent = "Статус: выключены на этом устройстве.";
+            pushStatus.className = "settings-push-status";
+          }
+        }
+
+        async function refreshPushView() {
+          if (!pushToggle || !window.BRPush) return;
+
+          pushToggle.disabled = true;
+          pushToggle.textContent = "Проверка…";
+
+          try {
+            var state = await window.BRPush.status(user.token);
+            setPushView(state);
+          } catch (error) {
+            pushToggle.disabled = true;
+            pushToggle.textContent = "Ошибка";
+            pushDescription.textContent = "Не удалось получить статус push-уведомлений.";
+            pushStatus.textContent = error.message || "Попробуйте обновить страницу.";
+            pushStatus.className = "settings-push-status settings-push-status-error";
+          }
+        }
+
+        if (pushToggle && window.BRPush) {
+          pushToggle.onclick = async function () {
+            var wasEnabled =
+              pushToggle.textContent === "Отключить";
+
+            pushToggle.disabled = true;
+            pushToggle.textContent = wasEnabled
+              ? "Отключение…"
+              : "Подключение…";
+
+            try {
+              if (wasEnabled) {
+                await window.BRPush.disable(user.token);
+                showStatus("Push-уведомления отключены на этом устройстве.", true);
+              } else {
+                await window.BRPush.enable(user.token);
+                showStatus("Push-уведомления включены на этом устройстве.", true);
+              }
+            } catch (error) {
+              showStatus(
+                error.message || "Не удалось изменить настройку push-уведомлений.",
+                false
+              );
+            } finally {
+              await refreshPushView();
+            }
+          };
+
+          refreshPushView();
+        }
 
         if (passwordForm) {
           passwordForm.querySelectorAll("[data-password-toggle]").forEach(function (toggle) {
