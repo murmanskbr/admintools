@@ -55,7 +55,7 @@
       '</div>' +
 
       '<div class="push-setup-guide">' +
-        '<div class="push-setup-step"><span>1</span><div><b>Сгенерируйте пару VAPID-ключей</b><p>Node.js и установка дополнительных программ не нужны. Откройте <a href="https://allthedamn.tools/vapid-key-generator/" target="_blank" rel="noopener noreferrer">браузерный генератор VAPID-ключей</a> и нажмите Generate VAPID Keys.</p></div></div>' +
+        '<div class="push-setup-step"><span>1</span><div><b>Сгенерируйте пару VAPID-ключей</b><p>Устанавливать дополнительные программы не нужно. Откройте <a href="https://allthedamn.tools/vapid-key-generator/" target="_blank" rel="noopener noreferrer">браузерный генератор VAPID-ключей</a> и нажмите Generate VAPID Keys.</p></div></div>' +
         '<div class="push-setup-step"><span>2</span><div><b>Скопируйте результат</b><p>Из результата возьмите <b>Public Key</b> и <b>Private Key</b>. Новую пару нужно создавать только один раз для этого проекта. Приватный ключ никому не передавайте.</p></div></div>' +
         '<div class="push-setup-step"><span>3</span><div><b>Заполните поля ниже</b><p>Публичный ключ вставьте в первое поле, приватный — во второе. Публичный ключ используется сайтом, приватный хранится на сервере и после сохранения обратно не показывается.</p></div></div>' +
         '<div class="push-setup-step"><span>4</span><div><b>Сохраните настройки</b><p>После этого администраторы смогут самостоятельно включить push в своих настройках на Android и Windows.</p></div></div>' +
