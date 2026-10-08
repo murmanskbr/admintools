@@ -55,9 +55,9 @@
       '</div>' +
 
       '<div class="push-setup-guide">' +
-        '<div class="push-setup-step"><span>1</span><div><b>Сгенерируйте пару VAPID-ключей</b><p>На компьютере с установленным Node.js выполните:</p><code>npx web-push generate-vapid-keys --json</code></div></div>' +
-        '<div class="push-setup-step"><span>2</span><div><b>Скопируйте результат</b><p>Из результата возьмите <b>publicKey</b> и <b>privateKey</b>. Новую пару нужно создавать только один раз для этого проекта.</p></div></div>' +
-        '<div class="push-setup-step"><span>3</span><div><b>Заполните поля ниже</b><p>Публичный ключ используется клиентом. Приватный ключ хранится на сервере и после сохранения обратно не показывается.</p></div></div>' +
+        '<div class="push-setup-step"><span>1</span><div><b>Сгенерируйте пару VAPID-ключей</b><p>Node.js и установка дополнительных программ не нужны. Откройте <a href="https://allthedamn.tools/vapid-key-generator/" target="_blank" rel="noopener noreferrer">браузерный генератор VAPID-ключей</a> и нажмите Generate VAPID Keys.</p></div></div>' +
+        '<div class="push-setup-step"><span>2</span><div><b>Скопируйте результат</b><p>Из результата возьмите <b>Public Key</b> и <b>Private Key</b>. Новую пару нужно создавать только один раз для этого проекта. Приватный ключ никому не передавайте.</p></div></div>' +
+        '<div class="push-setup-step"><span>3</span><div><b>Заполните поля ниже</b><p>Публичный ключ вставьте в первое поле, приватный — во второе. Публичный ключ используется сайтом, приватный хранится на сервере и после сохранения обратно не показывается.</p></div></div>' +
         '<div class="push-setup-step"><span>4</span><div><b>Сохраните настройки</b><p>После этого администраторы смогут самостоятельно включить push в своих настройках на Android и Windows.</p></div></div>' +
       '</div>' +
 
@@ -65,11 +65,11 @@
         '<div class="form-grid">' +
           '<div class="form-field form-full">' +
             '<label for="pushProjectPublicKey">Публичный VAPID-ключ</label>' +
-            '<textarea id="pushProjectPublicKey" class="form-textarea" rows="3" maxlength="1024" autocomplete="off" spellcheck="false" required placeholder="Вставьте значение publicKey"></textarea>' +
+            '<textarea id="pushProjectPublicKey" class="form-textarea" rows="3" maxlength="1024" autocomplete="off" spellcheck="false" required placeholder="Вставьте значение Public Key"></textarea>' +
           '</div>' +
           '<div class="form-field form-full">' +
             '<label for="pushProjectPrivateKey">Приватный VAPID-ключ</label>' +
-            '<input id="pushProjectPrivateKey" class="form-input" type="password" maxlength="1024" autocomplete="new-password" placeholder="Вставьте значение privateKey (при первой настройке)">' +
+            '<input id="pushProjectPrivateKey" class="form-input" type="password" maxlength="1024" autocomplete="new-password" placeholder="Вставьте значение Private Key (при первой настройке)">' +
           '</div>' +
         '</div>' +
         '<p class="settings-hint">После сохранения приватный ключ очищается из поля. При обычном сохранении его можно оставить пустым — будет использовано уже сохранённое значение.</p>' +
