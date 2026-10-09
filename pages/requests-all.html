@@ -345,6 +345,22 @@
         setSection("inactive");
         loadInactive();
         loadGeneral();
+
+        window.addEventListener("br:remote-data-changed", function (event) {
+          var action = event && event.detail ? event.detail.action : "";
+          if ([
+            "general_request_create",
+            "general_request_reply",
+            "inactive_request_create",
+            "inactive_request_review",
+            "access_manage"
+          ].indexOf(action) === -1) {
+            return;
+          }
+
+          loadInactive();
+          loadGeneral();
+        });
       }
     });
   }
