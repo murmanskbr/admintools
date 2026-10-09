@@ -4641,6 +4641,17 @@
         loadAccounts(
           document.getElementById("accessRegistryRoot")
         );
+
+        window.addEventListener("br:remote-data-changed", function (event) {
+          var action = event && event.detail ? event.detail.action : "";
+          if (["access_grant", "access_manage"].indexOf(action) === -1) {
+            return;
+          }
+
+          loadAccounts(
+            document.getElementById("accessRegistryRoot")
+          );
+        });
       }
     };
   }
