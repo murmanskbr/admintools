@@ -554,6 +554,7 @@
 
 
     var pageDataInFlight = null;
+    var pageDataRefreshQueued = false;
     var pageDataLastStartedAt = 0;
     var pendingRemoteDataChange = null;
     var lastSoftRefreshAt = Date.now();
@@ -564,7 +565,10 @@
 
     function loadPageData(force) {
       if (!options.load) return Promise.resolve();
-      if (pageDataInFlight) return pageDataInFlight;
+      if (pageDataInFlight) {
+        if (force) pageDataRefreshQueued = true;
+        return pageDataInFlight;
+      }
 
       var now = Date.now();
       if (
@@ -601,6 +605,11 @@
         })
         .finally(function () {
           pageDataInFlight = null;
+
+          if (pageDataRefreshQueued) {
+            pageDataRefreshQueued = false;
+            loadPageData(true);
+          }
         });
 
       return pageDataInFlight;
@@ -619,7 +628,7 @@
         SOFT_REFRESH_PAGES[activePageName] &&
         typeof options.load === "function"
       ) {
-        loadPageData(false);
+        loadPageData(true);
       }
     }
 
