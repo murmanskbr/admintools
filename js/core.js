@@ -5,6 +5,16 @@
   var REMEMBER_DAYS = 365;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var notificationBadgeTimer = null;
+  var PAGE_REFRESH_MIN_INTERVAL_MS = 15000;
+  var PAGE_FOCUS_REFRESH_AFTER_MS = 45000;
+  var SOFT_REFRESH_PAGES = {
+    access: true,
+    notifications: true,
+    normatives: true,
+    "normatives-all": true,
+    requests: true,
+    "requests-all": true
+  };
 
   var NAV = {
     dashboard: ["pages/dashboard.html", "⌂", "Главная"],
@@ -450,10 +460,21 @@
         return;
       }
       refreshNotificationBadge(current.user.token);
-    }, 20000);
+    }, 60000);
 
     window.addEventListener("br:notifications-updated", function () {
       refreshNotificationBadge(session.user.token);
+    });
+
+    window.addEventListener("br:api-mutation-success", function (event) {
+      var action = event && event.detail ? event.detail.action : "";
+      if ([
+        "notification_create",
+        "notification_delete",
+        "notification_read"
+      ].indexOf(action) !== -1) {
+        refreshNotificationBadge(session.user.token);
+      }
     });
 
     var logoutButton = document.getElementById("logout");
@@ -531,27 +552,118 @@
     }
 
 
-    function loadPageData() {
-      if (!options.load) return Promise.resolve();
+    var pageDataInFlight = null;
+    var pageDataLastStartedAt = 0;
+    var pendingRemoteDataChange = null;
+    var activePageName =
+      options.active ||
+      document.body.getAttribute("data-page") ||
+      "unknown";
 
-      return Promise.resolve(
-        options.load(session.user, true)
-      ).catch(function (error) {
-        console.error(
-          "[BR AdminTools] Ошибка загрузки страницы:",
-          {
-            page: options.active || document.body.getAttribute("data-page") || "unknown",
-            code: error && error.code ? error.code : "PAGE_LOAD_ERROR",
-            status: error && error.status ? error.status : null,
-            message: error && error.message ? error.message : String(error),
-            details: error && error.details ? error.details : null,
-            error: error
-          }
-        );
-      });
+    function loadPageData(force) {
+      if (!options.load) return Promise.resolve();
+      if (pageDataInFlight) return pageDataInFlight;
+
+      var now = Date.now();
+      if (
+        !force &&
+        pageDataLastStartedAt &&
+        now - pageDataLastStartedAt < PAGE_REFRESH_MIN_INTERVAL_MS
+      ) {
+        return Promise.resolve();
+      }
+
+      var currentSession = getSession();
+      if (!currentSession || !currentSession.user) {
+        goToLogin();
+        return Promise.resolve();
+      }
+
+      pageDataLastStartedAt = now;
+      pageDataInFlight = Promise.resolve()
+        .then(function () {
+          return options.load(currentSession.user, true);
+        })
+        .catch(function (error) {
+          console.error(
+            "[BR AdminTools] Ошибка загрузки страницы:",
+            {
+              page: activePageName,
+              code: error && error.code ? error.code : "PAGE_LOAD_ERROR",
+              status: error && error.status ? error.status : null,
+              message: error && error.message ? error.message : String(error),
+              details: error && error.details ? error.details : null,
+              error: error
+            }
+          );
+        })
+        .finally(function () {
+          pageDataInFlight = null;
+        });
+
+      return pageDataInFlight;
     }
 
-    loadPageData();
+    function dispatchRemoteDataChange(detail) {
+      window.dispatchEvent(
+        new CustomEvent("br:remote-data-changed", {
+          detail: detail || {}
+        })
+      );
+
+      if (
+        SOFT_REFRESH_PAGES[activePageName] &&
+        typeof options.load === "function"
+      ) {
+        loadPageData(false);
+      }
+    }
+
+    function handleRemoteStorageChange(event) {
+      if (!event || event.key !== "br_admin_data_change" || !event.newValue) {
+        return;
+      }
+
+      var detail;
+      try {
+        detail = JSON.parse(event.newValue);
+      } catch (_) {
+        detail = { action: "unknown", at: Date.now() };
+      }
+
+      if (document.visibilityState === "hidden") {
+        pendingRemoteDataChange = detail;
+        return;
+      }
+
+      dispatchRemoteDataChange(detail);
+    }
+
+    function handlePageVisible() {
+      if (document.visibilityState === "hidden") return;
+
+      if (pendingRemoteDataChange) {
+        var pending = pendingRemoteDataChange;
+        pendingRemoteDataChange = null;
+        dispatchRemoteDataChange(pending);
+        return;
+      }
+
+      if (
+        SOFT_REFRESH_PAGES[activePageName] &&
+        typeof options.load === "function" &&
+        pageDataLastStartedAt &&
+        Date.now() - pageDataLastStartedAt >= PAGE_FOCUS_REFRESH_AFTER_MS
+      ) {
+        loadPageData(false);
+      }
+    }
+
+    window.addEventListener("storage", handleRemoteStorageChange);
+    document.addEventListener("visibilitychange", handlePageVisible);
+    window.addEventListener("focus", handlePageVisible);
+
+    loadPageData(true);
 
     // A cached mobile page must never restore a stale menu lock.
     document.body.classList.remove("mobile-menu-open");
@@ -566,7 +678,7 @@
         return;
       }
 
-      loadPageData();
+      loadPageData(true);
     });
   }
 
