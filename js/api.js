@@ -7,8 +7,8 @@
     var STATISTICS_URL =
         "https://frwajpwzurzokkvhntdl.supabase.co/functions/v1/statistics";
 
-    var REQUEST_TIMEOUT_MS = 55000;
-    var UPLOAD_TIMEOUT_MS = 120000;
+    var REQUEST_TIMEOUT_MS = 65000;
+    var UPLOAD_TIMEOUT_MS = 135000;
 
     // Успешные изменения сообщаем другим вкладкам этого же сайта.
     // Данные администратора и содержимое запросов в событие не попадают.
