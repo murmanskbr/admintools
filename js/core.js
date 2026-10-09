@@ -7,6 +7,7 @@
   var notificationBadgeTimer = null;
   var PAGE_REFRESH_MIN_INTERVAL_MS = 15000;
   var PAGE_FOCUS_REFRESH_AFTER_MS = 45000;
+  var PAGE_AUTO_REFRESH_INTERVAL_MS = 60000;
   var SOFT_REFRESH_PAGES = {
     access: true,
     notifications: true,
@@ -555,6 +556,7 @@
     var pageDataInFlight = null;
     var pageDataLastStartedAt = 0;
     var pendingRemoteDataChange = null;
+    var lastSoftRefreshAt = Date.now();
     var activePageName =
       options.active ||
       document.body.getAttribute("data-page") ||
@@ -605,6 +607,8 @@
     }
 
     function dispatchRemoteDataChange(detail) {
+      lastSoftRefreshAt = Date.now();
+
       window.dispatchEvent(
         new CustomEvent("br:remote-data-changed", {
           detail: detail || {}
@@ -617,6 +621,31 @@
       ) {
         loadPageData(false);
       }
+    }
+
+    function refreshVisiblePageData() {
+      if (
+        document.visibilityState === "hidden" ||
+        !SOFT_REFRESH_PAGES[activePageName]
+      ) {
+        return;
+      }
+
+      lastSoftRefreshAt = Date.now();
+
+      if (typeof options.load === "function") {
+        loadPageData(false);
+        return;
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("br:refresh-visible-data", {
+          detail: {
+            page: activePageName,
+            at: lastSoftRefreshAt
+          }
+        })
+      );
     }
 
     function handleRemoteStorageChange(event) {
@@ -651,17 +680,19 @@
 
       if (
         SOFT_REFRESH_PAGES[activePageName] &&
-        typeof options.load === "function" &&
-        pageDataLastStartedAt &&
-        Date.now() - pageDataLastStartedAt >= PAGE_FOCUS_REFRESH_AFTER_MS
+        Date.now() - lastSoftRefreshAt >= PAGE_FOCUS_REFRESH_AFTER_MS
       ) {
-        loadPageData(false);
+        refreshVisiblePageData();
       }
     }
 
     window.addEventListener("storage", handleRemoteStorageChange);
     document.addEventListener("visibilitychange", handlePageVisible);
     window.addEventListener("focus", handlePageVisible);
+
+    window.setInterval(function () {
+      refreshVisiblePageData();
+    }, PAGE_AUTO_REFRESH_INTERVAL_MS);
 
     loadPageData(true);
 
