@@ -10,6 +10,67 @@
     var REQUEST_TIMEOUT_MS = 55000;
     var UPLOAD_TIMEOUT_MS = 120000;
 
+    // Успешные изменения сообщаем другим вкладкам этого же сайта.
+    // Данные администратора и содержимое запросов в событие не попадают.
+    var MUTATING_ACTIONS = {
+        access_grant: true,
+        access_manage: true,
+        admin_add: true,
+        admin_delete: true,
+        append_admin: true,
+        audit_logs_clear: true,
+        event_create: true,
+        event_delete: true,
+        game_presence_set: true,
+        general_request_create: true,
+        general_request_reply: true,
+        inactive_request_create: true,
+        inactive_request_review: true,
+        normative_mark: true,
+        normative_review: true,
+        normative_upload: true,
+        notification_create: true,
+        notification_delete: true,
+        notification_read: true,
+        push_config_update: true,
+        push_subscribe: true,
+        push_unsubscribe: true,
+        settings_update: true,
+        update_admin: true,
+        update_row: true
+    };
+
+    function notifySuccessfulMutation(payload) {
+        var action = String(payload && payload.action || "");
+        if (!MUTATING_ACTIONS[action]) return;
+
+        var detail = {
+            action: action,
+            at: Date.now()
+        };
+
+        try {
+            window.dispatchEvent(
+                new CustomEvent("br:api-mutation-success", {
+                    detail: detail
+                })
+            );
+        } catch (_) {}
+
+        try {
+            localStorage.setItem(
+                "br_admin_data_change",
+                JSON.stringify({
+                    action: action,
+                    at: detail.at,
+                    nonce: window.crypto && crypto.randomUUID
+                        ? crypto.randomUUID()
+                        : String(detail.at) + "-" + Math.random()
+                })
+            );
+        } catch (_) {}
+    }
+
     function fetchWithTimeout(
         url,
         options,
@@ -227,7 +288,7 @@
 
         try {
             response =
-                await fetch(
+                await fetchWithTimeout(
                     API_URL,
                     {
                         method: "POST",
@@ -246,7 +307,8 @@
                                     }
                                 )
                             )
-                    }
+                    },
+                    REQUEST_TIMEOUT_MS
                 );
         } catch (networkError) {
             var timeoutError =
@@ -474,6 +536,7 @@
             throw serverError;
         }
 
+        notifySuccessfulMutation(payload);
         return data;
     }
 
@@ -681,6 +744,7 @@
             throw error;
         }
 
+        notifySuccessfulMutation(payload);
         return data;
     }
 
@@ -813,6 +877,7 @@
             throw uploadError;
         }
 
+        notifySuccessfulMutation({ action: "normative_upload" });
         return data;
     }
 
