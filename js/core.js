@@ -456,6 +456,7 @@
 
     notificationBadgeTimer = setInterval(function () {
       if (document.visibilityState === "hidden") return;
+      if (document.body.getAttribute("data-page") === "notifications") return;
       var current = getSession();
       if (!current || !current.user || !current.user.token) {
         return;
@@ -471,8 +472,7 @@
       var action = event && event.detail ? event.detail.action : "";
       if ([
         "notification_create",
-        "notification_delete",
-        "notification_read"
+        "notification_delete"
       ].indexOf(action) !== -1) {
         refreshNotificationBadge(session.user.token);
       }
@@ -623,6 +623,21 @@
           detail: detail || {}
         })
       );
+
+      var changedAction = detail && detail.action ? detail.action : "";
+      if (
+        activePageName !== "notifications" &&
+        [
+          "notification_create",
+          "notification_delete",
+          "notification_read"
+        ].indexOf(changedAction) !== -1
+      ) {
+        var currentSession = getSession();
+        if (currentSession && currentSession.user && currentSession.user.token) {
+          refreshNotificationBadge(currentSession.user.token);
+        }
+      }
 
       if (
         SOFT_REFRESH_PAGES[activePageName] &&
