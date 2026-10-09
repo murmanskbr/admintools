@@ -311,6 +311,16 @@
             '<a class="dashboard-action" href="../pages/requests.html"><b>Мои обращения</b><span>Связь с руководством</span></a>' +
             '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы</b><span>Подача и просмотр</span></a>';
 
+        var managementNotice = user.role === "management"
+          ? '<div class="box" style="margin-top:14px;padding:16px 18px;line-height:1.6">' +
+              '<div class="dashboard-section-head"><div><small>СТАБИЛЬНОСТЬ ПАНЕЛИ</small><h2>От чего зависит скорость работы</h2></div></div>' +
+              '<p style="margin:0 0 8px">Скорость ответа зависит от качества интернет-соединения пользователя, загрузки устройства и браузера, состояния серверной базы данных и внешних сервисов Google Apps Script / Google Sheets.</p>' +
+              '<p style="margin:0 0 8px">При отправке нормативов время зависит также от количества и размера изображений. Нестабильный интернет и большие файлы могут замедлить загрузку.</p>' +
+              '<p style="margin:0 0 8px">Если запрос долго выполняется, дождитесь сообщения о результате. Не отправляйте ту же форму повторно сразу: операция могла сохраниться, даже если ответ не успел прийти. После этого обновите список или проверьте, появилась ли запись.</p>' +
+              '<p style="margin:0">При повторяющихся задержках запишите время, раздел панели и действие, при котором возникла проблема, и передайте сведения ответственному за сайт.</p>' +
+            '</div>'
+          : '';
+
         return '<div id="serverRoot"><div class="box"><div class="empty">Загрузка статистики сервера...</div></div></div>' +
           '<div class="dashboard-grid">' +
             '<div class="box dashboard-account">' +
@@ -325,7 +335,7 @@
               '<div class="dashboard-section-head"><div><small>БЫСТРЫЙ ДОСТУП</small><h2>Разделы панели</h2></div></div>' +
               '<div class="dashboard-actions">' + quickLinks + '</div>' +
             '</div>' +
-          '</div>';
+          '</div>' + managementNotice;
       },
       load: async function () {
         var root = document.getElementById("serverRoot");
