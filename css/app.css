@@ -51,7 +51,7 @@ button{cursor:pointer}
 .two-column-table{display:grid;grid-template-columns:1fr 1fr;gap:14px}.muted{color:var(--muted)}.empty{padding:28px;text-align:center;color:var(--muted);font-size:11px}
 
 .watermark{position:fixed;inset:64px 0 0 var(--sidebar);z-index:15;display:grid;place-items:center;overflow:hidden;pointer-events:none;user-select:none;opacity:1}
-.watermark-mark{display:flex;align-items:center;gap:26px;padding:32px 48px;border:1px solid rgba(255,255,255,.11);border-radius:28px;background:rgba(8,10,15,.03);transform:rotate(-18deg) scale(1.15);white-space:nowrap;box-shadow:0 0 110px rgba(255,255,255,.04)}
+.watermark-mark{display:flex;align-items:center;gap:26px;padding:32px 48px;border:1px solid rgba(255,255,255,.11);border-radius:28px;background:rgba(8,10,15,.03);transform:rotate(-18deg) scale(1.15);white-space:nowrap;box-shadow:0 0 110px rgba(255,255,255,.04)}.watermark-mark .watermark-logo{width:clamp(76px,10.5vw,160px);height:auto;flex:0 0 auto;opacity:.12}
 .watermark-mark strong{font-size:clamp(76px,10.5vw,160px);line-height:1;font-weight:950;letter-spacing:-.075em;color:rgba(255,255,255,.145);text-shadow:0 0 28px rgba(255,255,255,.06)}
 .watermark-mark span{font-size:clamp(50px,7.5vw,108px);line-height:1;font-weight:900;letter-spacing:-.045em;color:rgba(255,255,255,.17);text-shadow:0 0 26px rgba(255,255,255,.05)}
 .watermark-mark small{font-size:clamp(11px,1.3vw,16px);font-weight:850;letter-spacing:.21em;color:rgba(255,255,255,.11)}
@@ -743,7 +743,7 @@ body{font-size:16px}
 .theme-light .mobile-menu{color:#141922}
 .theme-light .password-eye:hover{background:rgba(0,0,0,.05);color:#141922}
 .theme-light .logout{background:#fff5f6;border-color:#f0cdd2}
-.theme-light .watermark-mark{background:rgba(255,255,255,.06);border-color:rgba(20,25,34,.08);box-shadow:0 0 110px rgba(20,25,34,.04)}
+.theme-light .watermark-mark{background:rgba(255,255,255,.06);border-color:rgba(20,25,34,.08);box-shadow:0 0 110px rgba(20,25,34,.04)}.theme-light .watermark-mark .watermark-logo{opacity:.08}
 .theme-light .watermark-mark strong{color:rgba(20,25,34,.10);text-shadow:0 0 28px rgba(20,25,34,.05)}
 .theme-light .watermark-mark span{color:rgba(20,25,34,.12);text-shadow:0 0 26px rgba(20,25,34,.04)}
 .theme-light .watermark-mark small{color:rgba(20,25,34,.07)}

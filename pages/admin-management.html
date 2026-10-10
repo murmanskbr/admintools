@@ -147,7 +147,7 @@
     document.getElementById("app").innerHTML =
       '<div class="panel">' +
         '<aside class="sidebar" id="sidebar">' +
-          '<div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
+          '<div class="brand"><img class="brand-logo" src="../favicon.svg" alt="Логотип Black Russia" width="44" height="44"><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
           '<div class="section-title">ПАНЕЛЬ</div>' +
           links.split(nav[8] ? '<a' : '<x')[0] +
           '<div class="section-title">КОНТРОЛЬ</div>' +
@@ -173,7 +173,7 @@
             '<div class="head"><h1>Создание / удаление администратора</h1><p>Управление администраторами</p></div>' +
             '<div id="adminContent"></div>' +
           '</section>' +
-          '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><strong>BR</strong><span>' +
+          '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><img class="watermark-logo" src="../favicon.svg" alt=""><span>' +
             esc(nickname) + '</span><small>BLACK RUSSIA • МУРМАНСК</small></div></div>' +
         '</main>' +
       '</div>';
@@ -247,7 +247,7 @@
         '<button class="logout" id="logout" type="button">Выйти</button>' +
       '</div>';
     sidebar.innerHTML =
-      '<div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
+      '<div class="brand"><img class="brand-logo" src="../favicon.svg" alt="Логотип Black Russia" width="44" height="44"><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
       groupHtml;
     refreshNotificationBadge();
     startNotificationBadgePolling();
