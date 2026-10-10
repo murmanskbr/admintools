@@ -117,30 +117,26 @@
 
   function googleRowTable(result, caption) {
     var data = googleRowPayload(result);
-    if (!data.count) return '<div class="box"><div class="empty">В Google-таблице нет данных этой строки.</div></div>';
-    var rangeText = data.rowNumber ? "Строка " + data.rowNumber + " • диапазон " + data.firstColumn + data.rowNumber + ":" + data.lastColumn + data.rowNumber : "Полная строка";
+    if (!data.count) return '<div class="box"><div class="empty">Нет данных для отображения.</div></div>';
     function formatGoogleCellValue(_header, value) {
-      // Google Sheets is the source of truth: do not parse, rename,
-      // calculate, localize or otherwise alter the returned cell value.
       return value == null ? "" : String(value);
     }
 
     var rows = data.headers.map(function (header, index) {
       var value = formatGoogleCellValue(header, data.raw[index]);
-
-      return '<tr><td><b>' + E(columnLetter(index)) + '</b></td><td>' + E(header || "Без названия") + '</td><td>' + E(value) + '</td></tr>';
+      return '<tr><td>' + E(header || "Без названия") + '</td><td>' + E(value) + '</td></tr>';
     }).join("");
+
     var mobileRows = data.headers.map(function (header, index) {
       var value = formatGoogleCellValue(header, data.raw[index]);
-
       return '<div class="mobile-data-card">' +
-        '<div class="mobile-data-label">' + E(header || ("Колонка " + columnLetter(index))) + '</div>' +
+        '<div class="mobile-data-label">' + E(header || "Без названия") + '</div>' +
         '<div class="mobile-data-value">' + E(value) + '</div>' +
       '</div>';
     }).join("");
 
-    return '<div class="page-toolbar"><div><small>ДАННЫЕ</small><b>' + E(caption || "Полные данные строки") + '</b></div><span class="muted">' + E(rangeText) + '</span></div>' +
-      '<div class="box table-box google-row-desktop"><table class="google-row-table"><thead><tr><th>Колонка</th><th>Заголовок</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    return '<div class="page-toolbar"><div><b>' + E(caption || "Данные профиля") + '</b></div></div>' +
+      '<div class="box table-box google-row-desktop"><table class="google-row-table"><thead><tr><th>Показатель</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<div class="mobile-data-list google-row-mobile">' + mobileRows + '</div>';
   }
 
@@ -314,7 +310,7 @@
         var managementNotice = user.role === "management"
           ? '<div class="box" style="margin-top:14px;padding:16px 18px;line-height:1.6">' +
               '<div class="dashboard-section-head"><div><small>СТАБИЛЬНОСТЬ ПАНЕЛИ</small><h2>От чего зависит скорость работы</h2></div></div>' +
-              '<p style="margin:0 0 8px">Скорость ответа зависит от качества интернет-соединения пользователя, загрузки устройства и браузера, состояния серверной базы данных и внешних сервисов Google Apps Script / Google Sheets.</p>' +
+              '<p style="margin:0 0 8px">Скорость ответа зависит от качества интернет-соединения пользователя, загрузки устройства и браузера, состояния серверной базы данных и внешних сервисов.</p>' +
               '<p style="margin:0 0 8px">При отправке нормативов время зависит также от количества и размера изображений. Нестабильный интернет и большие файлы могут замедлить загрузку.</p>' +
               '<p style="margin:0 0 8px">Если запрос долго выполняется, дождитесь сообщения о результате. Не отправляйте ту же форму повторно сразу: операция могла сохраниться, даже если ответ не успел прийти. После этого обновите список или проверьте, появилась ли запись.</p>' +
               '<p style="margin:0">При повторяющихся задержках запишите время, раздел панели и действие, при котором возникла проблема, и передайте сведения ответственному за сайт.</p>' +
