@@ -325,7 +325,7 @@
 
     return '<div class="panel">' +
       '<aside class="sidebar" id="sidebar">' +
-        '<div class="brand"><div class="brand-logo">BR</div><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
+        '<div class="brand"><img class="brand-logo" src="../favicon.svg" alt="Логотип Black Russia" width="44" height="44"><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
         '<div class="sidebar-menu">' +
           '<div class="section-title">ПАНЕЛЬ</div>' +
           link("dashboard") + link("profile") + menu +
