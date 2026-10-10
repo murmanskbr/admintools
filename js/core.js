@@ -8,6 +8,7 @@
   var PAGE_REFRESH_MIN_INTERVAL_MS = 15000;
   var PAGE_FOCUS_REFRESH_AFTER_MS = 45000;
   var PAGE_AUTO_REFRESH_INTERVAL_MS = 60000;
+  var CURRENT_USER_REFRESH_INTERVAL_MS = 30000;
   var SOFT_REFRESH_PAGES = {
     access: true,
     notifications: true,
@@ -647,6 +648,110 @@
       }
     }
 
+    var currentUserRefreshPromise = null;
+    var currentUserRefreshLastAt = 0;
+
+    function refreshCurrentUserProfile(force) {
+      if (document.visibilityState === "hidden") {
+        return Promise.resolve();
+      }
+
+      if (
+        !window.BR_API ||
+        typeof window.BR_API.me !== "function"
+      ) {
+        return Promise.resolve();
+      }
+
+      var now = Date.now();
+      if (currentUserRefreshPromise) {
+        return currentUserRefreshPromise;
+      }
+
+      // Focus can fire more than once in quick succession; prevent duplicate
+      // requests while still allowing an immediate refresh after returning.
+      var minimumGap = force ? 5000 : CURRENT_USER_REFRESH_INTERVAL_MS;
+      if (currentUserRefreshLastAt && now - currentUserRefreshLastAt < minimumGap) {
+        return Promise.resolve();
+      }
+
+      var currentSession = getSession();
+      if (!currentSession || !currentSession.user || !currentSession.user.token) {
+        goToLogin();
+        return Promise.resolve();
+      }
+
+      currentUserRefreshLastAt = now;
+      currentUserRefreshPromise = Promise.resolve()
+        .then(function () {
+          return window.BR_API.me(currentSession.user.token);
+        })
+        .then(function (result) {
+          var freshAdmin = result && result.admin;
+          if (!freshAdmin) return;
+
+          var latestSession = getSession();
+          if (
+            !latestSession ||
+            !latestSession.user ||
+            latestSession.user.token !== currentSession.user.token
+          ) {
+            return;
+          }
+
+          if (
+            freshAdmin.id != null &&
+            latestSession.user.id != null &&
+            String(freshAdmin.id) !== String(latestSession.user.id)
+          ) {
+            return;
+          }
+
+          var keys = ["login", "nickname", "role", "position", "theme"];
+          var patch = {};
+          var identityChanged = false;
+
+          keys.forEach(function (key) {
+            if (!Object.prototype.hasOwnProperty.call(freshAdmin, key)) {
+              return;
+            }
+
+            var oldValue = latestSession.user[key];
+            var newValue = freshAdmin[key];
+
+            if (String(oldValue == null ? "" : oldValue) !== String(newValue == null ? "" : newValue)) {
+              patch[key] = newValue;
+              if (["login", "nickname", "role", "position"].indexOf(key) !== -1) {
+                identityChanged = true;
+              }
+            }
+          });
+
+          if (!Object.keys(patch).length) return;
+
+          updateSessionUser(patch);
+
+          if (Object.prototype.hasOwnProperty.call(patch, "theme")) {
+            applyTheme(patch.theme);
+          }
+
+          // Rebuild the sidebar and current page from fresh role/position data.
+          // Role changes also add/remove management-only navigation.
+          if (identityChanged) {
+            location.reload();
+          }
+        })
+        .catch(function () {
+          // Keep the current menu usable during temporary connectivity problems.
+          // Expired sessions are handled by the existing br:session-expired listener.
+        })
+        .finally(function () {
+          currentUserRefreshPromise = null;
+        });
+
+      return currentUserRefreshPromise;
+    }
+
     function refreshVisiblePageData() {
       if (
         document.visibilityState === "hidden" ||
@@ -695,6 +800,8 @@
     function handlePageVisible() {
       if (document.visibilityState === "hidden") return;
 
+      refreshCurrentUserProfile(true);
+
       if (pendingRemoteDataChange) {
         var pending = pendingRemoteDataChange;
         pendingRemoteDataChange = null;
@@ -718,6 +825,11 @@
       refreshVisiblePageData();
     }, PAGE_AUTO_REFRESH_INTERVAL_MS);
 
+    window.setInterval(function () {
+      refreshCurrentUserProfile(false);
+    }, CURRENT_USER_REFRESH_INTERVAL_MS);
+
+    refreshCurrentUserProfile(true);
     loadPageData(true);
 
     // A cached mobile page must never restore a stale menu lock.
