@@ -106,30 +106,26 @@
 
   function googleRowTable(result, caption) {
     var data = googleRowPayload(result);
-    if (!data.count) return '<div class="box"><div class="empty">В Google-таблице нет данных этой строки.</div></div>';
-    var rangeText = data.rowNumber ? "Строка " + data.rowNumber + " • диапазон " + data.firstColumn + data.rowNumber + ":" + data.lastColumn + data.rowNumber : "Полная строка";
+    if (!data.count) return '<div class="box"><div class="empty">Нет данных для отображения.</div></div>';
     function formatGoogleCellValue(_header, value) {
-      // Google Sheets is the source of truth: do not parse, rename,
-      // calculate, localize or otherwise alter the returned cell value.
       return value == null ? "" : String(value);
     }
 
     var rows = data.headers.map(function (header, index) {
       var value = formatGoogleCellValue(header, data.raw[index]);
-
-      return '<tr><td><b>' + E(columnLetter(index)) + '</b></td><td>' + E(header || "Без названия") + '</td><td>' + E(value) + '</td></tr>';
+      return '<tr><td>' + E(header || "Без названия") + '</td><td>' + E(value) + '</td></tr>';
     }).join("");
+
     var mobileRows = data.headers.map(function (header, index) {
       var value = formatGoogleCellValue(header, data.raw[index]);
-
       return '<div class="mobile-data-card">' +
-        '<div class="mobile-data-label">' + E(header || ("Колонка " + columnLetter(index))) + '</div>' +
+        '<div class="mobile-data-label">' + E(header || "Без названия") + '</div>' +
         '<div class="mobile-data-value">' + E(value) + '</div>' +
       '</div>';
     }).join("");
 
-    return '<div class="page-toolbar"><div><small>ДАННЫЕ</small><b>' + E(caption || "Полные данные строки") + '</b></div><span class="muted">' + E(rangeText) + '</span></div>' +
-      '<div class="box table-box google-row-desktop"><table class="google-row-table"><thead><tr><th>Колонка</th><th>Заголовок</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    return '<div class="page-toolbar"><div><b>' + E(caption || "Данные профиля") + '</b></div></div>' +
+      '<div class="box table-box google-row-desktop"><table class="google-row-table"><thead><tr><th>Показатель</th><th>Значение</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<div class="mobile-data-list google-row-mobile">' + mobileRows + '</div>';
   }
 
