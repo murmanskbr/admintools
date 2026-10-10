@@ -113,6 +113,86 @@
   }
 
 
+  var profileRefreshInFlight = false;
+  var profileRefreshLastAt = 0;
+
+  function refreshSessionProfile(force) {
+    if (document.visibilityState === "hidden") return Promise.resolve();
+    if (!window.BR_API || typeof window.BR_API.me !== "function") return Promise.resolve();
+    if (profileRefreshInFlight) return Promise.resolve();
+
+    var now = Date.now();
+    var minimumGap = force ? 5000 : 30000;
+    if (profileRefreshLastAt && now - profileRefreshLastAt < minimumGap) {
+      return Promise.resolve();
+    }
+
+    var current = readSession();
+    if (!current || !current.user || !current.user.token) {
+      goLogin();
+      return Promise.resolve();
+    }
+
+    profileRefreshLastAt = now;
+    profileRefreshInFlight = true;
+
+    return window.BR_API.me(current.user.token)
+      .then(function (result) {
+        var fresh = result && result.admin;
+        if (!fresh) return;
+
+        var latest = readSession();
+        if (
+          !latest ||
+          !latest.user ||
+          latest.user.token !== current.user.token
+        ) return;
+
+        if (
+          fresh.id != null &&
+          latest.user.id != null &&
+          String(fresh.id) !== String(latest.user.id)
+        ) return;
+
+        var patch = {};
+        var identityChanged = false;
+        ["login", "nickname", "role", "position", "theme"].forEach(function (key) {
+          if (!Object.prototype.hasOwnProperty.call(fresh, key)) return;
+
+          var oldValue = latest.user[key];
+          var newValue = fresh[key];
+          if (String(oldValue == null ? "" : oldValue) === String(newValue == null ? "" : newValue)) {
+            return;
+          }
+
+          patch[key] = newValue;
+          if (["login", "nickname", "role", "position"].indexOf(key) !== -1) {
+            identityChanged = true;
+          }
+        });
+
+        if (!Object.keys(patch).length) return;
+
+        latest.user = Object.assign({}, latest.user, patch);
+        saveSession(latest);
+
+        if (identityChanged) {
+          location.reload();
+        } else if (Object.prototype.hasOwnProperty.call(patch, "theme")) {
+          document.documentElement.classList.toggle(
+            "theme-light",
+            String(patch.theme || "dark").toLowerCase() === "light"
+          );
+        }
+      })
+      .catch(function () {
+        // Не прерываем работу страницы из-за временной сетевой ошибки.
+      })
+      .finally(function () {
+        profileRefreshInFlight = false;
+      });
+  }
+
   function renderShell(user) {
     var nickname = String(user.nickname || "BR");
     var role = String(user.role || "");
@@ -621,16 +701,18 @@
 
     if (heartbeat) clearInterval(heartbeat);
     heartbeat = setInterval(function () {
-      if (document.visibilityState === "hidden") return;
-      var current = readSession();
-      if (!current) {
-        goLogin();
-        return;
-      }
-      if (window.BR_API && typeof window.BR_API.me === "function") {
-        window.BR_API.me(current.user.token).catch(function () {});
-      }
+      refreshSessionProfile(false);
     }, 30000);
+
+    window.addEventListener("focus", function () {
+      refreshSessionProfile(true);
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") {
+        refreshSessionProfile(true);
+      }
+    });
+    refreshSessionProfile(true);
 
   }
 
