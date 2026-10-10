@@ -10,7 +10,6 @@
   var PAGE_AUTO_REFRESH_INTERVAL_MS = 60000;
   var CURRENT_USER_REFRESH_INTERVAL_MS = 30000;
   var SOFT_REFRESH_PAGES = {
-    access: true,
     notifications: true,
     normatives: true,
     "normatives-all": true,
