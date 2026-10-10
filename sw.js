@@ -65,15 +65,28 @@ self.addEventListener(
         : ""
     ).trim();
 
-    var targetUrl = rawUrl
-      ? new URL(
-          rawUrl,
-          self.registration.scope
-        ).href
-      : new URL(
-          "pages/notifications.html",
-          self.registration.scope
-        ).href;
+    var scopeUrl = new URL(self.registration.scope);
+    var fallbackUrl = new URL(
+      "pages/notifications.html",
+      self.registration.scope
+    );
+    var targetUrl = fallbackUrl.href;
+
+    if (rawUrl) {
+      try {
+        var parsedTarget = new URL(rawUrl, self.registration.scope);
+        // Push payloads may navigate only within this site's service-worker scope.
+        if (
+          parsedTarget.protocol === "https:" &&
+          parsedTarget.origin === scopeUrl.origin &&
+          parsedTarget.pathname.indexOf(scopeUrl.pathname) === 0
+        ) {
+          targetUrl = parsedTarget.href;
+        }
+      } catch (_) {
+        targetUrl = fallbackUrl.href;
+      }
+    }
 
     event.waitUntil(
       self.clients
