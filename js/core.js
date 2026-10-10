@@ -345,7 +345,7 @@
         '</header>' +
         '<section class="content"><div class="head"><h1>' + esc(title) + '</h1><p>' +
           esc(subtitle || "") + '</p></div>' + body + '</section>' +
-        '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><strong>BR</strong><span>' +
+        '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><img class="watermark-logo" src="../favicon.svg" alt=""><span>' +
           esc(user.nickname) + '</span><small>BLACK RUSSIA • МУРМАНСК</small></div></div>' +
       '</main>' +
     '</div>';
