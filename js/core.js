@@ -262,7 +262,7 @@
     var active = current === item[0].replace("pages/", "") ? " active" : "";
     var target = item[0];
     if (page === "admin-management") {
-      target += "?v=20261004-2315";
+      target += "?v=20261010-2225";
     }
 
     var label = esc(item[2]);
@@ -670,7 +670,7 @@
 
       // Focus can fire more than once in quick succession; prevent duplicate
       // requests while still allowing an immediate refresh after returning.
-      var minimumGap = force ? 5000 : CURRENT_USER_REFRESH_INTERVAL_MS;
+      var minimumGap = force ? 1500 : CURRENT_USER_REFRESH_INTERVAL_MS;
       if (currentUserRefreshLastAt && now - currentUserRefreshLastAt < minimumGap) {
         return Promise.resolve();
       }
@@ -751,6 +751,23 @@
 
       return currentUserRefreshPromise;
     }
+
+    function refreshProfileAfterAccessChange(event) {
+      var action = event && event.detail ? event.detail.action : "";
+      if ([
+        "access_manage",
+        "access_grant",
+        "admin_add",
+        "admin_delete",
+        "update_admin",
+        "update_row"
+      ].indexOf(action) !== -1) {
+        refreshCurrentUserProfile(true);
+      }
+    }
+
+    window.addEventListener("br:api-mutation-success", refreshProfileAfterAccessChange);
+    window.addEventListener("br:remote-data-changed", refreshProfileAfterAccessChange);
 
     function refreshVisiblePageData() {
       if (
