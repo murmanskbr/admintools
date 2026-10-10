@@ -4659,12 +4659,6 @@
           );
         });
 
-        window.addEventListener("br:refresh-visible-data", function () {
-          if (document.visibilityState === "hidden") return;
-          loadAccounts(
-            document.getElementById("accessRegistryRoot")
-          );
-        });
       }
     };
   }
