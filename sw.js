@@ -23,8 +23,15 @@ self.addEventListener("push", function (event) {
     data.body || ""
   );
 
+  var appIcon = new URL(
+    "favicon.svg",
+    self.registration.scope
+  ).href;
+
   var notificationOptions = {
     body: body,
+    icon: appIcon,
+    badge: appIcon,
     tag: String(
       data.tag ||
         "br-admin-notification"
