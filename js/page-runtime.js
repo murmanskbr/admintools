@@ -2907,7 +2907,7 @@
               lastSettings.web_app_url = saved || "";
 
               showStatus(
-                "Источник данных сохранён.",
+                "Настройки сохранены.",
                 true
               );
 
