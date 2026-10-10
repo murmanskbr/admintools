@@ -2,7 +2,7 @@
   "use strict";
 
   var COOKIE = "br_session";
-  var REMEMBER_DAYS = 365;
+  var REMEMBER_DAYS = 0.5;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var notificationBadgeTimer = null;
   var PAGE_REFRESH_MIN_INTERVAL_MS = 15000;
