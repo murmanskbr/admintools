@@ -4166,7 +4166,7 @@
               renderAccessRegistry(sortSelect.value, document.getElementById("accessRegistrySearch").value, document.getElementById("accessRegistryPosition").value);
             };
           }
-          document.getElementById("accessRegistrySearch").oninput = function () { renderAccessRegistry(mode, this.value, document.getElementById("accessRegistryPosition").value); document.getElementById("accessRegistrySearch").focus(); document.getElementById("accessRegistrySearch").setSelectionRange(query.length + (this.value.length - query.length), this.value.length); };
+          document.getElementById("accessRegistrySearch").oninput = function () { var position = this.selectionStart; renderAccessRegistry(mode, this.value, document.getElementById("accessRegistryPosition").value); var next = document.getElementById("accessRegistrySearch"); next.focus(); next.setSelectionRange(position, position); };
           document.getElementById("accessRegistryPosition").onchange = function () { renderAccessRegistry(mode, document.getElementById("accessRegistrySearch").value, this.value); };
         }
 
