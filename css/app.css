@@ -3894,3 +3894,52 @@ body{font-size:16px}
 @media (max-width: 620px) {
   .push-roster-filters { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 2026-10-11: readable administration statistics with independent table scrolling. */
+#allStatsRoot .stats-table-head {
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:12px!important;
+  justify-content:space-between!important;
+}
+#allStatsRoot .stats-table-head > div:first-child {flex:0 0 auto;min-width:150px;}
+#allStatsRoot .stats-nickname-search {
+  display:flex!important;
+  flex:1 1 650px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  min-width:0!important;
+  max-width:100%!important;
+  margin:0!important;
+  gap:8px!important;
+}
+#allStatsRoot .stats-nickname-search .form-input {flex:1 1 180px!important;width:auto!important;min-width:130px!important;max-width:320px!important;}
+#allStatsRoot .stats-nickname-search .form-select {flex:1 1 175px!important;min-width:155px!important;width:auto!important;max-width:260px!important;}
+#allStatsRoot .stats-nickname-search .button {flex:0 0 auto!important;white-space:nowrap!important;}
+#allStatsRoot .all-stats-scroll {width:100%;max-width:100%;overflow-x:auto;overflow-y:visible;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;}
+#allStatsRoot .all-stats-scroll #allStatsTable {
+  width:max-content!important;
+  min-width:1450px!important;
+  max-width:none!important;
+  table-layout:auto!important;
+  border-collapse:collapse!important;
+}
+#allStatsRoot .all-stats-scroll #allStatsTable th,
+#allStatsRoot .all-stats-scroll #allStatsTable td {
+  min-width:65px!important;
+  max-width:230px!important;
+  width:auto!important;
+  overflow-wrap:normal!important;
+  word-break:normal!important;
+  white-space:normal!important;
+  vertical-align:middle;
+}
+#allStatsRoot .all-stats-scroll #allStatsTable th:first-child,
+#allStatsRoot .all-stats-scroll #allStatsTable td:first-child {min-width:145px!important;max-width:190px!important;overflow-wrap:anywhere!important;}
+#allStatsRoot .all-stats-scroll #allStatsTable th:nth-last-child(-n+2),
+#allStatsRoot .all-stats-scroll #allStatsTable td:nth-last-child(-n+2) {min-width:155px!important;}
+#allStatsRoot .all-stats-scroll #allStatsTable .stats-norm-actions {flex-wrap:nowrap!important;}
+@media(max-width:1100px){#allStatsRoot .all-stats-scroll{display:none!important;}#allStatsRoot .stats-nickname-search{justify-content:flex-start!important;}#allStatsRoot .stats-nickname-search .form-input{max-width:none!important;}}
+@media(min-width:1101px){#allStatsRoot .stats-mobile-list{display:none!important;}}
