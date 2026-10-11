@@ -4083,3 +4083,55 @@ body{font-size:16px}
   width:100%!important;min-width:0!important;max-width:none!important;
   padding:6px 2px!important;font-size:9px!important;white-space:normal!important;
 }
+
+/* Statistics final spacing: proportional colgroup, compact one-row controls. */
+#allStatsRoot .all-stats-layout #allStatsTable {
+  table-layout:fixed!important;width:100%!important;max-width:100%!important;
+  border-spacing:0!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable th:nth-child(n),
+#allStatsRoot .all-stats-layout #allStatsTable td:nth-child(n) {
+  width:auto!important;min-width:0!important;max-width:none!important;
+  padding:6px 3px!important;font-size:11px!important;line-height:1.3!important;
+  overflow-wrap:break-word!important;word-break:normal!important;
+  vertical-align:middle!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable th:first-child,
+#allStatsRoot .all-stats-layout #allStatsTable td:first-child {
+  padding-left:13px!important;padding-right:5px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable th:last-child,
+#allStatsRoot .all-stats-layout #allStatsTable td:last-child {
+  padding-left:4px!important;padding-right:10px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable thead th {
+  font-size:10px!important;line-height:1.25!important;padding-top:9px!important;padding-bottom:9px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable tbody tr {
+  height:auto!important;min-height:0!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable tbody td {
+  height:auto!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .stats-norm-cell {
+  padding:5px 2px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .stats-norm-value {
+  display:block!important;text-align:center!important;margin:0 0 4px!important;
+  font-size:10px!important;line-height:1.15!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .stats-norm-actions {
+  display:flex!important;flex-flow:row nowrap!important;align-items:center!important;
+  justify-content:center!important;gap:3px!important;width:100%!important;
+  max-width:none!important;margin:0!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .normative-icon-button {
+  flex:0 1 23px!important;box-sizing:border-box!important;
+  width:23px!important;min-width:0!important;height:25px!important;min-height:0!important;
+  padding:1px!important;font-size:11px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .admin-edit-inline {
+  display:block!important;box-sizing:border-box!important;
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  padding:6px 2px!important;font-size:10px!important;white-space:normal!important;
+}
