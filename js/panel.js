@@ -1341,20 +1341,20 @@
       // Proportional widths preserve every column while favoring long text.
       var sourceWeights = lastHeaders.map(function (header) {
         var name = normalizeHeader(header);
-        if (/никнейм|^ник$|nickname|username/.test(name)) return 12;
-        if (/должност|position/.test(name)) return 14;
+        if (/никнейм|^ник$|nickname|username/.test(name)) return 15;
+        if (/должност|position/.test(name)) return 15;
         if (/возраст/.test(name)) return 5;
-        if (/доступ.*пк/.test(name)) return 7;
-        if (/неактив/.test(name)) return 7;
-        if (/баллы.*активност/.test(name)) return 9;
+        if (/доступ.*пк/.test(name)) return 6;
+        if (/неактив/.test(name)) return 6;
+        if (/баллы.*активност/.test(name)) return 8;
         if (/дни.*посту/.test(name)) return 5;
         if (/страйк/.test(name)) return 5;
         if (/предупрежден/.test(name)) return 7;
-        if (/последнее.*повышен/.test(name)) return 8;
+        if (/последнее.*повышен/.test(name)) return 9;
         if (/баллы/.test(name)) return 7;
         return 7;
       });
-      var columnWeights = sourceWeights.concat([8, 6]);
+      var columnWeights = sourceWeights.concat([13, 8]);
       var totalWeight = columnWeights.reduce(function (sum, weight) { return sum + weight; }, 0);
       var columnWidths = '<colgroup>' + columnWeights.map(function (weight) {
         return '<col style="width:' + (weight * 100 / totalWeight).toFixed(3) + '%">';
@@ -1548,7 +1548,7 @@
             '<select id="statsSortFilter" class="form-select" aria-label="Сортировка"><option value="position"' + (statsSort === 'position' ? ' selected' : '') + '>Должность: старшие сначала</option><option value="position_asc"' + (statsSort === 'position_asc' ? ' selected' : '') + '>Должность: младшие сначала</option><option value="nickname"' + (statsSort === 'nickname' ? ' selected' : '') + '>Никнейм: А–Я</option><option value="nickname_desc"' + (statsSort === 'nickname_desc' ? ' selected' : '') + '>Никнейм: Я–А</option></select>' +
           '</form>' +
           '</div>' +
-          '<div class="admins-source-row"><span>Ключевые показатели • полные данные доступны в карточке «Изменить»</span><span>' +
+          '<div class="admins-source-row"><span>Все исходные столбцы Google Таблицы</span><span>' +
             "Данные получены" +
           '</span></div>' +
           '<div class="stats-mobile-list">' + mobileRecordsHtml() + '</div>' +
