@@ -1304,21 +1304,34 @@
         return positionIndex >= 0 ? String(record.row[positionIndex] || "").trim() : "";
       }).filter(Boolean)));
       if (statsPosition && positionIndex >= 0) displayRecords = displayRecords.filter(function (record) { return String(record.row[positionIndex] || "").trim() === statsPosition; });
-      displayRecords.sort(function (a,b) {
+      function positionLabel(record) {
+        var raw = positionIndex >= 0 ? String(record.row[positionIndex] || "").trim() : "";
+        return raw.replace(/\\s*\\([^)]*\\)\\s*$/, "").trim();
+      }
+      function rankPosition(value) {
+        var name = normalizeHeader(value).replace(/\\s*\\([^)]*\\)\\s*$/, "").trim();
+        var matched = POSITIONS.findIndex(function (p) { return normalizeHeader(p) === name; });
+        return matched < 0 ? POSITIONS.length : matched;
+      }
+      displayRecords.sort(function (a, b) {
         var an = lastNicknameIndex >= 0 ? String(a.row[lastNicknameIndex] || "") : "";
         var bn = lastNicknameIndex >= 0 ? String(b.row[lastNicknameIndex] || "") : "";
         if (statsSort === "nickname" || statsSort === "nickname_desc") {
-          var comparison = an.localeCompare(bn, "ru");
-          return statsSort === "nickname_desc" ? -comparison : comparison;
+          var nameDiff = an.localeCompare(bn, "ru", { sensitivity: "base" });
+          return statsSort === "nickname_desc" ? -nameDiff : nameDiff;
         }
-        var ap = positionIndex >= 0 ? String(a.row[positionIndex] || "").toLowerCase() : "";
-        var bp = positionIndex >= 0 ? String(b.row[positionIndex] || "").toLowerCase() : "";
-        var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === ap; });
-        var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === bp; });
-        var rank = (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br);
-        return (statsSort === "position_asc" ? -rank : rank) || an.localeCompare(bn, "ru");
+        var ar = rankPosition(positionLabel(a));
+        var br = rankPosition(positionLabel(b));
+        var diff = ar - br;
+        return (statsSort === "position_asc" ? -diff : diff) ||
+          an.localeCompare(bn, "ru", { sensitivity: "base" });
       });
-      displayRecords = displayRecords.map(function (record) { return Object.assign({}, record, {sectionTitle: ""}); });
+      displayRecords = displayRecords.map(function (record) {
+        var group = (statsSort === "nickname" || statsSort === "nickname_desc")
+          ? (lastNicknameIndex >= 0 ? String(record.row[lastNicknameIndex] || "").trim().charAt(0).toUpperCase() : "#")
+          : (positionLabel(record) || record.sectionTitle || "Должность не указана");
+        return Object.assign({}, record, { sectionTitle: group });
+      });
 
       lastData = displayRecords.map(function (record) {
         var row = record.row;
