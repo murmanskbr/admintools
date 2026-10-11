@@ -2421,7 +2421,7 @@
             '</div>' +
           '</div>' +
           '<div class="box table-box push-status-table-box">' +
-            '<div class="normative-filters">' +
+            '<div class="push-roster-filters">' +
               '<input id="pushRosterSearch" class="form-input" type="search" placeholder="Поиск по никнейму" aria-label="Поиск по никнейму">' +
               '<select id="pushRosterPosition" class="form-select" aria-label="Должность"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).map(function (position) { return '<option value="' + E(position) + '">' + E(position) + '</option>'; }).join('') + '</select>' +
               '<select id="pushRosterStatus" class="form-select" aria-label="Push-статус"><option value="">Любой Push-статус</option><option value="yes">Включены</option><option value="no">Выключены</option></select>' +
