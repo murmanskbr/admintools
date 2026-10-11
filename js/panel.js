@@ -1338,6 +1338,27 @@
 
       // Mirror every source column and its original heading, including unknown/new columns.
       var visibleColumns = lastHeaders.map(function (_, index) { return index; });
+      // Proportional widths preserve every column while favoring long text.
+      var sourceWeights = lastHeaders.map(function (header) {
+        var name = normalizeHeader(header);
+        if (/никнейм|^ник$|nickname|username/.test(name)) return 12;
+        if (/должност|position/.test(name)) return 14;
+        if (/возраст/.test(name)) return 5;
+        if (/доступ.*пк/.test(name)) return 7;
+        if (/неактив/.test(name)) return 7;
+        if (/баллы.*активност/.test(name)) return 9;
+        if (/дни.*посту/.test(name)) return 5;
+        if (/страйк/.test(name)) return 5;
+        if (/предупрежден/.test(name)) return 7;
+        if (/последнее.*повышен/.test(name)) return 8;
+        if (/баллы/.test(name)) return 7;
+        return 7;
+      });
+      var columnWeights = sourceWeights.concat([8, 6]);
+      var totalWeight = columnWeights.reduce(function (sum, weight) { return sum + weight; }, 0);
+      var columnWidths = '<colgroup>' + columnWeights.map(function (weight) {
+        return '<col style="width:' + (weight * 100 / totalWeight).toFixed(3) + '%">';
+      }).join("") + '</colgroup>';
       var headerCells = lastHeaders.map(function (header) {
         return '<th title="' + E(String(header == null ? "" : header)) + '">' +
           E(header == null || header === "" ? "—" : header) + '</th>';
@@ -1531,7 +1552,7 @@
             "Данные получены" +
           '</span></div>' +
           '<div class="stats-mobile-list">' + mobileRecordsHtml() + '</div>' +
-          '<div class="all-stats-layout"><table id="allStatsTable"><thead><tr>' +
+          '<div class="all-stats-layout"><table id="allStatsTable">' + columnWidths + '<thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
           '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
