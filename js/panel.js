@@ -1306,10 +1306,10 @@
       if (statsPosition && positionIndex >= 0) displayRecords = displayRecords.filter(function (record) { return String(record.row[positionIndex] || "").trim() === statsPosition; });
       function positionLabel(record) {
         var raw = positionIndex >= 0 ? String(record.row[positionIndex] || "").trim() : "";
-        return raw.replace(/\\s*\\([^)]*\\)\\s*$/, "").trim();
+        return raw.replace(/\s*\([^)]*\)\s*$/, "").trim();
       }
       function rankPosition(value) {
-        var name = normalizeHeader(value).replace(/\\s*\\([^)]*\\)\\s*$/, "").trim();
+        var name = normalizeHeader(value).replace(/\s*\([^)]*\)\s*$/, "").trim();
         var matched = POSITIONS.findIndex(function (p) { return normalizeHeader(p) === name; });
         return matched < 0 ? POSITIONS.length : matched;
       }
@@ -1890,7 +1890,9 @@
 
       if (refresh) {
         refresh.disabled = true;
-        refresh.textContent = forceRefresh ? "Обновление…" : "Загрузка…";
+        refresh.classList.add("is-refreshing");
+        refresh.setAttribute("aria-busy", "true");
+        refresh.innerHTML = '<span class="refresh-spinner" aria-hidden="true">↻</span><span>' + (forceRefresh ? "Обновление…" : "Загрузка…") + '</span>';
       }
 
       var hasRenderedData =
@@ -1941,6 +1943,8 @@
       }).finally(function () {
         if (refresh) {
           refresh.disabled = false;
+          refresh.classList.remove("is-refreshing");
+          refresh.removeAttribute("aria-busy");
           refresh.textContent = "↻ Обновить";
         }
       });
