@@ -4065,6 +4065,7 @@
                 '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
                 '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
                   '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
+                  '<button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
                   (item.device_bound ? '<button type="button" data-access-action="unbind" data-admin-id="' + E(item.id) + '">Сбросить привязку</button>' : '') +
                   (item.blocked_at
                     ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
@@ -4206,6 +4207,7 @@
           }
 
           var messages = {
+            reset_sessions: "Завершить все активные сессии аккаунта «" + item.nickname + "»?\n\nНа всех устройствах потребуется повторный вход. Пароль и привязка устройства не изменятся.",
             unbind: "Сбросить привязку устройства у " + item.nickname + "?",
             block: "Заблокировать " + item.nickname + "?",
             unblock: "Разблокировать " + item.nickname + "?",
