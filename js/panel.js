@@ -3606,9 +3606,7 @@
           pushToggle.disabled = false;
           pushToggle.textContent = "Включить push";
           pushToggle.className = "button button-primary";
-          pushDescription.textContent = state.serverEnabled
-            ? "На аккаунте уже есть push на другом устройстве."
-            : "На этом устройстве push пока не подключён.";
+          pushDescription.textContent = "На этом устройстве Push не подключён. Подписки других устройств не включают его автоматически здесь." + (state.serverCount ? " Всего у аккаунта подключено устройств: " + state.serverCount + "." : "");
           
           if (state.permission === "denied") {
             pushToggle.disabled = true;
@@ -3616,7 +3614,7 @@
             pushStatus.textContent = "Разрешите уведомления для сайта в настройках браузера.";
             pushStatus.className = "settings-push-status settings-push-status-error";
           } else {
-            pushStatus.textContent = "Статус: выключены на этом устройстве.";
+            pushStatus.textContent = state.browserSubscribed ? "Статус: не подключено к текущему аккаунту в этом браузере." : "Статус: выключены на этом устройстве.";
             pushStatus.className = "settings-push-status";
           }
         }
