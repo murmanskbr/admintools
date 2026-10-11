@@ -436,6 +436,13 @@
         });
         rows = filteredAdminRows;
         rowNumbers = filteredAdminRowNumbers;
+        var nicknameIndex = headers.findIndex(function (h) { return /^(никнейм|ник|nickname|nick|username|логин)$/i.test(String(h || "").trim()); });
+        var positionIndex = headers.findIndex(function (h) { return /должност|position/i.test(String(h || "")); });
+        var roster = rows.map(function (row, i) { return { row: row, number: rowNumbers[i], nickname: nicknameIndex >= 0 ? String(row[nicknameIndex] || "") : "", position: positionIndex >= 0 ? String(row[positionIndex] || "") : "" }; });
+        function rosterRank(item) { var rank = POSITIONS.findIndex(function (p) { return p.toLowerCase() === item.position.trim().toLowerCase(); }); return rank < 0 ? 999 : rank; }
+        roster.sort(function (a,b) { return rosterRank(a) - rosterRank(b) || a.nickname.localeCompare(b.nickname, "ru"); });
+        rows = roster.map(function (item) { return item.row; });
+        rowNumbers = roster.map(function (item) { return item.number; });
 
         if (!headers.length) {
           root.innerHTML = '<div class="box"><div class="empty">В первом листе не найдены столбцы.</div></div>';
@@ -452,10 +459,46 @@
         }).join("");
         if (!bodyRows) bodyRows = '<tr><td colspan="' + (headers.length + 1) + '" class="table-empty">В таблице нет данных.</td></tr>';
         root.innerHTML = '<div class="box table-box"><div class="stats-table-head"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>' + E(String(rows.length)) + ' записей</b></div><span class="muted">Актуальные данные</span></div><table id="adminsTable"><thead><tr><th>Строка</th>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
+        var rosterPosition = document.getElementById("adminsPosition");
+        var rosterSort = document.getElementById("adminsSort");
+        if (rosterPosition) {
+          rosterPosition.innerHTML = '<option value="">Все должности</option>' + Array.from(new Set(roster.map(function (item) { return item.position.trim(); }).filter(Boolean))).sort(function (a,b) {
+            var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === a.toLowerCase(); });
+            var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === b.toLowerCase(); });
+            return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br);
+          }).map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join('');
+        }
+        document.querySelectorAll("#adminsTable tbody tr").forEach(function (tr, i) {
+          if (roster[i]) {
+            tr.dataset.rosterNickname = roster[i].nickname.toLowerCase();
+            tr.dataset.rosterPosition = roster[i].position;
+            tr.dataset.rosterNumber = String(roster[i].number || "");
+          }
+        });
         var search = document.getElementById("adminsSearch");
-        if (search) search.oninput = function () {
-          var query = search.value.trim().toLowerCase();
-          document.querySelectorAll("#adminsTable tbody tr").forEach(function (tr) { if (!tr.querySelector("td")) return; tr.style.display = !query || tr.textContent.toLowerCase().indexOf(query) !== -1 ? "" : "none"; });
+        function filterRoster() {
+          var query = search ? search.value.trim().toLowerCase() : "";
+          var position = rosterPosition ? rosterPosition.value : "";
+          document.querySelectorAll("#adminsTable tbody tr[data-roster-nickname]").forEach(function (tr) {
+            tr.style.display = (!query || tr.dataset.rosterNickname.indexOf(query) !== -1) && (!position || tr.dataset.rosterPosition === position) ? "" : "none";
+          });
+        }
+        if (search) search.oninput = filterRoster;
+        if (rosterPosition) rosterPosition.onchange = filterRoster;
+        if (rosterSort) rosterSort.onchange = function () {
+          var mode = this.value, tbody = document.querySelector("#adminsTable tbody");
+          var items = Array.from(tbody.querySelectorAll("tr[data-roster-nickname]"));
+          items.sort(function (a,b) {
+            if (mode === "nickname" || mode === "nickname_desc") {
+              var diff = a.dataset.rosterNickname.localeCompare(b.dataset.rosterNickname, "ru");
+              return mode === "nickname_desc" ? -diff : diff;
+            }
+            var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === a.dataset.rosterPosition.toLowerCase(); });
+            var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === b.dataset.rosterPosition.toLowerCase(); });
+            var diffRank = (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br);
+            return (mode === "position_asc" ? -diffRank : diffRank) || a.dataset.rosterNickname.localeCompare(b.dataset.rosterNickname, "ru");
+          });
+          items.forEach(function (item) { tbody.appendChild(item); });
         };
       } catch (error) {
         root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить состав администрации.") + '</div></div>';
@@ -465,7 +508,7 @@
       title: "Состав администрации",
       subtitle: "Полный состав из Google Таблица",
       render: function () {
-        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по таблице"><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
+        return '<div class="page-toolbar admin-list-toolbar"><div><small>СОСТАВ АДМИНИСТРАЦИИ</small><b>Никнеймы, должности и актуальные данные</b></div><div class="admins-actions"><input id="adminsSearch" class="form-input admins-search" type="search" placeholder="Поиск по никнейму"><select id="adminsPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option></select><select id="adminsSort" class="form-select" aria-label="Сортировка"><option value="position">Должность: старшие сначала</option><option value="position_asc">Должность: младшие сначала</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option></select><button class="button button-secondary" id="adminsRefresh" type="button">↻ Обновить</button></div></div><div class="admins-source-row"><span id="adminsUpdated">Обновлено: —</span></div><div id="adminsRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>';
       },
       bind: function () {
         var refresh = document.getElementById("adminsRefresh");
