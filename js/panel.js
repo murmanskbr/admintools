@@ -3357,10 +3357,10 @@
           '<form id="passwordSettingsForm">' +
             '<div class="form-grid">' +
               '<div class="form-field form-full"><label>Текущий пароль</label><div class="access-password-field"><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="currentPassword" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
-              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="6" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="newPassword" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
-              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="6" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="newPasswordConfirm" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
+              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="newPassword" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
+              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="newPasswordConfirm" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
             '</div>' +
-            '<p class="settings-hint">Минимальная длина нового пароля — 6 символов.</p>' +
+            '<p class="settings-hint">Минимальная длина нового пароля — 8 символов.</p>' +
             '<div class="form-actions"><button class="button button-primary" id="passwordSettingsSubmit" type="submit">Изменить пароль</button></div>' +
           '</form>' +
         '</section>' +
@@ -3599,8 +3599,8 @@
               return;
             }
 
-            if (newPassword.length < 6) {
-              showStatus("Новый пароль должен содержать минимум 6 символов.", false);
+            if (newPassword.length < 8) {
+              showStatus("Новый пароль должен содержать минимум 8 символов.", false);
               return;
             }
 
