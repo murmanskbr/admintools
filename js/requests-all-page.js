@@ -1,0 +1,364 @@
+
+(function () {
+  "use strict";
+
+  var E = window.BRApp.esc;
+
+  function dateOnly(value) {
+    if (!value) return "—";
+    var d = new Date(String(value) + "T00:00:00");
+    return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString("ru-RU");
+  }
+
+  function dateTime(value) {
+    if (!value) return "—";
+    var d = new Date(value);
+    return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString("ru-RU");
+  }
+
+  function inactiveStatus(status) {
+    var map = {
+      pending: ["На рассмотрении", "badge-yellow"],
+      approved: ["Одобрено", "badge-green"],
+      rejected: ["Отклонено", "badge-red"]
+    };
+    var x = map[String(status || "")] || ["Неизвестно", ""];
+    return '<span class="badge ' + x[1] + '">' + E(x[0]) + "</span>";
+  }
+
+  function generalStatus(status) {
+    return String(status || "") === "answered"
+      ? '<span class="badge badge-green">Отвечено</span>'
+      : '<span class="badge badge-yellow">На рассмотрении</span>';
+  }
+
+  function typeLabel(value) {
+    var v = String(value || "").toLowerCase();
+    if (v === "group") return "Групповой";
+    if (v === "complaint") return "Жалоба";
+    if (v === "suggestion") return "Предложение";
+    return v === "question" ? "Вопрос" : "Одиночный";
+  }
+
+  function inactivePeriod(item) {
+    var start = String(item && item.start_date || "");
+    var end = String(item && item.end_date || "");
+    if (!start) return "—";
+    return start === end ? dateOnly(start) : dateOnly(start) + " — " + dateOnly(end);
+  }
+
+  function inactiveDuration(item) {
+    var start = String(item && item.start_date || "").trim();
+    var end = String(item && item.end_date || "").trim();
+
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(start) ||
+        !/^\\d{4}-\\d{2}-\\d{2}$/.test(end)) {
+      return "—";
+    }
+
+    var startMs = Date.parse(start + "T00:00:00Z");
+    var endMs = Date.parse(end + "T00:00:00Z");
+
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) {
+      return "—";
+    }
+
+    var days = Math.floor((endMs - startMs) / 86400000) + 1;
+
+    if (days === 1) return "1 день";
+    if (days >= 2 && days <= 4) return String(days) + " дня";
+    return String(days) + " дней";
+  }
+
+  function boot() {
+    var session = window.BRApp.getSession();
+    if (!session || !session.user) {
+      window.BRApp.clearSession();
+      location.replace(new URL("../index.html", location.href).href);
+      return;
+    }
+
+    window.BRApp.init({
+      managementOnly: true,
+      title: "Обращения администрации",
+      subtitle: "Неактивы и обращения состава",
+
+      render: function () {
+        return '<div class="box">' +
+          '<div class="stats-toolbar-actions">' +
+            '<button class="button button-secondary is-active" id="managementInactiveTab" type="button">Неактивы</button>' +
+            '<button class="button button-secondary" id="managementGeneralTab" type="button">Обращения</button>' +
+          '</div>' +
+        '</div>' +
+
+        '<section id="managementInactiveSection">' +
+          '<div class="page-toolbar">' +
+            '<div><small>НЕАКТИВЫ</small><b>Заявки на неактив</b></div>' +
+            '<div class="stats-toolbar-actions">' +
+              '<button class="small-button is-active" id="inactiveAll" type="button">Все</button>' +
+              '<button class="small-button" id="inactivePending" type="button">На рассмотрении</button>' +
+              '<button class="small-button" id="inactiveApproved" type="button">Одобрены</button>' +
+              '<button class="small-button" id="inactiveRejected" type="button">Отклонены</button>' +
+            '</div>' +
+          '</div>' +
+          '<div id="inactiveRoot"><div class="box"><div class="empty">Загрузка заявок...</div></div></div>' +
+        '</section>' +
+
+        '<section id="managementGeneralSection" hidden>' +
+          '<div class="page-toolbar">' +
+            '<div><small>ОБРАЩЕНИЯ</small><b>Обращения администрации</b></div>' +
+            '<div class="stats-toolbar-actions">' +
+              '<button class="small-button is-active" id="generalAll" type="button">Все</button>' +
+              '<button class="small-button" id="generalPending" type="button">На рассмотрении</button>' +
+              '<button class="small-button" id="generalAnswered" type="button">Отвеченные</button>' +
+            '</div>' +
+          '</div>' +
+          '<div id="generalRoot"><div class="box"><div class="empty">Загрузка обращений...</div></div></div>' +
+        '</section>';
+      },
+
+      bind: function () {
+        var inactiveList = [];
+        var generalList = [];
+        var inactiveFilter = "";
+        var generalFilter = "";
+
+        var inactiveSection = document.getElementById("managementInactiveSection");
+        var generalSection = document.getElementById("managementGeneralSection");
+        var inactiveTab = document.getElementById("managementInactiveTab");
+        var generalTab = document.getElementById("managementGeneralTab");
+
+        function sessionToken() {
+          var current = window.BRApp.getSession();
+          if (!current || !current.user || !current.user.token) {
+            throw new Error("Сессия истекла. Войдите в панель заново.");
+          }
+          return current.user.token;
+        }
+
+        function setSection(name) {
+          var showInactive = name !== "general";
+          inactiveSection.hidden = !showInactive;
+          generalSection.hidden = showInactive;
+          inactiveTab.classList.toggle("is-active", showInactive);
+          generalTab.classList.toggle("is-active", !showInactive);
+        }
+
+        function setButtons(buttons, active) {
+          buttons.forEach(function (button) {
+            if (button) button.classList.toggle("is-active", button === active);
+          });
+        }
+
+        function renderInactive() {
+          var root = document.getElementById("inactiveRoot");
+          var filtered = inactiveFilter
+            ? inactiveList.filter(function (x) { return x.status === inactiveFilter; })
+            : inactiveList.slice();
+
+          if (!filtered.length) {
+            root.innerHTML = '<div class="box"><div class="empty">Заявок по выбранному фильтру нет.</div></div>';
+            return;
+          }
+
+          var rows = filtered.map(function (item) {
+            var action = item.status === "pending"
+              ? '<div class="form-actions">' +
+                  '<button class="small-button" type="button" data-inactive-approve="' + E(item.id) + '">Одобрить</button>' +
+                  '<button class="small-button" type="button" data-inactive-reject="' + E(item.id) + '">Отклонить</button>' +
+                '</div>'
+              : '<span class="muted">' + E(item.reviewed_at ? dateTime(item.reviewed_at) : "Рассмотрено") + '</span>';
+
+            return '<tr>' +
+              '<td>' + E(item.nickname || "—") + '</td>' +
+              '<td>' + E(typeLabel(item.inactive_type)) + '</td>' +
+              '<td>' + E(inactivePeriod(item)) + '</td>' +
+              '<td><b>' + E(inactiveDuration(item)) + '</b></td>' +
+              '<td>' + E(item.reason || "—") + '</td>' +
+              '<td>' + inactiveStatus(item.status) + '</td>' +
+              '<td>' + E(item.review_comment || "—") + '</td>' +
+              '<td>' + action + '</td>' +
+            '</tr>';
+          }).join("");
+
+          root.innerHTML = '<div class="box table-box"><table>' +
+            '<thead><tr><th>Никнейм</th><th>Тип</th><th>Период</th><th>Дней</th><th>Причина</th><th>Статус</th><th>Комментарий</th><th>Действие</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody></table></div>';
+
+          root.querySelectorAll("[data-inactive-approve]").forEach(function (button) {
+            button.onclick = function () { reviewInactive(Number(button.dataset.inactiveApprove), "approved"); };
+          });
+
+          root.querySelectorAll("[data-inactive-reject]").forEach(function (button) {
+            button.onclick = function () { reviewInactive(Number(button.dataset.inactiveReject), "rejected"); };
+          });
+        }
+
+        function renderGeneral() {
+          var root = document.getElementById("generalRoot");
+          var filtered = generalFilter
+            ? generalList.filter(function (x) { return x.status === generalFilter; })
+            : generalList.slice();
+
+          if (!filtered.length) {
+            root.innerHTML = '<div class="box"><div class="empty">Обращений по выбранному фильтру нет.</div></div>';
+            return;
+          }
+
+          var rows = filtered.map(function (item) {
+            var action = item.status === "pending"
+              ? '<button class="small-button" type="button" data-general-reply="' + E(item.id) + '">Ответить</button>'
+              : '<span class="muted">' + E(item.commented_at ? dateTime(item.commented_at) : "Отвечено") + '</span>';
+
+            return '<tr>' +
+              '<td>' + E(item.nickname || "—") + '</td>' +
+              '<td>' + E(typeLabel(item.request_type)) + '</td>' +
+              '<td>' + E(item.message || "—") + '</td>' +
+              '<td>' + generalStatus(item.status) + '</td>' +
+              '<td>' + E(item.management_comment || "—") + '</td>' +
+              '<td>' + action + '</td>' +
+            '</tr>';
+          }).join("");
+
+          root.innerHTML = '<div class="box table-box"><table>' +
+            '<thead><tr><th>Никнейм</th><th>Тип</th><th>Обращение</th><th>Статус</th><th>Комментарий руководства</th><th>Действие</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody></table></div>';
+
+          root.querySelectorAll("[data-general-reply]").forEach(function (button) {
+            button.onclick = function () { replyGeneral(Number(button.dataset.generalReply)); };
+          });
+        }
+
+        async function loadInactive() {
+          var root = document.getElementById("inactiveRoot");
+          root.innerHTML = '<div class="box"><div class="empty">Загрузка заявок...</div></div>';
+
+          try {
+            var result = await window.BR_API.inactiveRequestsAll(sessionToken(), inactiveFilter);
+            inactiveList = Array.isArray(result && result.requests) ? result.requests : [];
+            renderInactive();
+          } catch (error) {
+            root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить заявки.") + '</div></div>';
+          }
+        }
+
+        async function loadGeneral() {
+          var root = document.getElementById("generalRoot");
+          root.innerHTML = '<div class="box"><div class="empty">Загрузка обращений...</div></div>';
+
+          try {
+            var result = await window.BR_API.generalRequestsAll(sessionToken(), generalFilter);
+            generalList = Array.isArray(result && result.requests) ? result.requests : [];
+            renderGeneral();
+          } catch (error) {
+            root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить обращения.") + '</div></div>';
+          }
+        }
+
+        async function reviewInactive(id, status) {
+          var comment = "";
+
+          if (status === "approved") {
+            if (!window.confirm("Одобрить этот неактив? Период будет сохранён и автоматически учтён системой.")) return;
+            comment = window.prompt("Комментарий руководства при одобрении (необязательно):", "") || "";
+          } else {
+            comment = window.prompt("Комментарий руководства при отказе (необязательно):", "") || "";
+          }
+
+          try {
+            await window.BR_API.inactiveRequestReview(sessionToken(), id, status, comment);
+            alert(status === "approved" ? "Неактив одобрен." : "Заявка отклонена.");
+            loadInactive();
+          } catch (error) {
+            alert(error.message || "Не удалось обработать заявку.");
+          }
+        }
+
+        async function replyGeneral(id) {
+          var comment = window.prompt("Комментарий руководства:", "");
+          if (comment === null) return;
+
+          comment = comment.trim();
+          if (!comment) {
+            alert("Введите комментарий руководства.");
+            return;
+          }
+
+          try {
+            await window.BR_API.generalRequestReply(sessionToken(), id, comment);
+            alert("Комментарий отправлен. Повторно изменить его нельзя.");
+            loadGeneral();
+          } catch (error) {
+            alert(error.message || "Не удалось отправить комментарий.");
+          }
+        }
+
+        inactiveTab.onclick = function () { setSection("inactive"); };
+        generalTab.onclick = function () { setSection("general"); };
+
+        var inactiveButtons = [
+          document.getElementById("inactiveAll"),
+          document.getElementById("inactivePending"),
+          document.getElementById("inactiveApproved"),
+          document.getElementById("inactiveRejected")
+        ];
+
+        var inactiveValues = ["", "pending", "approved", "rejected"];
+        inactiveButtons.forEach(function (button, index) {
+          if (button) button.onclick = function () {
+            inactiveFilter = inactiveValues[index];
+            setButtons(inactiveButtons, button);
+            loadInactive();
+          };
+        });
+
+        var generalButtons = [
+          document.getElementById("generalAll"),
+          document.getElementById("generalPending"),
+          document.getElementById("generalAnswered")
+        ];
+
+        var generalValues = ["", "pending", "answered"];
+        generalButtons.forEach(function (button, index) {
+          if (button) button.onclick = function () {
+            generalFilter = generalValues[index];
+            setButtons(generalButtons, button);
+            loadGeneral();
+          };
+        });
+
+        setSection("inactive");
+        loadInactive();
+        loadGeneral();
+
+        window.addEventListener("br:remote-data-changed", function (event) {
+          var action = event && event.detail ? event.detail.action : "";
+          if ([
+            "general_request_create",
+            "general_request_reply",
+            "inactive_request_create",
+            "inactive_request_review",
+            "access_manage"
+          ].indexOf(action) === -1) {
+            return;
+          }
+
+          loadInactive();
+          loadGeneral();
+        });
+
+        window.addEventListener("br:refresh-visible-data", function () {
+          if (document.visibilityState === "hidden") return;
+          loadInactive();
+          loadGeneral();
+        });
+      }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+})();
