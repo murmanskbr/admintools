@@ -1528,10 +1528,10 @@
             "Данные получены" +
           '</span></div>' +
           '<div class="stats-mobile-list">' + mobileRecordsHtml() + '</div>' +
-          '<table id="allStatsTable"><thead><tr>' +
+          '<div class="all-stats-scroll" tabindex="0" aria-label="Прокручиваемая таблица статистики"><table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
-          '</tr></thead><tbody>' + rows + '</tbody></table>' +
+          '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
         '</div><div id="adminEditModal"></div>';
 
       var searchForm = document.getElementById("statsNicknameSearchForm");
