@@ -4200,6 +4200,7 @@
                   '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
                   '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
                     '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
+                  '<button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
                     (item.blocked_at
                       ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
                       : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
@@ -4324,12 +4325,15 @@
 
           closeMenus();
 
-          if (!item) return;          if (action === "details") {
+          if (!item) return;
+
+          if (action === "details") {
             openAccessEdit(item);
             return;
           }
 
           var messages = {
+            reset_sessions: "Завершить все активные сессии аккаунта «" + item.nickname + "»?\n\nНа всех устройствах потребуется повторный вход. Пароль и привязка устройства не изменятся.",
             block: "Заблокировать " + item.nickname + "?",
             unblock: "Разблокировать " + item.nickname + "?",
             remove: "Полностью удалить " + item.nickname + "?\n\nБудут удалены аккаунт и его история в панели: нормативы, обращения, неактивы, игровая активность, push-подписки, отправленные им уведомления и связанные данные. Восстановить это действие нельзя."
