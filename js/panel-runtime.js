@@ -2380,6 +2380,13 @@
           return !!item.enabled;
         }).length;
 
+        list.sort(function (a, b) {
+          var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === String(a.position || "").trim().toLowerCase(); });
+          var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === String(b.position || "").trim().toLowerCase(); });
+          return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) ||
+            String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
+        });
+
         var rows = list.length
           ? list.map(function (item) {
               var devices = Array.isArray(item.devices)
