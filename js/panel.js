@@ -582,6 +582,8 @@
     var lastHeaders = [];
     var lastNicknameIndex = -1;
     var nicknameSearch = "";
+    var statsPosition = "";
+    var statsSort = "position";
 
     function normalizeHeader(header) {
       return String(header == null ? "" : header)
@@ -1270,6 +1272,7 @@
       var data = sourceData(lastResult || {});
       lastHeaders = data.headers.slice();
       lastNicknameIndex = findNicknameIndex(lastHeaders);
+      var positionIndex = lastHeaders.findIndex(function (h) { return /должност|position/i.test(String(h || "")); });
 
       var normativeHeaderIndex = sourceNormativeHeaderIndex(lastHeaders);
       var hasSourceNormativeColumn = normativeHeaderIndex >= 0;
@@ -1296,6 +1299,26 @@
           return normalizeHeader(nickname).indexOf(searchValue) !== -1;
         });
       }
+
+      var availablePositions = Array.from(new Set((data.displayRecords || displayRecords).map(function (record) {
+        return positionIndex >= 0 ? String(record.row[positionIndex] || "").trim() : "";
+      }).filter(Boolean)));
+      if (statsPosition && positionIndex >= 0) displayRecords = displayRecords.filter(function (record) { return String(record.row[positionIndex] || "").trim() === statsPosition; });
+      displayRecords.sort(function (a,b) {
+        var an = lastNicknameIndex >= 0 ? String(a.row[lastNicknameIndex] || "") : "";
+        var bn = lastNicknameIndex >= 0 ? String(b.row[lastNicknameIndex] || "") : "";
+        if (statsSort === "nickname" || statsSort === "nickname_desc") {
+          var comparison = an.localeCompare(bn, "ru");
+          return statsSort === "nickname_desc" ? -comparison : comparison;
+        }
+        var ap = positionIndex >= 0 ? String(a.row[positionIndex] || "").toLowerCase() : "";
+        var bp = positionIndex >= 0 ? String(b.row[positionIndex] || "").toLowerCase() : "";
+        var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === ap; });
+        var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === bp; });
+        var rank = (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br);
+        return (statsSort === "position_asc" ? -rank : rank) || an.localeCompare(bn, "ru");
+      });
+      displayRecords = displayRecords.map(function (record) { return Object.assign({}, record, {sectionTitle: ""}); });
 
       lastData = displayRecords.map(function (record) {
         var row = record.row;
@@ -1497,6 +1520,8 @@
             '<button class="button button-secondary" type="submit">Найти</button>' +
             '<button class="button button-secondary" id="statsNicknameSearchClear" type="button"' +
               (nicknameSearch ? '' : ' disabled') + '>Сбросить</button>' +
+            '<select id="statsPositionFilter" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + availablePositions.sort(function (a,b) { var ar=POSITIONS.findIndex(function(p){return p.toLowerCase()===a.toLowerCase();}),br=POSITIONS.findIndex(function(p){return p.toLowerCase()===b.toLowerCase();});return (ar<0?999:ar)-(br<0?999:br); }).map(function (p) { return '<option value="' + E(p) + '"' + (statsPosition === p ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' +
+            '<select id="statsSortFilter" class="form-select" aria-label="Сортировка"><option value="position"' + (statsSort === 'position' ? ' selected' : '') + '>Должность: старшие сначала</option><option value="position_asc"' + (statsSort === 'position_asc' ? ' selected' : '') + '>Должность: младшие сначала</option><option value="nickname"' + (statsSort === 'nickname' ? ' selected' : '') + '>Никнейм: А–Я</option><option value="nickname_desc"' + (statsSort === 'nickname_desc' ? ' selected' : '') + '>Никнейм: Я–А</option></select>' +
           '</form>' +
           '</div>' +
           '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
@@ -1512,6 +1537,10 @@
       var searchForm = document.getElementById("statsNicknameSearchForm");
       var searchInput = document.getElementById("statsNicknameSearch");
       var searchClear = document.getElementById("statsNicknameSearchClear");
+      var positionFilter = document.getElementById("statsPositionFilter");
+      var sortFilter = document.getElementById("statsSortFilter");
+      if (positionFilter) positionFilter.onchange = function () { statsPosition = this.value; renderTable(); };
+      if (sortFilter) sortFilter.onchange = function () { statsSort = this.value; renderTable(); };
 
       if (searchForm && searchInput) {
         searchForm.onsubmit = function (event) {
