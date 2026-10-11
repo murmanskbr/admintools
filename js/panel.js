@@ -1336,25 +1336,11 @@
         };
       });
 
-      // Show the essential columns in the overview; preserve every original
-      // Google Sheets column in lastData and the edit/details form.
-      var compactColumns = [
-        { label: "Никнейм", match: /^(никнейм|ник|nickname|nick|username)$/ },
-        { label: "Возраст", match: /^возраст$/ },
-        { label: "ПК", match: /доступ.*пк/ },
-        { label: "Должность", match: /должност|position/ },
-        { label: "Неактивы", match: /неактив/ },
-        { label: "Активность", match: /баллы.*активност/ }
-      ];
-      var visibleColumns = [];
-      compactColumns.forEach(function (entry) {
-        var index = lastHeaders.findIndex(function (header) { return entry.match.test(normalizeHeader(header)); });
-        if (index >= 0 && visibleColumns.indexOf(index) < 0) visibleColumns.push(index);
-      });
-      if (lastNicknameIndex >= 0 && visibleColumns.indexOf(lastNicknameIndex) < 0) visibleColumns.unshift(lastNicknameIndex);
-      var headerCells = visibleColumns.map(function (index) {
-        var label = compactColumns.find(function (entry) { return entry.match.test(normalizeHeader(lastHeaders[index])); });
-        return '<th>' + E(label ? label.label : lastHeaders[index]) + '</th>';
+      // Mirror every source column and its original heading, including unknown/new columns.
+      var visibleColumns = lastHeaders.map(function (_, index) { return index; });
+      var headerCells = lastHeaders.map(function (header) {
+        return '<th title="' + E(String(header == null ? "" : header)) + '">' +
+          E(header == null || header === "" ? "—" : header) + '</th>';
       }).join("");
 
       if (hasSourceNormativeColumn) {
