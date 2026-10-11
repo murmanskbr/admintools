@@ -3998,3 +3998,51 @@ body{font-size:16px}
   #allStatsRoot #statsNicknameSearch {grid-column:1 / -1;}
   #allStatsRoot #statsSortFilter {grid-column:1 / -1;}
 }
+
+/* Full Google Sheets mirror — every source column stays visible without a horizontal scrollbar. */
+#allStatsRoot .table-box {container-type:inline-size;container-name:stats-overview;overflow:visible!important;}
+#allStatsRoot .all-stats-layout {display:block!important;width:100%!important;overflow:visible!important;}
+#allStatsRoot .all-stats-layout #allStatsTable {
+  display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;
+  table-layout:fixed!important;border-collapse:collapse!important;font-size:10px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable th,
+#allStatsRoot .all-stats-layout #allStatsTable td {
+  position:static!important;box-sizing:border-box!important;width:auto!important;min-width:0!important;
+  max-width:none!important;padding:6px 3px!important;line-height:1.25!important;
+  white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;
+  vertical-align:middle!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable th {
+  font-size:9px!important;letter-spacing:0!important;text-transform:none!important;
+  overflow-wrap:anywhere!important;font-weight:750!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable th:first-child {width:12%!important;}
+#allStatsRoot .all-stats-layout #allStatsTable th:nth-child(4) {width:13%!important;}
+#allStatsRoot .all-stats-layout #allStatsTable th:nth-last-child(2) {width:9%!important;}
+#allStatsRoot .all-stats-layout #allStatsTable th:last-child {width:12%!important;}
+#allStatsRoot .all-stats-layout #allStatsTable .stats-norm-cell,
+#allStatsRoot .all-stats-layout #allStatsTable .admin-actions-cell {min-width:0!important;max-width:none!important;}
+#allStatsRoot .all-stats-layout #allStatsTable .stats-norm-value {display:block!important;margin:0 0 3px!important;}
+#allStatsRoot .all-stats-layout #allStatsTable .stats-norm-actions {
+  display:grid!important;grid-template-columns:repeat(2, minmax(0, 1fr))!important;
+  gap:3px!important;max-width:58px!important;margin:0 auto!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .normative-icon-button {
+  width:26px!important;min-width:0!important;max-width:100%!important;height:25px!important;
+  min-height:0!important;padding:2px!important;font-size:11px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .admin-edit-inline {
+  display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;
+  padding:6px 2px!important;font-size:9px!important;
+}
+#allStatsRoot .stats-mobile-list {display:none!important;}
+/* When the actual content area is too narrow, use the existing complete-data cards. */
+@container stats-overview (max-width:920px) {
+  #allStatsRoot .all-stats-layout {display:none!important;}
+  #allStatsRoot .stats-mobile-list {display:grid!important;gap:10px;padding:10px;}
+}
+@media(max-width:1100px) {
+  #allStatsRoot .all-stats-layout {display:none!important;}
+  #allStatsRoot .stats-mobile-list {display:grid!important;gap:10px;padding:10px;}
+}
