@@ -1286,7 +1286,7 @@
           '<table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
-          '</tr></thead><tbody>' + rows + '</tbody></table>' +
+          '</tr></thead><tbody>' + (rows || '<tr><td colspan="7" class="table-empty">По заданным фильтрам никого не найдено.</td></tr>') + '</tbody></table>' +
         '</div><div id="adminEditModal"></div>';
 
       document.querySelectorAll("#allStatsTable tbody tr").forEach(function (row) {
@@ -3958,7 +3958,8 @@
         .trim();
 
       if (!text) return 999;
-      if (text.indexOf("главный администратор") >= 0 && text.indexOf("заместитель") < 0) return 15;
+      if (text.indexOf("основной заместитель главного администратора") >= 0) return 15.5;
+      if (text.indexOf("главный администратор") >= 0 && text.indexOf("заместитель") < 0) return 16;
       if (text.indexOf("заместитель главного администратора") >= 0 || text.indexOf("зам. главного администратора") >= 0) return 14;
       if (text.indexOf("куратор администрации") >= 0) {
         return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 12 : 13;
@@ -3982,12 +3983,14 @@
     function sortAccessAccounts(list, mode) {
       var items = Array.isArray(list) ? list.slice() : [];
       items.sort(function (a, b) {
-        if (mode === "nickname") {
-          return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru", { sensitivity: "base" });
+        if (mode === "nickname" || mode === "nickname_desc") {
+          var comparison = String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru", { sensitivity: "base" });
+          return mode === "nickname_desc" ? -comparison : comparison;
         }
+        if (mode === "last_login") return new Date(b.last_login_at || 0) - new Date(a.last_login_at || 0);
         var rankA = accessPositionRank(a.position);
         var rankB = accessPositionRank(b.position);
-        if (rankA !== rankB) return rankB - rankA;
+        if (rankA !== rankB) return mode === "position_asc" ? rankA - rankB : rankB - rankA;
         var positionCompare = String(a.position || "").localeCompare(String(b.position || ""), "ru", { sensitivity: "base" });
         if (positionCompare !== 0) return positionCompare;
         return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru", { sensitivity: "base" });
@@ -4099,10 +4102,14 @@
           return;
         }
 
-        function renderAccessRegistry(mode) {
+        function renderAccessRegistry(mode, query, positionFilter) {
+          mode = mode || "position";
+          query = query || "";
+          positionFilter = positionFilter || "";
+          var positions = Array.from(new Set(state.accounts.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { return accessPositionRank(b) - accessPositionRank(a) || a.localeCompare(b, "ru"); });
           var sortedAccounts = sortAccessAccounts(
-            state.accounts,
-            mode || "position"
+            state.accounts.filter(function (item) { return (!query || String(item.nickname || "").toLowerCase().indexOf(query.toLowerCase()) >= 0 || String(item.login || "").toLowerCase().indexOf(query.toLowerCase()) >= 0) && (!positionFilter || item.position === positionFilter); }),
+            mode
           );
 
           var rows = sortedAccounts.map(function (item) {
@@ -4131,16 +4138,21 @@
           root.innerHTML =
             '<div class="box table-box access-registry">' +
               '<div class="stats-table-head access-registry-head">' +
-                '<div><small>РЕЕСТР ДОСТУПОВ</small><b>' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
+                '<div><small>РЕЕСТР ДОСТУПОВ</small><b>' + E(String(sortedAccounts.length)) + ' из ' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
                 '<div class="access-registry-toolbar">' +
+                  '<input id="accessRegistrySearch" class="form-input" type="search" placeholder="Поиск по никнейму или логину" aria-label="Поиск администратора" value="' + E(query) + '">' +
+                  '<select id="accessRegistryPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + positions.map(function (p) { return '<option value="' + E(p) + '"' + (p === positionFilter ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' + +
                   '<span class="muted">Сортировка</span>' +
                   '<select id="accessRegistrySort" class="form-select access-registry-sort" aria-label="Сортировка реестра доступов">' +
-                    '<option value="position"' + (mode === "nickname" ? "" : " selected") + '>По должности</option>' +
-                    '<option value="nickname"' + (mode === "nickname" ? " selected" : "") + '>По никнейму</option>' +
+                    '<option value="position"' + (mode === "position" ? " selected" : "") + '>Должность: старшие сначала</option>' +
+                    '<option value="position_asc"' + (mode === "position_asc" ? " selected" : "") + '>Должность: младшие сначала</option>' +
+                    '<option value="nickname"' + (mode === "nickname" ? " selected" : "") + '>Никнейм: А–Я</option>' +
+                    '<option value="nickname_desc"' + (mode === "nickname_desc" ? " selected" : "") + '>Никнейм: Я–А</option>' +
+                    '<option value="last_login"' + (mode === "last_login" ? " selected" : "") + '>Последний вход</option>' +
                   '</select>' +
                 '</div>' +
               '</div>' +
-              '<div class="admins-source-row"><span>Текущие доступы</span><span>Младший модератор → Главный администратор</span></div>' +
+              '<div class="admins-source-row"><span>Текущие доступы</span><span>Главный администратор → Младший модератор</span></div>' +
               '<table id="accessRegistryTable"><thead><tr>' +
                 '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>IP</th><th>Последний вход</th><th>Действия</th>' +
               '</tr></thead><tbody>' + rows + '</tbody></table>' +
@@ -4151,9 +4163,11 @@
           var sortSelect = document.getElementById("accessRegistrySort");
           if (sortSelect) {
             sortSelect.onchange = function () {
-              renderAccessRegistry(sortSelect.value);
+              renderAccessRegistry(sortSelect.value, document.getElementById("accessRegistrySearch").value, document.getElementById("accessRegistryPosition").value);
             };
           }
+          document.getElementById("accessRegistrySearch").oninput = function () { renderAccessRegistry(mode, this.value, document.getElementById("accessRegistryPosition").value); document.getElementById("accessRegistrySearch").focus(); document.getElementById("accessRegistrySearch").setSelectionRange(query.length + (this.value.length - query.length), this.value.length); };
+          document.getElementById("accessRegistryPosition").onchange = function () { renderAccessRegistry(mode, document.getElementById("accessRegistrySearch").value, this.value); };
         }
 
         renderAccessRegistry("position");
