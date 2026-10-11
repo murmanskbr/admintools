@@ -4046,3 +4046,40 @@ body{font-size:16px}
   #allStatsRoot .all-stats-layout {display:none!important;}
   #allStatsRoot .stats-mobile-list {display:grid!important;gap:10px;padding:10px;}
 }
+
+/* Balanced full-source statistics: column proportions come from the source headers. */
+#allStatsRoot .all-stats-layout #allStatsTable col {min-width:0!important;}
+#allStatsRoot .all-stats-layout #allStatsTable th:nth-child(n),
+#allStatsRoot .all-stats-layout #allStatsTable td:nth-child(n) {
+  width:auto!important;min-width:0!important;max-width:none!important;
+  padding:5px 4px!important;font-size:clamp(9px, .72vw, 11px)!important;
+  line-height:1.2!important;vertical-align:middle!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable thead th {
+  padding-top:8px!important;padding-bottom:8px!important;
+  font-size:clamp(9px, .68vw, 10px)!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable tbody tr {height:auto!important;min-height:0!important;}
+#allStatsRoot .all-stats-layout #allStatsTable tbody td {
+  height:auto!important;overflow-wrap:break-word!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable td.stats-norm-cell {
+  padding:4px 2px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .stats-norm-value {
+  display:block!important;margin:0 0 4px!important;text-align:center!important;
+  font-size:10px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .stats-norm-actions {
+  display:grid!important;grid-template-columns:repeat(2, 25px)!important;
+  justify-content:center!important;gap:3px!important;width:auto!important;
+  max-width:none!important;margin:auto!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .normative-icon-button {
+  box-sizing:border-box!important;width:25px!important;height:24px!important;
+  min-width:0!important;min-height:0!important;padding:1px!important;
+}
+#allStatsRoot .all-stats-layout #allStatsTable .admin-edit-inline {
+  width:100%!important;min-width:0!important;max-width:none!important;
+  padding:6px 2px!important;font-size:9px!important;white-space:normal!important;
+}
