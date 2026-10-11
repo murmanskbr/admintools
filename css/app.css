@@ -4157,7 +4157,7 @@ body{font-size:16px}
 }
 
 /* Responsive statistics cards follow available content width, not window width. */
-@container stats-overview (max-width: 1250px) {
+@container stats-overview (max-width: 980px) {
 
   #allStatsRoot .table-box{
     overflow:visible!important;
