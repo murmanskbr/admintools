@@ -2403,7 +2403,7 @@
                 ? '<span class="badge badge-green">Включены</span>'
                 : '<span class="badge badge-red">Выключены</span>';
 
-              return '<tr>' +
+              return '<tr data-push-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-push-position="' + E(item.position || "") + '" data-push-enabled="' + (item.enabled ? 'yes' : 'no') + '">' +
                 '<td><b>' + E(item.nickname) + '</b></td>' +
                 '<td>' + E(item.position || "—") + '</td>' +
                 '<td>' + status + '</td>' +
@@ -2421,11 +2421,46 @@
             '</div>' +
           '</div>' +
           '<div class="box table-box push-status-table-box">' +
-            '<table>' +
+            '<div class="normative-filters">' +
+              '<input id="pushRosterSearch" class="form-input" type="search" placeholder="Поиск по никнейму" aria-label="Поиск по никнейму">' +
+              '<select id="pushRosterPosition" class="form-select" aria-label="Должность"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).map(function (position) { return '<option value="' + E(position) + '">' + E(position) + '</option>'; }).join('') + '</select>' +
+              '<select id="pushRosterStatus" class="form-select" aria-label="Push-статус"><option value="">Любой Push-статус</option><option value="yes">Включены</option><option value="no">Выключены</option></select>' +
+              '<select id="pushRosterSort" class="form-select" aria-label="Сортировка"><option value="position">Должность: старшие сначала</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option></select>' +
+            '</div>' +
+            '<table id="pushRosterTable">' +
               '<thead><tr><th>Никнейм</th><th>Должность</th><th>Push</th><th>Устройства</th></tr></thead>' +
               '<tbody>' + rows + '</tbody>' +
             '</table>' +
           '</div>';
+
+        function applyPushRoster() {
+          var query = document.getElementById("pushRosterSearch").value.trim().toLowerCase();
+          var position = document.getElementById("pushRosterPosition").value;
+          var status = document.getElementById("pushRosterStatus").value;
+          document.querySelectorAll("#pushRosterTable tbody tr[data-push-nickname]").forEach(function (row) {
+            row.style.display = (!query || row.dataset.pushNickname.indexOf(query) !== -1) &&
+              (!position || row.dataset.pushPosition === position) &&
+              (!status || row.dataset.pushEnabled === status) ? "" : "none";
+          });
+        }
+        ["pushRosterSearch", "pushRosterPosition", "pushRosterStatus"].forEach(function (id) {
+          document.getElementById(id).addEventListener(id === "pushRosterSearch" ? "input" : "change", applyPushRoster);
+        });
+        document.getElementById("pushRosterSort").onchange = function () {
+          var mode = this.value;
+          var tbody = document.querySelector("#pushRosterTable tbody");
+          var rows = Array.from(tbody.querySelectorAll("tr[data-push-nickname]"));
+          rows.sort(function (a, b) {
+            if (mode === "nickname" || mode === "nickname_desc") {
+              var nameDiff = a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
+              return mode === "nickname_desc" ? -nameDiff : nameDiff;
+            }
+            var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === a.dataset.pushPosition.toLowerCase(); });
+            var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === b.dataset.pushPosition.toLowerCase(); });
+            return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) || a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
+          });
+          rows.forEach(function (row) { tbody.appendChild(row); });
+        };
 
         var refresh = document.getElementById("refreshPushStatus");
         if (refresh) {
