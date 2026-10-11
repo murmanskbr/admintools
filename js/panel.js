@@ -54,6 +54,7 @@
     "Главный администратор",
     "Основной заместитель главного администратора",
     "Заместитель главного администратора",
+    "Ст. След. за АП",
     "Куратор администрации",
     "Заместитель Куратора администрации",
     "Куратор агентов поддержки",
@@ -1310,6 +1311,9 @@
       }
       function rankPosition(value) {
         var name = normalizeHeader(value).replace(/\s*\([^)]*\)\s*$/, "").trim();
+        if (/^(ст\\.?\\s*след\\.?\\s*за\\s*ап|старший\\s*следящий\\s*за\\s*ап)$/.test(name)) {
+          return POSITIONS.indexOf("Ст. След. за АП");
+        }
         var matched = POSITIONS.findIndex(function (p) { return normalizeHeader(p) === name; });
         return matched < 0 ? POSITIONS.length : matched;
       }
