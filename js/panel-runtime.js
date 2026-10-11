@@ -4163,7 +4163,7 @@
                 '<div><small>РЕЕСТР ДОСТУПОВ</small><b>' + E(String(sortedAccounts.length)) + ' из ' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
                 '<div class="access-registry-toolbar">' +
                   '<input id="accessRegistrySearch" class="form-input" type="search" placeholder="Поиск по никнейму или логину" aria-label="Поиск администратора" value="' + E(query) + '">' +
-                  '<select id="accessRegistryPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + positions.map(function (p) { return '<option value="' + E(p) + '"' + (p === positionFilter ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' + +
+                  '<select id="accessRegistryPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + positions.map(function (p) { return '<option value="' + E(p) + '"' + (p === positionFilter ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' +
                   '<span class="muted">Сортировка</span>' +
                   '<select id="accessRegistrySort" class="form-select access-registry-sort" aria-label="Сортировка реестра доступов">' +
                     '<option value="position"' + (mode === "position" ? " selected" : "") + '>Должность: старшие сначала</option>' +
