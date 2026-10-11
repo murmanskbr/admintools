@@ -1336,8 +1336,25 @@
         };
       });
 
-      var headerCells = lastHeaders.map(function (header) {
-        return '<th>' + E(header == null ? "" : header) + '</th>';
+      // Show the essential columns in the overview; preserve every original
+      // Google Sheets column in lastData and the edit/details form.
+      var compactColumns = [
+        { label: "Никнейм", match: /^(никнейм|ник|nickname|nick|username)$/ },
+        { label: "Возраст", match: /^возраст$/ },
+        { label: "ПК", match: /доступ.*пк/ },
+        { label: "Должность", match: /должност|position/ },
+        { label: "Неактивы", match: /неактив/ },
+        { label: "Активность", match: /баллы.*активност/ }
+      ];
+      var visibleColumns = [];
+      compactColumns.forEach(function (entry) {
+        var index = lastHeaders.findIndex(function (header) { return entry.match.test(normalizeHeader(header)); });
+        if (index >= 0 && visibleColumns.indexOf(index) < 0) visibleColumns.push(index);
+      });
+      if (lastNicknameIndex >= 0 && visibleColumns.indexOf(lastNicknameIndex) < 0) visibleColumns.unshift(lastNicknameIndex);
+      var headerCells = visibleColumns.map(function (index) {
+        var label = compactColumns.find(function (entry) { return entry.match.test(normalizeHeader(lastHeaders[index])); });
+        return '<th>' + E(label ? label.label : lastHeaders[index]) + '</th>';
       }).join("");
 
       if (hasSourceNormativeColumn) {
@@ -1359,11 +1376,11 @@
           lastRenderedSection = sectionTitle;
           sectionRow =
             '<tr class="stats-section-row"><td colspan="' +
-            String(lastHeaders.length + 2) +
+            String(visibleColumns.length + 2) +
             '"><strong>' + E(sectionTitle) + '</strong></td></tr>';
         }
 
-        var cells = lastHeaders.map(function (_, columnIndex) {
+        var cells = visibleColumns.map(function (columnIndex) {
           var value = rawCellValue(row[columnIndex]);
           return '<td data-stat-column="' + columnIndex + '">' + E(value) + '</td>';
         }).join("");
@@ -1402,7 +1419,7 @@
       }).join("");
 
       if (!rows) {
-        rows = '<tr><td colspan="' + (lastHeaders.length + 2) + '" class="table-empty">Нет строк данных.</td></tr>';
+        rows = '<tr><td colspan="' + (visibleColumns.length + 2) + '" class="table-empty">Нет строк данных.</td></tr>';
       }
 
       function mobileRecordsHtml() {
@@ -1524,11 +1541,11 @@
             '<select id="statsSortFilter" class="form-select" aria-label="Сортировка"><option value="position"' + (statsSort === 'position' ? ' selected' : '') + '>Должность: старшие сначала</option><option value="position_asc"' + (statsSort === 'position_asc' ? ' selected' : '') + '>Должность: младшие сначала</option><option value="nickname"' + (statsSort === 'nickname' ? ' selected' : '') + '>Никнейм: А–Я</option><option value="nickname_desc"' + (statsSort === 'nickname_desc' ? ' selected' : '') + '>Никнейм: Я–А</option></select>' +
           '</form>' +
           '</div>' +
-          '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
+          '<div class="admins-source-row"><span>Ключевые показатели • полные данные доступны в карточке «Изменить»</span><span>' +
             "Данные получены" +
           '</span></div>' +
           '<div class="stats-mobile-list">' + mobileRecordsHtml() + '</div>' +
-          '<div class="all-stats-scroll" tabindex="0" aria-label="Прокручиваемая таблица статистики"><table id="allStatsTable"><thead><tr>' +
+          '<div class="all-stats-layout"><table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
           '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
