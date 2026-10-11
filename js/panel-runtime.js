@@ -3315,7 +3315,7 @@
               '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPassword">Показать</button></div></div>' +
               '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPasswordConfirm">Показать</button></div></div>' +
             '</div>' +
-            '<p class="settings-hint">Минимальная длина нового пароля — 8 символов.</p>' +
+            '<p class="settings-hint">Минимум 8 символов: заглавная и строчная латинские буквы (A–Z, a–z), цифра (0–9) и специальный символ (например, ! или @). После смены пароля все устройства выйдут из аккаунта.</p>' +
             '<div class="form-actions"><button class="button button-primary" id="passwordSettingsSubmit" type="submit">Изменить пароль</button></div>' +
           '</form>' +
         '</section>' +
@@ -3439,6 +3439,15 @@
               return;
             }
 
+            if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+              showStatus("Добавьте строчную и заглавную латинские буквы, цифру и специальный символ.", false);
+              return;
+            }
+            if (newPassword === currentPassword) {
+              showStatus("Новый пароль должен отличаться от текущего.", false);
+              return;
+            }
+
             button.disabled = true;
             button.textContent = "Сохранение…";
 
@@ -3448,7 +3457,9 @@
                 new_password: newPassword
               });
               passwordForm.reset();
-              showStatus("Пароль успешно изменён.", true);
+              window.BRApp.clearSession();
+              window.alert("Пароль изменён. Все активные сессии завершены. Войдите заново с новым паролем.");
+              location.replace(new URL("../index.html", location.href).href);
             } catch (error) {
               showStatus(error.message || "Не удалось изменить пароль.", false);
             } finally {
