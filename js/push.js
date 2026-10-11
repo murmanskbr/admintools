@@ -140,32 +140,13 @@
       }
     }
 
-    var server = null;
-
-    try {
-      if (localSubscription) {
-        await window.BR_API.pushSubscribe(
-          token,
-          Object.assign(
-            serializeSubscription(localSubscription),
-            { sync: true }
-          )
-        );
-      }
-
-      server =
-        await window.BR_API.pushStatus(token);
-    } catch (error) {
-      console.warn(
-        "[BR AdminTools] Не удалось синхронизировать статус push:",
-        error
-      );
-    }
+    var server = await window.BR_API.pushStatus(token, localSubscription ? localSubscription.endpoint : "");
 
     return {
       supported: isSupported(),
       permission: permission(),
-      localEnabled: !!localSubscription,
+      localEnabled: !!localSubscription && !!server.current_device_enabled,
+      browserSubscribed: !!localSubscription,
       serverEnabled: !!(
         server &&
         server.enabled
