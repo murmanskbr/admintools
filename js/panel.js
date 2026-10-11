@@ -3111,6 +3111,11 @@
       return window.BR_API.normativesDailyLocal(user.token, selectedDate).then(function (result) {
         var list = Array.isArray(result.administrators) ? result.administrators : [];
 
+        list.sort(function (a, b) {
+          var rankA = POSITIONS.indexOf(String(a.position || ""));
+          var rankB = POSITIONS.indexOf(String(b.position || ""));
+          return (rankA < 0 ? 999 : rankA) - (rankB < 0 ? 999 : rankB) || String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
+        });
         var rows = list.map(function (item) {
           var action = item.submission_id
             ? '<button class="small-button" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Проверить</button>'
@@ -3138,6 +3143,8 @@
             '<button class="filter-button" data-status-filter="no_norm" type="button">Нет нормы</button>' +
             '<button class="filter-button" data-status-filter="inactive" type="button">Неактив</button>' +
             '<input id="normativeSearch" class="form-input normative-search" type="search" placeholder="Поиск по никнейму">' +
+            '<select id="normativePosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { var ar=POSITIONS.indexOf(a), br=POSITIONS.indexOf(b); return (ar < 0 ? 999 : ar)-(br < 0 ? 999 : br); }).map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join('') + '</select>' +
+            '<select id="normativeSort" class="form-select" aria-label="Сортировка"><option value="position">По должности</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option></select>' +
           '</div>';
 
         root.innerHTML =
@@ -3151,6 +3158,8 @@
 
         var activeFilter = "all";
         var searchInput = document.getElementById("normativeSearch");
+        var positionInput = document.getElementById("normativePosition");
+        var sortInput = document.getElementById("normativeSort");
 
         function applyNormativeFilters() {
           var query = searchInput ? searchInput.value.trim().toLowerCase() : "";
@@ -3159,7 +3168,8 @@
             var nickname = row.getAttribute("data-normative-nickname") || "";
             row.style.display =
               (activeFilter === "all" || status === activeFilter) &&
-              (!query || nickname.indexOf(query) !== -1)
+              (!query || nickname.indexOf(query) !== -1) &&
+              (!positionInput.value || row.getAttribute("data-normative-position") === positionInput.value)
                 ? ""
                 : "none";
           });
@@ -3172,6 +3182,7 @@
           if (item) {
             row.setAttribute("data-normative-status", item.status || "not_submitted");
             row.setAttribute("data-normative-nickname", String(item.nickname || "").toLowerCase());
+            row.setAttribute("data-normative-position", String(item.position || ""));
           }
         });
 
@@ -3188,6 +3199,22 @@
         if (searchInput) {
           searchInput.oninput = applyNormativeFilters;
         }
+        positionInput.onchange = applyNormativeFilters;
+        sortInput.onchange = function () {
+          var tbody = document.querySelector("#normativeJournalTable tbody");
+          var rows = Array.from(tbody.querySelectorAll("tr[data-normative-nickname]"));
+          rows.sort(function (a, b) {
+            var mode = sortInput.value;
+            if (mode !== "position") {
+              var order = a.getAttribute("data-normative-nickname").localeCompare(b.getAttribute("data-normative-nickname"), "ru");
+              return mode === "nickname_desc" ? -order : order;
+            }
+            var ar = POSITIONS.indexOf(a.getAttribute("data-normative-position"));
+            var br = POSITIONS.indexOf(b.getAttribute("data-normative-position"));
+            return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) || a.getAttribute("data-normative-nickname").localeCompare(b.getAttribute("data-normative-nickname"), "ru");
+          });
+          rows.forEach(function (row) { tbody.appendChild(row); });
+        };
 
         document.querySelectorAll("[data-open-admin-norm]").forEach(function (button) {
           button.onclick = function () {
