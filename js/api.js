@@ -978,10 +978,11 @@
             },
 
         pushStatus:
-            function (token) {
+            function (token, endpoint) {
                 return request(
                     {
-                        action: "push_status"
+                        action: "push_status",
+                        endpoint: endpoint || ""
                     },
                     token
                 );
