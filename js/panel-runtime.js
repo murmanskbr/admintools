@@ -4119,22 +4119,24 @@
 
       var password = granted[0].password || "—";
 
-      var rows = granted.map(function (item) {
-        return '<div class="access-credential-row">' +
-          '<b>' + E(item.nickname) + '</b>' +
-          '<span>' + E(roleLabel(item.role)) + '</span>' +
-        '</div>';
+      var rows = granted.map(function (item, index) {
+        return '<div class="access-credential-row"><b>' + E(item.nickname) + '</b>' +
+          '<code>' + E(item.password || "") + '</code>' +
+          '<button class="small-button" data-copy-credential="' + index + '" type="button">Копировать</button></div>';
       }).join("");
-
       root.hidden = false;
       root.innerHTML =
-        '<div class="access-credentials-head">' +
-          '<div><small>ДАННЫЕ ДОСТУПА</small><b>Доступ выдан</b></div>' +
-          '<button class="small-button" id="' + targetId + 'Copy" type="button">Копировать</button>' +
-        '</div>' +
-        '<div class="access-password-result"><span>Пароль</span><code>' + E(password) + '</code></div>' +
+        '<div class="access-credentials-head"><div><small>ДАННЫЕ ДОСТУПА</small><b>Создано: ' + granted.length + '</b></div>' +
+        '<button class="small-button" id="' + targetId + 'Copy" type="button">Копировать всё</button></div>' +
         '<div class="access-credential-list">' + rows + '</div>' +
-        '<p class="settings-hint">Пароль показывается здесь один раз. В базе хранится только его хэш.</p>';
+        '<p class="settings-hint">Скопируйте пароли сейчас: повторно получить их из базы нельзя, хранятся только хеши.</p>';
+      root.querySelectorAll("[data-copy-credential]").forEach(function (button) {
+        button.onclick = async function () {
+          var item = granted[Number(button.dataset.copyCredential)];
+          try { await navigator.clipboard.writeText(item.nickname + ": " + item.password); button.textContent = "Скопировано"; }
+          catch (_) { button.textContent = "Ошибка копирования"; }
+        };
+      });
 
       var copy = document.getElementById(targetId + "Copy");
       if (copy) {
@@ -4470,64 +4472,75 @@
 
     function bindManualForm() {
       var form = document.getElementById("accessManualForm");
-      if (!form) return;
+      var list = document.getElementById("accessManualNames");
+      var add = document.getElementById("accessManualAdd");
+      if (!form || !list || !add) return;
 
-      document.getElementById("accessManualGenerate").onclick = function () {
-        setPassword("accessManualPassword");
-      };
+      function addRow(value) {
+        if (list.querySelectorAll(".access-manual-name").length >= 30) return;
+        var row = document.createElement("div");
+        row.className = "access-manual-row";
+        var input = document.createElement("input");
+        input.className = "form-input access-manual-name";
+        input.type = "text";
+        input.maxLength = 32;
+        input.autocomplete = "off";
+        input.placeholder = "Никнейм администратора";
+        input.setAttribute("aria-label", "Никнейм администратора");
+        input.value = value || "";
+        var remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "small-button";
+        remove.textContent = "Удалить";
+        remove.onclick = function () { row.remove(); updateRows(); };
+        row.appendChild(input);
+        row.appendChild(remove);
+        list.appendChild(row);
+        updateRows();
+        input.focus();
+      }
+      function updateRows() {
+        var rows = list.querySelectorAll(".access-manual-row");
+        rows.forEach(function (row, index) {
+          row.querySelector("input").setAttribute("aria-label", "Никнейм администратора " + (index + 1));
+          row.querySelector("button").hidden = rows.length === 1;
+        });
+        add.disabled = rows.length >= 30;
+      }
+      add.onclick = function () { addRow(""); };
+      addRow("");
 
       form.onsubmit = async function (event) {
         event.preventDefault();
-
-        var nickname = document.getElementById("accessManualNickname").value.trim();
-        var password = document.getElementById("accessManualPassword").value.trim();
-
-        if (!nickname) return;
-
-        if (!password) {
-          password = generatePassword();
-          document.getElementById("accessManualPassword").value = password;
-          document.getElementById("accessManualPassword").type = "text";
+        var nicknames = Array.from(list.querySelectorAll(".access-manual-name")).map(function (input) { return input.value.trim(); });
+        if (nicknames.some(function (name) { return !/^[A-Za-z0-9_]{3,32}$/.test(name); })) {
+          showAccessStatus("Каждый никнейм: 3–32 символа, латинские буквы, цифры и подчёркивание. Пустых строк быть не должно.", false);
+          return;
         }
-
+        if (new Set(nicknames.map(function (name) { return name.toLowerCase(); })).size !== nicknames.length) {
+          showAccessStatus("В списке есть повторяющиеся никнеймы.", false);
+          return;
+        }
         var button = form.querySelector('button[type="submit"]');
-        if (button) {
-          button.disabled = true;
-          button.textContent = "Выдача…";
-        }
-
+        button.disabled = true;
+        button.textContent = "Создание…";
         try {
-          var result = await window.BR_API.accessGrant(
-            user.token,
-            {
-              nickname: nickname,
-              password: password,
-              role: document.getElementById("accessManualRole").value,
-              position: document.getElementById("accessManualPosition").value
-            }
-          );
-
+          var result = await window.BR_API.accessGrant(user.token, {
+            nicknames: nicknames,
+            individual_passwords: true,
+            role: document.getElementById("accessManualRole").value,
+            position: document.getElementById("accessManualPosition").value
+          });
           renderCredentials(result, "manualCredentials");
-          form.reset();
-
-          showAccessStatus(
-            "Доступ выдан для " + nickname + ".",
-            true
-          );
-
-          await loadAccounts(
-            document.getElementById("accessRegistryRoot")
-          );
+          list.innerHTML = "";
+          addRow("");
+          showAccessStatus("Создано аккаунтов: " + nicknames.length + ". Скопируйте отдельные пароли из блока ниже.", true);
+          await loadAccounts(document.getElementById("accessRegistryRoot"));
         } catch (error) {
-          showAccessStatus(
-            error.message || "Не удалось выдать доступ.",
-            false
-          );
+          showAccessStatus(error.message || "Не удалось создать доступы.", false);
         } finally {
-          if (button) {
-            button.disabled = false;
-            button.textContent = "Выдать доступ";
-          }
+          button.disabled = false;
+          button.textContent = "Создать доступы";
         }
       };
     }
@@ -4698,12 +4711,12 @@
               '<div class="access-card-head"><div><small>РУЧНАЯ ВЫДАЧА</small><h2>Новый доступ</h2></div><span>Укажите никнейм или сгенерируйте пароль автоматически</span></div>' +
               '<form id="accessManualForm">' +
                 '<div class="form-grid">' +
-                  '<div class="form-field form-full"><label>Никнейм</label><input id="accessManualNickname" class="form-input" required placeholder="Например: Nikita_Zvezda"></div>' +
+                  '<div class="form-field form-full"><label>Никнеймы (до 30)</label><div id="accessManualNames" class="access-manual-names"></div><button id="accessManualAdd" class="small-button" type="button">+ Добавить администратора</button></div>' +
                   '<div class="form-field"><label>Роль</label><select id="accessManualRole" class="form-select"><option value="admin">Администратор</option><option value="management">Руководство</option></select></div>' +
                   '<div class="form-field"><label>Должность</label>' + positionSelect("accessManualPosition", "position", "") + '</div>' +
-                  '<div class="form-field form-full"><label>Пароль</label><div class="access-password-field"><input id="accessManualPassword" class="form-input" type="text" required autocomplete="new-password" placeholder="Сгенерируйте безопасный пароль"><button id="accessManualGenerate" class="small-button" type="button">Сгенерировать</button></div></div>' +
+                  '<p class="settings-hint">Каждому администратору сервер создаст отдельный случайный пароль. Пароли показываются только после создания.</p>' +
                 '</div>' +
-                '<div class="form-actions"><button class="button button-primary" type="submit">Выдать доступ</button></div>' +
+                '<div class="form-actions"><button class="button button-primary" type="submit">Создать доступы</button></div>' +
               '</form>' +
               '<div id="manualCredentials" class="access-credentials" hidden></div>' +
             '</section>' +
