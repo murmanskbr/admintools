@@ -4374,3 +4374,14 @@ body{font-size:16px}
   #allStatsRoot .stats-mobile-field {grid-template-columns:minmax(0,1fr)!important;gap:3px!important;}
   #allStatsRoot .stats-mobile-actions .stats-mobile-edit {margin-left:0!important;flex:1 1 100%!important;}
 }
+
+/* Dynamic manual access roster and one-time credentials. */
+.access-manual-names{display:grid;gap:8px;margin-bottom:9px;min-width:0}
+.access-manual-row{display:flex;align-items:center;gap:7px;min-width:0}
+.access-manual-row .form-input{flex:1;min-width:0}
+.access-manual-row .small-button{flex:0 0 auto}
+.access-credential-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.access-credential-row b{flex:1 1 150px;overflow-wrap:anywhere}
+.access-credential-row code{flex:1 1 150px;overflow-wrap:anywhere;user-select:all}
+.access-credential-row button{flex:0 0 auto}
+@media(max-width:560px){.access-manual-row .small-button{padding:7px}.access-credential-row button{width:100%}}
