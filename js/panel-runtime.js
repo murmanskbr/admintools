@@ -4267,7 +4267,7 @@
 
           var rows = sortedAccounts.map(function (item) {
             return '<tr>' +
-              '<td class="access-select-cell"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"></td>' +
+              '<td class="access-select-cell"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '></td>' +
               '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
               '<td>' + E(roleLabel(item.role)) + '</td>' +
               '<td>' + E(item.position || "—") + '</td>' +
