@@ -4395,3 +4395,8 @@ body{font-size:16px}
 .access-batch-toolbar .button,.access-batch-toolbar .small-button{min-height:36px}
 #accessBatchRemove:not(:disabled){border:1px solid #b54848;color:#eb7777}
 @media(max-width:650px){.access-batch-toolbar .form-select{max-width:none;flex-basis:100%}.access-batch-toolbar .button{flex:1 1 160px}}
+
+/* Bulk actions only appear after selecting at least one access account. */
+.access-batch-toolbar[hidden]{display:none!important}
+.access-registry .access-batch-toolbar{margin:12px 12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px;gap:10px}
+.access-registry #accessRegistryCount{display:block;line-height:1.5}
