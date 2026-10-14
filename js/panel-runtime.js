@@ -4179,86 +4179,8 @@
           return;
         }
 
-        function renderAccessRegistry(mode, query, positionFilter) {
-          mode = mode || "position";
-          query = query || "";
-          positionFilter = positionFilter || "";
-          var positions = Array.from(new Set(state.accounts.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { return accessPositionRank(b) - accessPositionRank(a) || a.localeCompare(b, "ru"); });
-          var sortedAccounts = sortAccessAccounts(
-            state.accounts.filter(function (item) { return (!query || String(item.nickname || "").toLowerCase().indexOf(query.toLowerCase()) >= 0 || String(item.login || "").toLowerCase().indexOf(query.toLowerCase()) >= 0) && (!positionFilter || item.position === positionFilter); }),
-            mode
-          );
-
-          var rows = sortedAccounts.map(function (item) {
-            return '<tr>' +
-              '<td class="access-select-cell"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"></td>' +
-              '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
-              '<td>' + E(roleLabel(item.role)) + '</td>' +
-              '<td>' + E(item.position || "—") + '</td>' +
-              '<td>' + statusLabel(item) + '</td>' +
-              '<td>' + E(item.last_login_ip || "—") + '</td>' +
-              '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
-              '<td class="access-actions-cell">' +
-                '<div class="admin-menu-wrap access-menu-wrap">' +
-                  '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
-                  '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
-                    '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
-                  '<button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
-                    (item.blocked_at
-                      ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
-                      : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
-                    '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button>' +
-                  '</div>' +
-                '</div>' +
-              '</td>' +
-            '</tr>';
-          }).join("");
-
-          root.innerHTML =
-            '<div class="box table-box access-registry">' +
-              '<div class="stats-table-head access-registry-head">' +
-                '<div><small>РЕЕСТР ДОСТУПОВ</small><b>' + E(String(sortedAccounts.length)) + ' из ' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
-                '<div class="access-registry-toolbar">' +
-                  '<input id="accessRegistrySearch" class="form-input" type="search" placeholder="Поиск по никнейму или логину" aria-label="Поиск администратора" value="' + E(query) + '">' +
-                  '<select id="accessRegistryPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + positions.map(function (p) { return '<option value="' + E(p) + '"' + (p === positionFilter ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' +
-                  '<span class="muted">Сортировка</span>' +
-                  '<select id="accessRegistrySort" class="form-select access-registry-sort" aria-label="Сортировка реестра доступов">' +
-                    '<option value="position"' + (mode === "position" ? " selected" : "") + '>Должность: старшие сначала</option>' +
-                    '<option value="position_asc"' + (mode === "position_asc" ? " selected" : "") + '>Должность: младшие сначала</option>' +
-                    '<option value="nickname"' + (mode === "nickname" ? " selected" : "") + '>Никнейм: А–Я</option>' +
-                    '<option value="nickname_desc"' + (mode === "nickname_desc" ? " selected" : "") + '>Никнейм: Я–А</option>' +
-                    '<option value="last_login"' + (mode === "last_login" ? " selected" : "") + '>Последний вход</option>' +
-                  '</select>' +
-                '</div>' +
-              '</div>' +
-              '<div class="admins-source-row"><span>Текущие доступы</span><span>Главный администратор → Младший модератор</span></div>' +
-              '<div class="access-batch-toolbar"><span id="accessBatchCount">Выбрано: 0</span>' +
-              '<select id="accessBatchPosition" class="form-select" aria-label="Новая должность"><option value="">Новая должность</option>' + POSITIONS.map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join("") + '</select>' +
-              '<button id="accessBatchApply" class="button button-secondary" type="button" disabled>Изменить должность</button>' +
-              '<button id="accessBatchRemove" class="button" type="button" disabled>Удалить доступ выбранным</button>' +
-              '<button id="accessBatchClear" class="small-button" type="button" disabled>Снять выбор</button></div>' +
-            '<table id="accessRegistryTable"><thead><tr>' +
-                '<th class="access-select-cell"><input id="accessSelectVisible" type="checkbox" aria-label="Выбрать все видимые аккаунты"></th><th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>IP</th><th>Последний вход</th><th>Действия</th>' +
-              '</tr></thead><tbody>' + rows + '</tbody></table>' +
-            '</div>';
-
-          bindAccessMenus();
-
-          var sortSelect = document.getElementById("accessRegistrySort");
-          if (sortSelect) {
-            sortSelect.onchange = function () {
-              renderAccessRegistry(sortSelect.value, document.getElementById("accessRegistrySearch").value, document.getElementById("accessRegistryPosition").value);
-            };
-          }
-          document.getElementById("accessRegistrySearch").oninput = function () { var position = this.selectionStart; renderAccessRegistry(mode, this.value, document.getElementById("accessRegistryPosition").value); var next = document.getElementById("accessRegistrySearch"); next.focus(); next.setSelectionRange(position, position); };
-          document.getElementById("accessRegistryPosition").onchange = function () { renderAccessRegistry(mode, document.getElementById("accessRegistrySearch").value, this.value); };
-        }
-
-        renderAccessRegistry("position");
-
-        bindAccessMenus();
-        (function bindBulkRegistry() {
-          var selected = new Set();
+        var selected = new Set();
+        function bindBulkRegistry() {
           var selector = root.querySelector("#accessSelectVisible");
           var positionSelect = root.querySelector("#accessBatchPosition");
           var apply = root.querySelector("#accessBatchApply");
@@ -4332,7 +4254,86 @@
           apply.onclick = function () { run("update"); };
           remove.onclick = function () { run("remove"); };
           refresh();
-        })();
+        }
+        function renderAccessRegistry(mode, query, positionFilter) {
+          mode = mode || "position";
+          query = query || "";
+          positionFilter = positionFilter || "";
+          var positions = Array.from(new Set(state.accounts.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { return accessPositionRank(b) - accessPositionRank(a) || a.localeCompare(b, "ru"); });
+          var sortedAccounts = sortAccessAccounts(
+            state.accounts.filter(function (item) { return (!query || String(item.nickname || "").toLowerCase().indexOf(query.toLowerCase()) >= 0 || String(item.login || "").toLowerCase().indexOf(query.toLowerCase()) >= 0) && (!positionFilter || item.position === positionFilter); }),
+            mode
+          );
+
+          var rows = sortedAccounts.map(function (item) {
+            return '<tr>' +
+              '<td class="access-select-cell"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"></td>' +
+              '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
+              '<td>' + E(roleLabel(item.role)) + '</td>' +
+              '<td>' + E(item.position || "—") + '</td>' +
+              '<td>' + statusLabel(item) + '</td>' +
+              '<td>' + E(item.last_login_ip || "—") + '</td>' +
+              '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
+              '<td class="access-actions-cell">' +
+                '<div class="admin-menu-wrap access-menu-wrap">' +
+                  '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
+                  '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
+                    '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
+                  '<button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
+                    (item.blocked_at
+                      ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
+                      : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
+                    '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button>' +
+                  '</div>' +
+                '</div>' +
+              '</td>' +
+            '</tr>';
+          }).join("");
+
+          root.innerHTML =
+            '<div class="box table-box access-registry">' +
+              '<div class="stats-table-head access-registry-head">' +
+                '<div><small>РЕЕСТР ДОСТУПОВ</small><b>' + E(String(sortedAccounts.length)) + ' из ' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
+                '<div class="access-registry-toolbar">' +
+                  '<input id="accessRegistrySearch" class="form-input" type="search" placeholder="Поиск по никнейму или логину" aria-label="Поиск администратора" value="' + E(query) + '">' +
+                  '<select id="accessRegistryPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + positions.map(function (p) { return '<option value="' + E(p) + '"' + (p === positionFilter ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' +
+                  '<span class="muted">Сортировка</span>' +
+                  '<select id="accessRegistrySort" class="form-select access-registry-sort" aria-label="Сортировка реестра доступов">' +
+                    '<option value="position"' + (mode === "position" ? " selected" : "") + '>Должность: старшие сначала</option>' +
+                    '<option value="position_asc"' + (mode === "position_asc" ? " selected" : "") + '>Должность: младшие сначала</option>' +
+                    '<option value="nickname"' + (mode === "nickname" ? " selected" : "") + '>Никнейм: А–Я</option>' +
+                    '<option value="nickname_desc"' + (mode === "nickname_desc" ? " selected" : "") + '>Никнейм: Я–А</option>' +
+                    '<option value="last_login"' + (mode === "last_login" ? " selected" : "") + '>Последний вход</option>' +
+                  '</select>' +
+                '</div>' +
+              '</div>' +
+              '<div class="admins-source-row"><span>Текущие доступы</span><span>Главный администратор → Младший модератор</span></div>' +
+              '<div class="access-batch-toolbar"><span id="accessBatchCount">Выбрано: 0</span>' +
+              '<select id="accessBatchPosition" class="form-select" aria-label="Новая должность"><option value="">Новая должность</option>' + POSITIONS.map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join("") + '</select>' +
+              '<button id="accessBatchApply" class="button button-secondary" type="button" disabled>Изменить должность</button>' +
+              '<button id="accessBatchRemove" class="button" type="button" disabled>Удалить доступ выбранным</button>' +
+              '<button id="accessBatchClear" class="small-button" type="button" disabled>Снять выбор</button></div>' +
+            '<table id="accessRegistryTable"><thead><tr>' +
+                '<th class="access-select-cell"><input id="accessSelectVisible" type="checkbox" aria-label="Выбрать все видимые аккаунты"></th><th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>IP</th><th>Последний вход</th><th>Действия</th>' +
+              '</tr></thead><tbody>' + rows + '</tbody></table>' +
+            '</div>';
+
+          bindAccessMenus();
+          bindBulkRegistry();
+
+          var sortSelect = document.getElementById("accessRegistrySort");
+          if (sortSelect) {
+            sortSelect.onchange = function () {
+              renderAccessRegistry(sortSelect.value, document.getElementById("accessRegistrySearch").value, document.getElementById("accessRegistryPosition").value);
+            };
+          }
+          document.getElementById("accessRegistrySearch").oninput = function () { var position = this.selectionStart; renderAccessRegistry(mode, this.value, document.getElementById("accessRegistryPosition").value); var next = document.getElementById("accessRegistrySearch"); next.focus(); next.setSelectionRange(position, position); };
+          document.getElementById("accessRegistryPosition").onchange = function () { renderAccessRegistry(mode, document.getElementById("accessRegistrySearch").value, this.value); };
+        }
+
+        renderAccessRegistry("position");
+
+
       } catch (error) {
         root.innerHTML =
           '<div class="box"><div class="empty">' +
