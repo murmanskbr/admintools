@@ -4385,3 +4385,13 @@ body{font-size:16px}
 .access-credential-row code{flex:1 1 150px;overflow-wrap:anywhere;user-select:all}
 .access-credential-row button{flex:0 0 auto}
 @media(max-width:560px){.access-manual-row .small-button{padding:7px}.access-credential-row button{width:100%}}
+
+/* Access registry bulk selection/actions. */
+.access-select-cell{width:38px!important;min-width:38px!important;text-align:center!important;padding:8px 5px!important}
+.access-select-cell input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+.access-batch-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:11px 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.access-batch-toolbar #accessBatchCount{font-weight:750;margin-right:5px;white-space:nowrap}
+.access-batch-toolbar .form-select{flex:1 1 185px;min-width:160px;max-width:310px}
+.access-batch-toolbar .button,.access-batch-toolbar .small-button{min-height:36px}
+#accessBatchRemove:not(:disabled){border:1px solid #b54848;color:#eb7777}
+@media(max-width:650px){.access-batch-toolbar .form-select{max-width:none;flex-basis:100%}.access-batch-toolbar .button{flex:1 1 160px}}
