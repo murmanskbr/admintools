@@ -4097,6 +4097,7 @@
         });
         var rows = state.accounts.map(function (item) {
           return '<tr data-access-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-access-login="' + E(String(item.login || "").toLowerCase()) + '" data-access-position="' + E(item.position || "") + '" data-access-id="' + E(item.id) + '">' +
+            '<td class="access-select-cell"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"></td>' +
             '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
             '<td>' + E(roleLabel(item.role)) + '</td>' +
             '<td>' + E(item.position || "—") + '</td>' +
@@ -4133,8 +4134,13 @@
               '</div>' +
             '</div>' +
             '<div class="admins-source-row"><span>Текущие доступы</span><span>Привязка устройства • сессии</span></div>' +
+            '<div class="access-batch-toolbar"><span id="accessBatchCount">Выбрано: 0</span>' +
+              '<select id="accessBatchPosition" class="form-select" aria-label="Новая должность"><option value="">Новая должность</option>' + POSITIONS.map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join("") + '</select>' +
+              '<button id="accessBatchApply" class="button button-secondary" type="button" disabled>Изменить должность</button>' +
+              '<button id="accessBatchRemove" class="button" type="button" disabled>Удалить доступ выбранным</button>' +
+              '<button id="accessBatchClear" class="small-button" type="button" disabled>Снять выбор</button></div>' +
             '<table id="accessRegistryTable"><thead><tr>' +
-              '<th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>Привязка</th><th>IP</th><th>Последний вход</th><th>Сессии</th><th>Действия</th>' +
+              '<th class="access-select-cell"><input id="accessSelectVisible" type="checkbox" aria-label="Выбрать все видимые аккаунты"></th><th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>Привязка</th><th>IP</th><th>Последний вход</th><th>Сессии</th><th>Действия</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table>' +
           '</div>';
 
@@ -4168,6 +4174,82 @@
           rows.forEach(function (row) { tbody.appendChild(row); });
         };
         bindAccessMenus();
+        (function bindBulkRegistry() {
+          var selected = new Set();
+          var selector = root.querySelector("#accessSelectVisible");
+          var positionSelect = root.querySelector("#accessBatchPosition");
+          var apply = root.querySelector("#accessBatchApply");
+          var remove = root.querySelector("#accessBatchRemove");
+          var clear = root.querySelector("#accessBatchClear");
+          var count = root.querySelector("#accessBatchCount");
+          function visibleInputs() {
+            return Array.from(root.querySelectorAll("[data-access-select]")).filter(function (input) {
+              var row = input.closest("tr");
+              return row && !row.hidden && row.style.display !== "none";
+            });
+          }
+          function refresh() {
+            var inputs = visibleInputs(), checked = inputs.filter(function (input) { return input.checked; }).length;
+            count.textContent = "Выбрано: " + selected.size;
+            selector.checked = inputs.length > 0 && checked === inputs.length;
+            selector.indeterminate = checked > 0 && checked < inputs.length;
+            apply.disabled = selected.size === 0 || !positionSelect.value;
+            remove.disabled = clear.disabled = selected.size === 0;
+          }
+          root.querySelectorAll("[data-access-select]").forEach(function (input) {
+            input.onchange = function () {
+              var id = Number(input.dataset.accessSelect);
+              if (input.checked) selected.add(id); else selected.delete(id);
+              refresh();
+            };
+          });
+          selector.onchange = function () {
+            visibleInputs().forEach(function (input) {
+              input.checked = selector.checked;
+              var id = Number(input.dataset.accessSelect);
+              if (input.checked) selected.add(id); else selected.delete(id);
+            });
+            refresh();
+          };
+          clear.onclick = function () {
+            selected.clear();
+            root.querySelectorAll("[data-access-select]").forEach(function (input) { input.checked = false; });
+            refresh();
+          };
+          positionSelect.onchange = refresh;
+          ["accessRegistrySearch", "accessRegistryPosition"].forEach(function (id) {
+            var el = root.querySelector("#" + id);
+            if (!el) return;
+            el.addEventListener(id === "accessRegistrySearch" ? "input" : "change", refresh);
+          });
+          async function run(operation) {
+            var targets = state.accounts.filter(function (item) { return selected.has(Number(item.id)); });
+            if (!targets.length) return;
+            if (operation === "remove") {
+              if (!window.confirm("Полностью удалить доступ и связанные данные " + targets.length + " аккаунтов? Действие необратимо.\\n\\n" + targets.map(function (item) { return item.nickname; }).join(", "))) return;
+            } else if (!positionSelect.value) return;
+            apply.disabled = remove.disabled = clear.disabled = true;
+            apply.textContent = remove.textContent = "Обработка…";
+            var ok = 0, failures = [];
+            for (var i = 0; i < targets.length; i += 1) {
+              var item = targets[i];
+              try {
+                await window.BR_API.accessManage(user.token, operation === "remove"
+                  ? { admin_id: Number(item.id), operation: "remove" }
+                  : { admin_id: Number(item.id), operation: "update", role: item.role, position: positionSelect.value, password: "" });
+                ok += 1;
+                selected.delete(Number(item.id));
+              } catch (error) {
+                failures.push(item.nickname + ": " + (error.message || "Ошибка"));
+              }
+            }
+            showAccessStatus("Успешно: " + ok + " из " + targets.length + (failures.length ? ". Не удалось: " + failures.join("; ") : "."), failures.length === 0);
+            await loadAccounts(root);
+          }
+          apply.onclick = function () { run("update"); };
+          remove.onclick = function () { run("remove"); };
+          refresh();
+        })();
       } catch (error) {
         root.innerHTML =
           '<div class="box"><div class="empty">' +
