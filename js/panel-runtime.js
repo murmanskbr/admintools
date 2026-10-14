@@ -4186,7 +4186,8 @@
           var apply = root.querySelector("#accessBatchApply");
           var remove = root.querySelector("#accessBatchRemove");
           var clear = root.querySelector("#accessBatchClear");
-          var count = root.querySelector("#accessBatchCount");
+          var count = root.querySelector("#accessRegistryCount");
+          var toolbar = root.querySelector("#accessBatchToolbar");
           function visibleInputs() {
             return Array.from(root.querySelectorAll("[data-access-select]")).filter(function (input) {
               var row = input.closest("tr");
@@ -4195,7 +4196,8 @@
           }
           function refresh() {
             var inputs = visibleInputs(), checked = inputs.filter(function (input) { return input.checked; }).length;
-            count.textContent = "Выбрано: " + selected.size;
+            count.textContent = selected.size ? selected.size + " из " + state.accounts.length + " аккаунтов выбрано" : state.accounts.length + " аккаунтов";
+            toolbar.hidden = selected.size === 0;
             selector.checked = inputs.length > 0 && checked === inputs.length;
             selector.indeterminate = checked > 0 && checked < inputs.length;
             apply.disabled = selected.size === 0 || !positionSelect.value;
@@ -4293,7 +4295,7 @@
           root.innerHTML =
             '<div class="box table-box access-registry">' +
               '<div class="stats-table-head access-registry-head">' +
-                '<div><small>РЕЕСТР ДОСТУПОВ</small><b>' + E(String(sortedAccounts.length)) + ' из ' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
+                '<div><small>РЕЕСТР ДОСТУПОВ</small><b id="accessRegistryCount">' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
                 '<div class="access-registry-toolbar">' +
                   '<input id="accessRegistrySearch" class="form-input" type="search" placeholder="Поиск по никнейму или логину" aria-label="Поиск администратора" value="' + E(query) + '">' +
                   '<select id="accessRegistryPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + positions.map(function (p) { return '<option value="' + E(p) + '"' + (p === positionFilter ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' +
@@ -4308,7 +4310,7 @@
                 '</div>' +
               '</div>' +
               '<div class="admins-source-row"><span>Текущие доступы</span><span>Главный администратор → Младший модератор</span></div>' +
-              '<div class="access-batch-toolbar"><span id="accessBatchCount">Выбрано: 0</span>' +
+              '<div class="access-batch-toolbar" id="accessBatchToolbar" hidden>' +
               '<select id="accessBatchPosition" class="form-select" aria-label="Новая должность"><option value="">Новая должность</option>' + POSITIONS.map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join("") + '</select>' +
               '<button id="accessBatchApply" class="button button-secondary" type="button" disabled>Изменить должность</button>' +
               '<button id="accessBatchRemove" class="button" type="button" disabled>Удалить доступ выбранным</button>' +
