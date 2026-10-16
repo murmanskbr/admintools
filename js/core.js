@@ -328,7 +328,7 @@
         '<div class="brand"><img class="brand-logo" src="../favicon.svg" alt="Логотип Black Russia" width="44" height="44"><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
         '<div class="sidebar-menu">' +
           '<div class="section-title">ПАНЕЛЬ</div>' +
-          link("dashboard") + link("profile") + menu +
+          link("dashboard") + link("profile") + link("statistics") + menu +
         '</div>' +
         '<div class="sidebar-bottom">' +
           '<div class="user-mini"><div class="avatar">' +
