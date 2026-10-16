@@ -2,7 +2,6 @@
   "use strict";
 
   var COOKIE = "br_session";
-  var heartbeat = null;
 
   function esc(value) {
     return String(value == null ? "" : value)
@@ -88,92 +87,10 @@
   }
 
   function goLogin() {
-    if (heartbeat) clearInterval(heartbeat);
-    heartbeat = null;
     clearSession();
     location.replace(new URL("../index.html", location.href).href);
   }
 
-
-  var profileRefreshInFlight = false;
-  var profileRefreshLastAt = 0;
-
-  function refreshSessionProfile(force) {
-    if (document.visibilityState === "hidden") return Promise.resolve();
-    if (!window.BR_API || typeof window.BR_API.me !== "function") return Promise.resolve();
-    if (profileRefreshInFlight) return Promise.resolve();
-
-    var now = Date.now();
-    var minimumGap = force ? 5000 : 30000;
-    if (profileRefreshLastAt && now - profileRefreshLastAt < minimumGap) {
-      return Promise.resolve();
-    }
-
-    var current = readSession();
-    if (!current || !current.user || !current.user.token) {
-      goLogin();
-      return Promise.resolve();
-    }
-
-    profileRefreshLastAt = now;
-    profileRefreshInFlight = true;
-
-    return window.BR_API.me(current.user.token)
-      .then(function (result) {
-        var fresh = result && result.admin;
-        if (!fresh) return;
-
-        var latest = readSession();
-        if (
-          !latest ||
-          !latest.user ||
-          latest.user.token !== current.user.token
-        ) return;
-
-        if (
-          fresh.id != null &&
-          latest.user.id != null &&
-          String(fresh.id) !== String(latest.user.id)
-        ) return;
-
-        var patch = {};
-        var identityChanged = false;
-        ["login", "nickname", "role", "position", "theme"].forEach(function (key) {
-          if (!Object.prototype.hasOwnProperty.call(fresh, key)) return;
-
-          var oldValue = latest.user[key];
-          var newValue = fresh[key];
-          if (String(oldValue == null ? "" : oldValue) === String(newValue == null ? "" : newValue)) {
-            return;
-          }
-
-          patch[key] = newValue;
-          if (["login", "nickname", "role", "position"].indexOf(key) !== -1) {
-            identityChanged = true;
-          }
-        });
-
-        if (!Object.keys(patch).length) return;
-
-        latest.user = Object.assign({}, latest.user, patch);
-        saveSession(latest);
-
-        if (identityChanged) {
-          location.reload();
-        } else if (Object.prototype.hasOwnProperty.call(patch, "theme")) {
-          document.documentElement.classList.toggle(
-            "theme-light",
-            String(patch.theme || "dark").toLowerCase() === "light"
-          );
-        }
-      })
-      .catch(function () {
-        // Не прерываем работу страницы из-за временной сетевой ошибки.
-      })
-      .finally(function () {
-        profileRefreshInFlight = false;
-      });
-  }
 
   function renderShell(user) {
     var nickname = String(user.nickname || "BR");
@@ -255,35 +172,6 @@
         item[1] + "</span>" + label + badge + "</a>";
     }
 
-    function refreshNotificationBadge() {
-      var badge = document.getElementById("notificationMenuBadge");
-      if (!badge || !window.BR_API || typeof window.BR_API.notificationsList !== "function") return;
-
-      window.BR_API.notificationsList(user.token)
-        .then(function (result) {
-          var list = result && Array.isArray(result.notifications) ? result.notifications : [];
-          var hasUnread = list.some(function (item) { return !item.is_read; });
-          badge.classList.toggle("is-visible", hasUnread);
-          badge.setAttribute("aria-hidden", hasUnread ? "false" : "true");
-        })
-        .catch(function (error) {
-          console.warn("[BR AdminTools] Не удалось обновить индикатор уведомлений:", error);
-        });
-    }
-
-    var notificationBadgeTimer = null;
-    function startNotificationBadgePolling() {
-      if (notificationBadgeTimer) {
-        clearInterval(notificationBadgeTimer);
-      }
-
-      notificationBadgeTimer = setInterval(function () {
-        if (document.visibilityState === "hidden") return;
-        var current = readSession();
-        if (!current || !current.user || !current.user.token) return;
-        refreshNotificationBadge();
-      }, 20000);
-    }
     // Replace the combined link list with explicit menu groups.
     var sidebar = document.getElementById("sidebar");
     var groupHtml =
@@ -312,8 +200,6 @@
     sidebar.innerHTML =
       '<div class="brand"><img class="brand-logo" src="../favicon.svg" alt="Логотип Black Russia" width="44" height="44"><div><b>BLACK RUSSIA</b><small>Мурманск • Admin Panel</small></div></div>' +
       groupHtml;
-    refreshNotificationBadge();
-    startNotificationBadgePolling();
 
     document.documentElement.classList.toggle(
       "theme-light",
@@ -701,20 +587,7 @@
     var count = document.getElementById("adminGoogleCount");
     if (count) count.textContent = "Форма готова";
 
-    if (heartbeat) clearInterval(heartbeat);
-    heartbeat = setInterval(function () {
-      refreshSessionProfile(false);
-    }, 30000);
-
-    window.addEventListener("focus", function () {
-      refreshSessionProfile(true);
-    });
-    document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState === "visible") {
-        refreshSessionProfile(true);
-      }
-    });
-    refreshSessionProfile(true);
+    // Фоновые проверки профиля и периодический опрос отключены.
 
   }
 
