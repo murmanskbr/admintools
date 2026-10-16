@@ -4400,3 +4400,10 @@ body{font-size:16px}
 .access-batch-toolbar[hidden]{display:none!important}
 .access-registry .access-batch-toolbar{margin:12px 12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px;gap:10px}
 .access-registry #accessRegistryCount{display:block;line-height:1.5}
+
+/* Journal: keep the account watermark behind readable data, never over text. */
+body[data-page="logs"] .main{isolation:isolate}
+body[data-page="logs"] .watermark{z-index:0!important;opacity:.22!important;pointer-events:none!important}
+body[data-page="logs"] .content{position:relative;z-index:1}
+body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{background:var(--surface)}
+@media(max-width:1100px){body[data-page="logs"] .watermark{z-index:0!important;opacity:.12!important}}
