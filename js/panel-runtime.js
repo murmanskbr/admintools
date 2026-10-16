@@ -3692,12 +3692,12 @@
 
     function formatAuditDetails(value) {
       var raw = String(value == null ? "" : value).trim();
-      var accessUpdate = raw.match(/^измен[её]н\\s+доступ\\s*:?\\s*(.+)$/i);
+      var accessUpdate = raw.match(/^измен[её]н\s+доступ\s*:?\s*(.+)$/i);
 
       if (accessUpdate && accessUpdate[1]) {
         // В старых записях после подчёркивания ника мог появиться лишний пробел.
         // Исправляем только отображение этой детали, не меняя данные аккаунта.
-        var nickname = accessUpdate[1].trim().replace(/_\\s+/g, "_");
+        var nickname = accessUpdate[1].trim().replace(/_\s+/g, "_");
         return "Доступ изменён: " + nickname;
       }
 
