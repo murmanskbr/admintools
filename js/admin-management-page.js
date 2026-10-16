@@ -634,7 +634,26 @@
       }
     };
 
-    document.getElementById("logout").onclick = goLogin;
+    var logoutButton = document.getElementById("logout");
+    var logoutInProgress = false;
+    logoutButton.onclick = function () {
+      if (logoutInProgress) return;
+      logoutInProgress = true;
+      logoutButton.disabled = true;
+      logoutButton.textContent = "Выход…";
+      var current = readSession();
+      var finish = goLogin;
+      if (!current || !current.user || !current.user.token ||
+          !window.BR_API || typeof window.BR_API.logout !== "function") {
+        finish();
+        return;
+      }
+      window.BR_API.logout(current.user.token)
+        .catch(function (error) {
+          console.warn("[BR AdminTools] Серверный выход не подтвердился:", error);
+        })
+        .finally(finish);
+    };
 
     var mobileMenu = document.getElementById("mobileMenu");
     var sidebar = document.getElementById("sidebar");
