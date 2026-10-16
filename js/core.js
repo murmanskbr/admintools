@@ -163,8 +163,37 @@
     location.replace(loginUrl);
   }
 
+  var logoutInProgress = false;
+
   function logout() {
-    goToLogin();
+    if (logoutInProgress) return;
+    logoutInProgress = true;
+
+    var session = getSession();
+    var button = document.getElementById("logout");
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Выход…";
+    }
+
+    function finishLogout() {
+      goToLogin();
+    }
+
+    if (
+      !session || !session.user || !session.user.token ||
+      !window.BR_API || typeof window.BR_API.logout !== "function"
+    ) {
+      finishLogout();
+      return;
+    }
+
+    window.BR_API.logout(session.user.token)
+      .catch(function (error) {
+        // Local logout must still finish if the server is temporarily unavailable.
+        console.warn("[BR AdminTools] Серверный выход не подтвердился:", error);
+      })
+      .finally(finishLogout);
   }
 
   function prepareMobileTables(root) {
