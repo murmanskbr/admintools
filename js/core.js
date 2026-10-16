@@ -419,8 +419,6 @@
 
     if (!root) return;
 
-    clearLegacyAppCache();
-
     // При полноценном F5 / Ctrl+R его очищаем, чтобы страница получила
     // действительно свежие данные.
     clearReloadCaches();
@@ -659,7 +657,6 @@
         return;
       }
 
-      loadPageData(true);
     });
   }
 
