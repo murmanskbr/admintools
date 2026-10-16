@@ -1712,7 +1712,6 @@
   }
 
   function gameActivity(user) {
-    var refreshTimer = null;
     var isManagement = user && user.role === "management";
 
     function stateLabel(state) {
@@ -2124,13 +2123,11 @@
         var root = document.getElementById("gameActivityRoot");
         if (!root) return;
 
-        if (refreshTimer) {
-          window.clearInterval(refreshTimer);
-          refreshTimer = null;
-        }
-
-        load(root, false);
-
+        // Загружаем историю только после явного действия пользователя.
+        window.addEventListener("br:manual-refresh", function (event) {
+          if (!event || !event.detail || event.detail.page !== "game-activity") return;
+          load(root, false);
+        });
       }
     };
   }
