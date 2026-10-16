@@ -51,8 +51,8 @@
     var start = String(item && item.start_date || "").trim();
     var end = String(item && item.end_date || "").trim();
 
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(start) ||
-        !/^\\d{4}-\\d{2}-\\d{2}$/.test(end)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
       return "—";
     }
 
