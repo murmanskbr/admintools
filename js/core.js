@@ -4,18 +4,7 @@
   var COOKIE = "br_session";
   var REMEMBER_DAYS = 0.5;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
-  var notificationBadgeTimer = null;
   var PAGE_REFRESH_MIN_INTERVAL_MS = 15000;
-  var PAGE_FOCUS_REFRESH_AFTER_MS = 45000;
-  var PAGE_AUTO_REFRESH_INTERVAL_MS = 60000;
-  var CURRENT_USER_REFRESH_INTERVAL_MS = 30000;
-  var SOFT_REFRESH_PAGES = {
-    notifications: true,
-    normatives: true,
-    "normatives-all": true,
-    requests: true,
-    "requests-all": true
-  };
 
   var NAV = {
     dashboard: ["pages/dashboard.html", "⌂", "Главная"],
@@ -468,7 +457,6 @@
       return;
     }
 
-    registerServiceWorker();
 
     root.innerHTML = shell(
       session.user,
@@ -477,35 +465,8 @@
       options.render ? options.render(session.user) : ""
     );
 
-    refreshNotificationBadge(session.user.token);
-
-    if (notificationBadgeTimer) {
-      clearInterval(notificationBadgeTimer);
-    }
-
-    notificationBadgeTimer = setInterval(function () {
-      if (document.visibilityState === "hidden") return;
-      if (document.body.getAttribute("data-page") === "notifications") return;
-      var current = getSession();
-      if (!current || !current.user || !current.user.token) {
-        return;
-      }
-      refreshNotificationBadge(current.user.token);
-    }, 60000);
-
-    window.addEventListener("br:notifications-updated", function () {
-      refreshNotificationBadge(session.user.token);
-    });
-
-    window.addEventListener("br:api-mutation-success", function (event) {
-      var action = event && event.detail ? event.detail.action : "";
-      if ([
-        "notification_create",
-        "notification_delete"
-      ].indexOf(action) !== -1) {
-        refreshNotificationBadge(session.user.token);
-      }
-    });
+    // Фоновые проверки отключены. Индикатор уведомлений обновляется только
+    // по нажатию кнопки «Обновить».
 
     var logoutButton = document.getElementById("logout");
     if (logoutButton) logoutButton.onclick = logout;
@@ -667,6 +628,10 @@
 
     if (pageRefreshButton) {
       pageRefreshButton.addEventListener("click", function () {
+        var current = getSession();
+        if (current && current.user && current.user.token) {
+          refreshNotificationBadge(current.user.token);
+        }
         if (pageDataInFlight) {
           pageDataRefreshQueued = true;
           return;
@@ -677,240 +642,9 @@
       });
     }
 
-    window.setInterval(updatePageRefreshStatus, 5000);
-
-    function dispatchRemoteDataChange(detail) {
-      lastSoftRefreshAt = Date.now();
-
-      window.dispatchEvent(
-        new CustomEvent("br:remote-data-changed", {
-          detail: detail || {}
-        })
-      );
-
-      var changedAction = detail && detail.action ? detail.action : "";
-      if (
-        activePageName !== "notifications" &&
-        [
-          "notification_create",
-          "notification_delete",
-          "notification_read"
-        ].indexOf(changedAction) !== -1
-      ) {
-        var currentSession = getSession();
-        if (currentSession && currentSession.user && currentSession.user.token) {
-          refreshNotificationBadge(currentSession.user.token);
-        }
-      }
-
-      if (
-        SOFT_REFRESH_PAGES[activePageName] &&
-        typeof options.load === "function"
-      ) {
-        loadPageData(true);
-      }
-    }
-
-    var currentUserRefreshPromise = null;
-    var currentUserRefreshLastAt = 0;
-
-    function refreshCurrentUserProfile(force) {
-      if (document.visibilityState === "hidden") {
-        return Promise.resolve();
-      }
-
-      if (
-        !window.BR_API ||
-        typeof window.BR_API.me !== "function"
-      ) {
-        return Promise.resolve();
-      }
-
-      var now = Date.now();
-      if (currentUserRefreshPromise) {
-        return currentUserRefreshPromise;
-      }
-
-      // Focus can fire more than once in quick succession; prevent duplicate
-      // requests while still allowing an immediate refresh after returning.
-      var minimumGap = force ? 1500 : CURRENT_USER_REFRESH_INTERVAL_MS;
-      if (currentUserRefreshLastAt && now - currentUserRefreshLastAt < minimumGap) {
-        return Promise.resolve();
-      }
-
-      var currentSession = getSession();
-      if (!currentSession || !currentSession.user || !currentSession.user.token) {
-        goToLogin();
-        return Promise.resolve();
-      }
-
-      currentUserRefreshLastAt = now;
-      currentUserRefreshPromise = Promise.resolve()
-        .then(function () {
-          return window.BR_API.me(currentSession.user.token);
-        })
-        .then(function (result) {
-          var freshAdmin = result && result.admin;
-          if (!freshAdmin) return;
-
-          var latestSession = getSession();
-          if (
-            !latestSession ||
-            !latestSession.user ||
-            latestSession.user.token !== currentSession.user.token
-          ) {
-            return;
-          }
-
-          if (
-            freshAdmin.id != null &&
-            latestSession.user.id != null &&
-            String(freshAdmin.id) !== String(latestSession.user.id)
-          ) {
-            return;
-          }
-
-          var keys = ["login", "nickname", "role", "position", "theme"];
-          var patch = {};
-          var identityChanged = false;
-
-          keys.forEach(function (key) {
-            if (!Object.prototype.hasOwnProperty.call(freshAdmin, key)) {
-              return;
-            }
-
-            var oldValue = latestSession.user[key];
-            var newValue = freshAdmin[key];
-
-            if (String(oldValue == null ? "" : oldValue) !== String(newValue == null ? "" : newValue)) {
-              patch[key] = newValue;
-              if (["login", "nickname", "role", "position"].indexOf(key) !== -1) {
-                identityChanged = true;
-              }
-            }
-          });
-
-          if (!Object.keys(patch).length) return;
-
-          updateSessionUser(patch);
-
-          if (Object.prototype.hasOwnProperty.call(patch, "theme")) {
-            applyTheme(patch.theme);
-          }
-
-          // Rebuild the sidebar and current page from fresh role/position data.
-          // Role changes also add/remove management-only navigation.
-          if (identityChanged) {
-            location.reload();
-          }
-        })
-        .catch(function () {
-          // Keep the current menu usable during temporary connectivity problems.
-          // Expired sessions are handled by the existing br:session-expired listener.
-        })
-        .finally(function () {
-          currentUserRefreshPromise = null;
-        });
-
-      return currentUserRefreshPromise;
-    }
-
-    function refreshProfileAfterAccessChange(event) {
-      var action = event && event.detail ? event.detail.action : "";
-      if ([
-        "access_manage",
-        "access_grant",
-        "admin_add",
-        "admin_delete",
-        "update_admin",
-        "update_row"
-      ].indexOf(action) !== -1) {
-        refreshCurrentUserProfile(true);
-      }
-    }
-
-    window.addEventListener("br:api-mutation-success", refreshProfileAfterAccessChange);
-    window.addEventListener("br:remote-data-changed", refreshProfileAfterAccessChange);
-
-    function refreshVisiblePageData() {
-      if (
-        document.visibilityState === "hidden" ||
-        !SOFT_REFRESH_PAGES[activePageName]
-      ) {
-        return;
-      }
-
-      lastSoftRefreshAt = Date.now();
-
-      if (typeof options.load === "function") {
-        loadPageData(false);
-        return;
-      }
-
-      window.dispatchEvent(
-        new CustomEvent("br:refresh-visible-data", {
-          detail: {
-            page: activePageName,
-            at: lastSoftRefreshAt
-          }
-        })
-      );
-    }
-
-    function handleRemoteStorageChange(event) {
-      if (!event || event.key !== "br_admin_data_change" || !event.newValue) {
-        return;
-      }
-
-      var detail;
-      try {
-        detail = JSON.parse(event.newValue);
-      } catch (_) {
-        detail = { action: "unknown", at: Date.now() };
-      }
-
-      if (document.visibilityState === "hidden") {
-        pendingRemoteDataChange = detail;
-        return;
-      }
-
-      dispatchRemoteDataChange(detail);
-    }
-
-    function handlePageVisible() {
-      if (document.visibilityState === "hidden") return;
-
-      refreshCurrentUserProfile(true);
-
-      if (pendingRemoteDataChange) {
-        var pending = pendingRemoteDataChange;
-        pendingRemoteDataChange = null;
-        dispatchRemoteDataChange(pending);
-        return;
-      }
-
-      if (
-        SOFT_REFRESH_PAGES[activePageName] &&
-        Date.now() - lastSoftRefreshAt >= PAGE_FOCUS_REFRESH_AFTER_MS
-      ) {
-        refreshVisiblePageData();
-      }
-    }
-
-    window.addEventListener("storage", handleRemoteStorageChange);
-    document.addEventListener("visibilitychange", handlePageVisible);
-    window.addEventListener("focus", handlePageVisible);
-
-    window.setInterval(function () {
-      refreshVisiblePageData();
-    }, PAGE_AUTO_REFRESH_INTERVAL_MS);
-
-    window.setInterval(function () {
-      refreshCurrentUserProfile(false);
-    }, CURRENT_USER_REFRESH_INTERVAL_MS);
-
-    refreshCurrentUserProfile(true);
-    loadPageData(true);
+    // Автоматические фоновые запросы, опросы, обновление при возврате
+    // на вкладку и реакции на изменения в других вкладках отключены.
+    // Данные загружаются при открытии страницы и по ручному нажатию.
 
     // A cached mobile page must never restore a stale menu lock.
     document.body.classList.remove("mobile-menu-open");
