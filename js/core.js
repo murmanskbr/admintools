@@ -330,7 +330,7 @@
       });
   }
 
-  function shell(user, title, subtitle, body) {
+  function shell(user, title, subtitle, body, showRefresh) {
     var menu = management(user)
       ? '<div class="section-title">УПРАВЛЕНИЕ</div>' +
         link("access") + link("statistics-all") + link("admin-management") +
@@ -359,10 +359,12 @@
       '<div class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-hidden="true"></div>' +
       '<main class="main">' +
         '<header class="top"><button class="mobile-menu" id="mobileMenu" type="button" aria-label="Открыть меню">☰</button>' +
-          '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span><div class="top-right"><span id="pageUpdatedAt" class="page-updated-at" aria-live="polite">Данные ещё не обновлены</span><button class="small-button" id="pageRefresh" type="button">↻ Обновить</button></div>' +
+          '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span>' +
         '</header>' +
         '<section class="content"><div class="head"><h1>' + esc(title) + '</h1><p>' +
-          esc(subtitle || "") + '</p></div>' + body + '</section>' +
+          esc(subtitle || "") + '</p>' +
+          (showRefresh ? '<div class="page-refresh-tools"><span id="pageUpdatedAt" class="page-updated-at" aria-live="polite">Данные ещё не обновлены</span><button class="small-button" id="pageRefresh" type="button">↻ Обновить</button></div>' : '') +
+        '</div>' + body + '</section>' +
         '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><img class="watermark-logo" src="../favicon.svg" alt=""><span>' +
           esc(user.nickname) + '</span><small>BLACK RUSSIA • МУРМАНСК</small></div></div>' +
       '</main>' +
@@ -471,7 +473,8 @@
       session.user,
       options.title,
       options.subtitle,
-      options.render ? options.render(session.user) : ""
+      options.render ? options.render(session.user) : "",
+      typeof options.load === "function"
     );
 
     disableServiceWorkers();
