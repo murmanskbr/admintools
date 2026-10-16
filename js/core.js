@@ -385,6 +385,17 @@
     }).catch(function () {});
   }
 
+  function disableServiceWorkers() {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.getRegistrations()
+      .then(function (registrations) {
+        return Promise.all(registrations.map(function (registration) {
+          return registration.unregister();
+        }));
+      })
+      .catch(function () {});
+  }
+
   function registerServiceWorker() {
     if (
       !window.isSecureContext ||
@@ -462,6 +473,8 @@
       options.subtitle,
       options.render ? options.render(session.user) : ""
     );
+
+    disableServiceWorkers();
 
     // Фоновые проверки отключены. Индикатор уведомлений обновляется только
     // по нажатию кнопки «Обновить».
