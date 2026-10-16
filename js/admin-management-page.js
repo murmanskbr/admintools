@@ -187,6 +187,7 @@
     var nav = [
       ["pages/dashboard.html", "⌂", "Главная"],
       ["pages/profile.html", "◉", "Мой профиль"],
+      ["pages/statistics.html", "▥", "Моя статистика"],
       ["pages/access.html", "⚿", "Выдать доступ"],
       ["pages/statistics-all.html", "▥", "Статистика администрации"],
       ["pages/admin-management.html", "♙", "Создание / удаление администратора"],
