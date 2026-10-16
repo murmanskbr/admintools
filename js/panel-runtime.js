@@ -3690,6 +3690,20 @@
       "Device unbound": "Привязка устройства сброшена"
     };
 
+    function formatAuditDetails(value) {
+      var raw = String(value == null ? "" : value).trim();
+      var accessUpdate = raw.match(/^измен[её]н\\s+доступ\\s*:?\\s*(.+)$/i);
+
+      if (accessUpdate && accessUpdate[1]) {
+        // В старых записях после подчёркивания ника мог появиться лишний пробел.
+        // Исправляем только отображение этой детали, не меняя данные аккаунта.
+        var nickname = accessUpdate[1].trim().replace(/_\\s+/g, "_");
+        return "Доступ изменён: " + nickname;
+      }
+
+      return details[raw] || raw || "—";
+    }
+
     var actionOptions = Object.keys(actions)
       .filter(function (key, index, list) {
         return list.indexOf(key) === index;
@@ -3800,7 +3814,7 @@
               '</td><td>' +
               E(pages[pageKey] || x.page || "—") +
               '</td><td>' +
-              E(details[detailKey] || x.details || "—") +
+              E(formatAuditDetails(x.details)) +
               '</td></tr>';
           }).join("")
         : '<tr><td colspan="6" class="table-empty">По заданным фильтрам записи не найдены.</td></tr>';
