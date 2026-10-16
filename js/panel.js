@@ -2131,11 +2131,6 @@
 
         load(root, false);
 
-        refreshTimer = window.setInterval(function () {
-          var currentRoot = document.getElementById("gameActivityRoot");
-          if (!currentRoot) return;
-          load(currentRoot, true);
-        }, 30000);
       }
     };
   }
