@@ -3756,7 +3756,7 @@
 
     function rangeForDate(value) {
       var text = String(value || "").trim();
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
         return {
           from: "",
           to: ""
