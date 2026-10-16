@@ -649,13 +649,21 @@
         }
         pageRefreshButton.disabled = true;
         pageRefreshButton.textContent = "Обновление…";
-        loadPageData(true);
+        if (typeof options.load === "function") {
+          loadPageData(true);
+        } else {
+          window.dispatchEvent(new CustomEvent("br:manual-refresh", {
+            detail: { page: activePageName }
+          }));
+          pageRefreshButton.disabled = false;
+          pageRefreshButton.textContent = "↻ Обновить";
+        }
       });
     }
 
     // Автоматические фоновые запросы, опросы, обновление при возврате
     // на вкладку и реакции на изменения в других вкладках отключены.
-    // Данные загружаются при открытии страницы и по ручному нажатию.
+    // Данные загружаются только по ручному нажатию.
 
     // A cached mobile page must never restore a stale menu lock.
     document.body.classList.remove("mobile-menu-open");
