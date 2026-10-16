@@ -4407,3 +4407,10 @@ body[data-page="logs"] .watermark{z-index:0!important;opacity:.22!important;poin
 body[data-page="logs"] .content{position:relative;z-index:1}
 body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{background:var(--surface)}
 @media(max-width:1100px){body[data-page="logs"] .watermark{z-index:0!important;opacity:.12!important}}
+
+
+/* Manual refresh controls live with the page heading, not in the narrow mobile top bar. */
+.page-refresh-tools{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:9px;margin-top:12px;min-width:0}
+.page-updated-at{color:var(--muted);font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.page-refresh-tools .small-button{flex:0 0 auto;white-space:nowrap}
+@media(max-width:560px){.top{padding-left:14px;padding-right:14px}.page-refresh-tools{gap:8px}.page-refresh-tools .page-updated-at{flex:1 1 100%}.page-refresh-tools .small-button{width:auto;max-width:100%;min-height:38px;padding:9px 13px;font-size:11px}}
