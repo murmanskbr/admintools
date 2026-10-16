@@ -272,7 +272,8 @@
 
     async function request(
         payload,
-        token
+        token,
+        timeoutMs
     ) {
         var headers = {
             "Content-Type":
@@ -308,7 +309,9 @@
                                 )
                             )
                     },
-                    REQUEST_TIMEOUT_MS
+                    Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+                        ? Number(timeoutMs)
+                        : REQUEST_TIMEOUT_MS
                 );
         } catch (networkError) {
             var timeoutError =
@@ -920,6 +923,17 @@
                             "me"
                     },
                     token
+                );
+            },
+
+        logout:
+            function (token) {
+                return request(
+                    {
+                        action: "logout"
+                    },
+                    token,
+                    8000
                 );
             },
 
