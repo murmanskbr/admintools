@@ -718,6 +718,12 @@
 
   }
 
+  // This page owns its shell and does not load core.js, so it must handle
+  // expired/revoked sessions directly instead of leaving the privileged UI open.
+  window.addEventListener("br:session-expired", function () {
+    goLogin();
+  }, { once: true });
+
   function boot() {
     var session = readSession();
 
