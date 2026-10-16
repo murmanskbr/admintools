@@ -301,12 +301,22 @@
       render: function () {
         var quickLinks = user.role === "management"
           ? '<a class="dashboard-action" href="../pages/statistics-all.html"><b>Статистика администрации</b><span>Сводные данные состава</span></a>' +
-            '<a class="dashboard-action" href="../pages/admins.html"><b>Состав администрации</b><span>Список сотрудников</span></a>' +
+            '<a class="dashboard-action" href="../pages/access.html"><b>Выдать доступ</b><span>Управление доступом к панели</span></a>' +
             '<a class="dashboard-action" href="../pages/notifications.html"><b>Уведомления</b><span>Новости и сообщения</span></a>' +
             '<a class="dashboard-action" href="../pages/requests-all.html"><b>Обращения</b><span>Контроль обращений</span></a>'
           : '<a class="dashboard-action" href="../pages/profile.html"><b>Мой профиль</b><span>Данные аккаунта</span></a>' +
             '<a class="dashboard-action" href="../pages/requests.html"><b>Мои обращения</b><span>Связь с руководством</span></a>' +
             '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы</b><span>Подача и просмотр</span></a>';
+
+        var managementNotice = user.role === "management"
+          ? '<div class="box" style="margin-top:14px;padding:16px 18px;line-height:1.6">' +
+              '<div class="dashboard-section-head"><div><small>СТАБИЛЬНОСТЬ ПАНЕЛИ</small><h2>От чего зависит скорость работы</h2></div></div>' +
+              '<p style="margin:0 0 8px">Скорость ответа зависит от качества интернет-соединения пользователя, загрузки устройства и браузера, состояния серверной базы данных и внешних сервисов.</p>' +
+              '<p style="margin:0 0 8px">При отправке нормативов время зависит также от количества и размера изображений. Нестабильный интернет и большие файлы могут замедлить загрузку.</p>' +
+              '<p style="margin:0 0 8px">Если запрос долго выполняется, дождитесь сообщения о результате. Не отправляйте ту же форму повторно сразу: операция могла сохраниться, даже если ответ не успел прийти. После этого обновите список или проверьте, появилась ли запись.</p>' +
+              '<p style="margin:0">При повторяющихся задержках запишите время, раздел панели и действие, при котором возникла проблема, и передайте сведения ответственному за сайт.</p>' +
+            '</div>'
+          : '';
 
         return '<div id="serverRoot"><div class="box"><div class="empty">Загрузка статистики сервера...</div></div></div>' +
           '<div class="dashboard-grid">' +
@@ -322,7 +332,7 @@
               '<div class="dashboard-section-head"><div><small>БЫСТРЫЙ ДОСТУП</small><h2>Разделы панели</h2></div></div>' +
               '<div class="dashboard-actions">' + quickLinks + '</div>' +
             '</div>' +
-          '</div>';
+          '</div>' + managementNotice;
       },
       load: async function () {
         var root = document.getElementById("serverRoot");
@@ -523,6 +533,7 @@
     };
   }
 
+  
   function myStatistics() {
     return {
       title: "Моя статистика",
@@ -558,7 +569,8 @@
     var lastResult = null;
 
     // Сдвигаем именно выбранную дату, а не сегодняшнюю.
-    // Иначе каждая стрелка считала шаг от текущего дня и пропускала даты.
+    // Раньше стрелки брали dateIso(±1), из-за чего каждый клик
+    // перескакивал относительно сегодняшнего дня и пропускал даты.
     function shiftSelectedDate(days) {
       var parts = String(selectedDate || "").split("-");
       if (parts.length !== 3) return dateIso(days);
@@ -583,9 +595,6 @@
     var lastData = [];
     var lastHeaders = [];
     var lastNicknameIndex = -1;
-    var nicknameSearch = "";
-    var statsPosition = "";
-    var statsSort = "position";
 
     function normalizeHeader(header) {
       return String(header == null ? "" : header)
@@ -1153,42 +1162,8 @@
       return text;
     }
 
-    function approvedInactiveForSelectedDate(nickname) {
-      if (!lastResult || !Array.isArray(lastResult.inactive_periods) || !nickname) {
-        return false;
-      }
-
-      var targetNickname = normalizeHeader(nickname);
-
-      return lastResult.inactive_periods.some(function (period) {
-        if (!period) return false;
-
-        var periodNickname = normalizeHeader(period.nickname);
-        if (!periodNickname || periodNickname !== targetNickname) {
-          return false;
-        }
-
-        var startDate = String(period.start_date || "").trim();
-        var endDate = String(period.end_date || "").trim();
-        var currentDate = String(selectedDate || "").trim();
-
-        return (
-          /^\d{4}-\d{2}-\d{2}$/.test(startDate) &&
-          /^\d{4}-\d{2}-\d{2}$/.test(endDate) &&
-          currentDate >= startDate &&
-          currentDate <= endDate
-        );
-      });
-    }
-
     function normativeDisplayStatus(normatives, nickname) {
       if (!nickname) return "";
-
-      // Одобренный период неактива является источником истины для выбранной даты.
-      // Он имеет приоритет над значением, пришедшим из недельной таблицы.
-      if (approvedInactiveForSelectedDate(nickname)) {
-        return "Неактив";
-      }
 
       var value = externalGoogleNormative(
         normatives,
@@ -1274,7 +1249,6 @@
       var data = sourceData(lastResult || {});
       lastHeaders = data.headers.slice();
       lastNicknameIndex = findNicknameIndex(lastHeaders);
-      var positionIndex = lastHeaders.findIndex(function (h) { return /должност|position/i.test(String(h || "")); });
 
       var normativeHeaderIndex = sourceNormativeHeaderIndex(lastHeaders);
       var hasSourceNormativeColumn = normativeHeaderIndex >= 0;
@@ -1289,54 +1263,6 @@
               sectionTitle: ""
             };
           });
-
-      var totalDisplayRecords = displayRecords.length;
-      var searchValue = normalizeHeader(nicknameSearch);
-
-      if (searchValue) {
-        displayRecords = displayRecords.filter(function (record) {
-          var nickname = lastNicknameIndex >= 0
-            ? rawCellValue(record.row[lastNicknameIndex]).trim()
-            : "";
-          return normalizeHeader(nickname).indexOf(searchValue) !== -1;
-        });
-      }
-
-      var availablePositions = Array.from(new Set((data.displayRecords || displayRecords).map(function (record) {
-        return positionIndex >= 0 ? String(record.row[positionIndex] || "").trim() : "";
-      }).filter(Boolean)));
-      if (statsPosition && positionIndex >= 0) displayRecords = displayRecords.filter(function (record) { return String(record.row[positionIndex] || "").trim() === statsPosition; });
-      function positionLabel(record) {
-        var raw = positionIndex >= 0 ? String(record.row[positionIndex] || "").trim() : "";
-        return raw.replace(/\s*\([^)]*\)\s*$/, "").trim();
-      }
-      function rankPosition(value) {
-        var name = normalizeHeader(value).replace(/\s*\([^)]*\)\s*$/, "").trim();
-        if (/^(ст\.?\s*след\.?\s*за\s*ап|старший\s*следящий\s*за\s*ап)$/.test(name)) {
-          return POSITIONS.indexOf("Ст. След. за АП");
-        }
-        var matched = POSITIONS.findIndex(function (p) { return normalizeHeader(p) === name; });
-        return matched < 0 ? POSITIONS.length : matched;
-      }
-      displayRecords.sort(function (a, b) {
-        var an = lastNicknameIndex >= 0 ? String(a.row[lastNicknameIndex] || "") : "";
-        var bn = lastNicknameIndex >= 0 ? String(b.row[lastNicknameIndex] || "") : "";
-        if (statsSort === "nickname" || statsSort === "nickname_desc") {
-          var nameDiff = an.localeCompare(bn, "ru", { sensitivity: "base" });
-          return statsSort === "nickname_desc" ? -nameDiff : nameDiff;
-        }
-        var ar = rankPosition(positionLabel(a));
-        var br = rankPosition(positionLabel(b));
-        var diff = ar - br;
-        return (statsSort === "position_asc" ? -diff : diff) ||
-          an.localeCompare(bn, "ru", { sensitivity: "base" });
-      });
-      displayRecords = displayRecords.map(function (record) {
-        var group = (statsSort === "nickname" || statsSort === "nickname_desc")
-          ? (lastNicknameIndex >= 0 ? String(record.row[lastNicknameIndex] || "").trim().charAt(0).toUpperCase() : "#")
-          : (positionLabel(record) || record.sectionTitle || "Должность не указана");
-        return Object.assign({}, record, { sectionTitle: group });
-      });
 
       lastData = displayRecords.map(function (record) {
         var row = record.row;
@@ -1354,32 +1280,8 @@
         };
       });
 
-      // Mirror every source column and its original heading, including unknown/new columns.
-      var visibleColumns = lastHeaders.map(function (_, index) { return index; });
-      // Proportional widths preserve every column while favoring long text.
-      var sourceWeights = lastHeaders.map(function (header) {
-        var name = normalizeHeader(header);
-        if (/никнейм|^ник$|nickname|username/.test(name)) return 15;
-        if (/должност|position/.test(name)) return 15;
-        if (/возраст/.test(name)) return 5;
-        if (/доступ.*пк/.test(name)) return 6;
-        if (/неактив/.test(name)) return 6;
-        if (/баллы.*активност/.test(name)) return 8;
-        if (/дни.*посту/.test(name)) return 5;
-        if (/страйк/.test(name)) return 5;
-        if (/предупрежден/.test(name)) return 7;
-        if (/последнее.*повышен/.test(name)) return 9;
-        if (/баллы/.test(name)) return 7;
-        return 7;
-      });
-      var columnWeights = sourceWeights.concat([13, 8]);
-      var totalWeight = columnWeights.reduce(function (sum, weight) { return sum + weight; }, 0);
-      var columnWidths = '<colgroup>' + columnWeights.map(function (weight) {
-        return '<col style="width:' + (weight * 100 / totalWeight).toFixed(3) + '%">';
-      }).join("") + '</colgroup>';
       var headerCells = lastHeaders.map(function (header) {
-        return '<th title="' + E(String(header == null ? "" : header)) + '">' +
-          E(header == null || header === "" ? "—" : header) + '</th>';
+        return '<th>' + E(header == null ? "" : header) + '</th>';
       }).join("");
 
       if (hasSourceNormativeColumn) {
@@ -1401,11 +1303,11 @@
           lastRenderedSection = sectionTitle;
           sectionRow =
             '<tr class="stats-section-row"><td colspan="' +
-            String(visibleColumns.length + 2) +
+            String(lastHeaders.length + 2) +
             '"><strong>' + E(sectionTitle) + '</strong></td></tr>';
         }
 
-        var cells = visibleColumns.map(function (columnIndex) {
+        var cells = lastHeaders.map(function (_, columnIndex) {
           var value = rawCellValue(row[columnIndex]);
           return '<td data-stat-column="' + columnIndex + '">' + E(value) + '</td>';
         }).join("");
@@ -1444,160 +1346,23 @@
       }).join("");
 
       if (!rows) {
-        rows = '<tr><td colspan="' + (visibleColumns.length + 2) + '" class="table-empty">Нет строк данных.</td></tr>';
-      }
-
-      function mobileRecordsHtml() {
-        var lastMobileSection = "";
-        var html = displayRecords.map(function (record, displayIndex) {
-          var row = record.row;
-          var sectionTitle = record.sectionTitle || "";
-          var section = "";
-
-          if (sectionTitle && sectionTitle !== lastMobileSection) {
-            lastMobileSection = sectionTitle;
-            section =
-              '<div class="stats-mobile-section">' +
-                E(sectionTitle) +
-              '</div>';
-          }
-
-          var nickname = lastNicknameIndex >= 0
-            ? rawCellValue(row[lastNicknameIndex]).trim()
-            : "";
-
-          if (!nickname) {
-            return section;
-          }
-
-          var positionIndex = -1;
-          for (var p = 0; p < lastHeaders.length; p += 1) {
-            var h = normalizeHeader(lastHeaders[p]);
-            if (h === "должность" || h === "position") {
-              positionIndex = p;
-              break;
-            }
-          }
-
-          var position = positionIndex >= 0
-            ? rawCellValue(row[positionIndex]).trim()
-            : "";
-
-          var status = normativeDisplayStatus(
-            lastResult && lastResult.normatives,
-            nickname
-          );
-
-          var mobileActions =
-            '<div class="stats-mobile-actions">' +
-              '<button class="normative-icon-button normative-mark-norm" type="button" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
-              '<button class="normative-icon-button normative-mark-rework" type="button" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
-              '<button class="normative-icon-button normative-mark-no-norm" type="button" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
-              '<button class="normative-icon-button normative-mark-inactive" type="button" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
-              '<button class="admin-edit-inline stats-mobile-edit" type="button" data-edit-row-index="' + displayIndex + '">Изменить</button>' +
-            '</div>';
-
-          var detailFields = [];
-          for (var columnIndex = 0; columnIndex < lastHeaders.length; columnIndex += 1) {
-            var header = String(lastHeaders[columnIndex] == null ? "" : lastHeaders[columnIndex]).trim();
-            if (!header) continue;
-
-            var normalized = normalizeHeader(header);
-            if (
-              normalized === "никнейм" ||
-              normalized === "ник" ||
-              normalized === "nickname" ||
-              normalized === "nick" ||
-              normalized === "логин" ||
-              normalized === "login" ||
-              normalized === "username" ||
-              normalized === "должность" ||
-              normalized === "position"
-            ) {
-              continue;
-            }
-
-            var value = rawCellValue(row[columnIndex]).trim();
-            detailFields.push(
-              '<div class="stats-mobile-field">' +
-                '<span>' + E(header) + '</span>' +
-                '<b>' + E(value || "—") + '</b>' +
-              '</div>'
-            );
-          }
-
-          return section +
-            '<article class="stats-mobile-card">' +
-              '<div class="stats-mobile-card-head">' +
-                '<div class="stats-mobile-identity">' +
-                  '<b>' + E(nickname) + '</b>' +
-                  '<span>' + E(position || "Должность не указана") + '</span>' +
-                '</div>' +
-                '<span class="stats-mobile-status">' + normativeStatusBadge(status || "Не сдан") + '</span>' +
-              '</div>' +
-              mobileActions +
-              '<details class="stats-mobile-details">' +
-                '<summary>Показать данные <span>⌄</span></summary>' +
-                '<div class="stats-mobile-fields">' +
-                  (detailFields.length ? detailFields.join("") : '<div class="stats-mobile-empty">Дополнительных данных нет.</div>') +
-                '</div>' +
-              '</details>' +
-            '</article>';
-        }).join("");
-
-        return html || '<div class="stats-mobile-empty-card">В Google Таблице нет сотрудников.</div>';
+        rows = '<tr><td colspan="' + (lastHeaders.length + 2) + '" class="table-empty">Нет строк данных.</td></tr>';
       }
 
       root.innerHTML =
         '<div class="box table-box">' +
           '<div class="stats-table-head"><div>' +
             '<small>СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
-            '<b>' + E(searchValue
-              ? String(displayRecords.length) + ' из ' + String(totalDisplayRecords) + ' сотрудников'
-              : String(displayRecords.length) + ' сотрудников') + '</b>' +
-          '</div>' +
-          '<form class="stats-nickname-search" id="statsNicknameSearchForm" autocomplete="off">' +
-            '<input class="form-input" id="statsNicknameSearch" type="search" value="' + E(nicknameSearch) + '"' +
-              ' placeholder="Поиск по никнейму" aria-label="Поиск по никнейму">' +
-            '<button class="button button-secondary" type="submit">Найти</button>' +
-            '<button class="button button-secondary" id="statsNicknameSearchClear" type="button"' +
-              (nicknameSearch ? '' : ' disabled') + '>Сбросить</button>' +
-            '<select id="statsPositionFilter" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + availablePositions.sort(function (a,b) { var ar=POSITIONS.findIndex(function(p){return p.toLowerCase()===a.toLowerCase();}),br=POSITIONS.findIndex(function(p){return p.toLowerCase()===b.toLowerCase();});return (ar<0?999:ar)-(br<0?999:br); }).map(function (p) { return '<option value="' + E(p) + '"' + (statsPosition === p ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' +
-            '<select id="statsSortFilter" class="form-select" aria-label="Сортировка"><option value="position"' + (statsSort === 'position' ? ' selected' : '') + '>Должность: старшие сначала</option><option value="position_asc"' + (statsSort === 'position_asc' ? ' selected' : '') + '>Должность: младшие сначала</option><option value="nickname"' + (statsSort === 'nickname' ? ' selected' : '') + '>Никнейм: А–Я</option><option value="nickname_desc"' + (statsSort === 'nickname_desc' ? ' selected' : '') + '>Никнейм: Я–А</option></select>' +
-          '</form>' +
-          '</div>' +
-          '<div class="admins-source-row"><span>Все исходные столбцы Google Таблицы</span><span>' +
+            '<b>' + E(String(displayRecords.length)) + ' сотрудников</b>' +
+          '</div><span class="muted">Актуальные данные</span></div>' +
+          '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
             "Данные получены" +
           '</span></div>' +
-          '<div class="stats-mobile-list">' + mobileRecordsHtml() + '</div>' +
-          '<div class="all-stats-layout"><table id="allStatsTable">' + columnWidths + '<thead><tr>' +
+          '<table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
-          '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+          '</tr></thead><tbody>' + (rows || '<tr><td colspan="7" class="table-empty">По заданным фильтрам никого не найдено.</td></tr>') + '</tbody></table>' +
         '</div><div id="adminEditModal"></div>';
-
-      var searchForm = document.getElementById("statsNicknameSearchForm");
-      var searchInput = document.getElementById("statsNicknameSearch");
-      var searchClear = document.getElementById("statsNicknameSearchClear");
-      var positionFilter = document.getElementById("statsPositionFilter");
-      var sortFilter = document.getElementById("statsSortFilter");
-      if (positionFilter) positionFilter.onchange = function () { statsPosition = this.value; renderTable(); };
-      if (sortFilter) sortFilter.onchange = function () { statsSort = this.value; renderTable(); };
-
-      if (searchForm && searchInput) {
-        searchForm.onsubmit = function (event) {
-          event.preventDefault();
-          nicknameSearch = searchInput.value.trim();
-          renderTable();
-        };
-      }
-
-      if (searchClear) {
-        searchClear.onclick = function () {
-          nicknameSearch = "";
-          renderTable();
-        };
-      }
 
       document.querySelectorAll("#allStatsTable tbody tr").forEach(function (row) {
         row.addEventListener("click", function (event) {
@@ -1743,65 +1508,14 @@
         return;
       }
 
-      function googleFieldInputType(title) {
-        var normalized = normalizeHeader(title);
-        var dateWords = [
-          "дата",
-          "последнее повышение",
-          "дата повышения",
-          "date",
-          "last promotion",
-          "last_promotion"
-        ];
-
-        if (
-          dateWords.some(function (word) {
-            return normalized === word ||
-              normalized.indexOf(word + " ") === 0 ||
-              normalized.indexOf(" " + word) >= 0;
-          })
-        ) {
-          return "date";
-        }
-
-        return "text";
-      }
-
-      function normalizeDateInputValue(value) {
-        var text = rawCellValue(value).trim();
-
-        if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
-          return text;
-        }
-
-        var match = text.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-        if (match) {
-          return match[3] + "-" + match[2] + "-" + match[1];
-        }
-
-        match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-        if (match) {
-          return match[3] + "-" + match[2] + "-" + match[1];
-        }
-
-        return "";
-      }
-
       var fields = headers.map(function (header, index) {
         var title = rawCellValue(header);
         if (!title.trim()) return "";
 
-        var type = googleFieldInputType(title);
-        var value = rawCellValue(raw[index]);
-
-        if (type === "date") {
-          value = normalizeDateInputValue(value);
-        }
-
         return '<div class="form-field">' +
           '<label>' + E(title) + '</label>' +
-          '<input class="form-input" type="' + type + '" data-google-field-index="' + index + '" value="' +
-            E(value) + '">' +
+          '<input class="form-input" data-google-field-index="' + index + '" value="' +
+            E(rawCellValue(raw[index])) + '">' +
         '</div>';
       }).join("");
 
@@ -1895,9 +1609,7 @@
 
       if (refresh) {
         refresh.disabled = true;
-        refresh.classList.add("is-refreshing");
-        refresh.setAttribute("aria-busy", "true");
-        refresh.innerHTML = '<span class="refresh-spinner" aria-hidden="true">↻</span><span>' + (forceRefresh ? "Обновление…" : "Загрузка…") + '</span>';
+        refresh.textContent = forceRefresh ? "Обновление…" : "Загрузка…";
       }
 
       var hasRenderedData =
@@ -1948,8 +1660,6 @@
       }).finally(function () {
         if (refresh) {
           refresh.disabled = false;
-          refresh.classList.remove("is-refreshing");
-          refresh.removeAttribute("aria-busy");
           refresh.textContent = "↻ Обновить";
         }
       });
@@ -2003,6 +1713,7 @@
 
   function gameActivity(user) {
     var refreshTimer = null;
+    var isManagement = user && user.role === "management";
 
     function stateLabel(state) {
       return state === "in_game" ? "В игре" : "Не в игре";
@@ -2047,7 +1758,7 @@
       }, type === "success" ? 3500 : 5000);
     }
 
-    function render(root, mine, control, keepContent) {
+    function render(root, mine, control) {
       var mineState =
         mine && mine.state === "in_game"
           ? "in_game"
@@ -2057,6 +1768,11 @@
         mine && mine.last_event
           ? mine.last_event
           : null;
+
+      var history =
+        mine && Array.isArray(mine.history)
+          ? mine.history
+          : [];
 
       var summary =
         control && control.summary
@@ -2104,6 +1820,31 @@
           '<tr><td colspan="4" class="table-empty">Других активных пользователей нет.</td></tr>';
       }
 
+      var historyRows = history.map(function (item) {
+        var state =
+          item && item.status === "in_game"
+            ? "in_game"
+            : "out_game";
+
+        return (
+          '<tr>' +
+            '<td>' +
+              E(item && item.event_at ? formatDateTime(item.event_at) : "—") +
+            '</td>' +
+            '<td><span class="badge ' +
+              stateClass(state) +
+            '">' +
+              E(eventLabel(state)) +
+            '</span></td>' +
+          '</tr>'
+        );
+      }).join("");
+
+      if (!historyRows) {
+        historyRows =
+          '<tr><td colspan="2" class="table-empty">История пока пуста.</td></tr>';
+      }
+
       var recentRows = recent.map(function (item) {
         var state =
           item && item.status === "in_game"
@@ -2130,91 +1871,115 @@
           '<tr><td colspan="3" class="table-empty">Событий пока нет.</td></tr>';
       }
 
-      var html =
-        '<div class="game-activity-grid">' +
-          '<section class="box game-activity-card">' +
-            '<div class="game-activity-head">' +
-              '<div><small>ИГРОВОЙ СТАТУС</small><h2>Ваш статус в игре</h2></div>' +
-              '<span class="badge ' +
-                stateClass(mineState) +
-              '">' +
-                E(stateLabel(mineState)) +
-              '</span>' +
-            '</div>' +
-            '<div class="game-activity-current">' +
-              '<div class="game-activity-current-icon">' +
-                (mineState === "in_game" ? "●" : "○") +
-              '</div>' +
-              '<div><strong>' +
-                E(stateLabel(mineState)) +
-                '</strong><span>' +
-                (
-                  lastEvent && lastEvent.event_at
-                    ? "Последнее изменение: " + E(formatDateTime(lastEvent.event_at))
-                    : "Вы ещё не отмечали вход или выход"
-                ) +
-              '</span></div>' +
-            '</div>' +
-            '<div class="game-activity-buttons">' +
-              '<button class="button button-primary" id="gameEnterButton" type="button"' +
-                (mineState === "in_game" ? " disabled" : "") +
-                '>Вошёл в игру</button>' +
-              '<button class="button button-secondary" id="gameExitButton" type="button"' +
-                (mineState !== "in_game" ? " disabled" : "") +
-                '>Вышел из игры</button>' +
-            '</div>' +
-            '<div class="game-activity-note">Нажмите кнопку только при фактическом входе или выходе из игры. Событие сохраняется в журнале.</div>' +
-          '</section>' +
+      var personalHtml =
+        '<div class="page-toolbar game-control-toolbar">' +
+          '<div><small>МОЯ ИСТОРИЯ</small><b>Входы и выходы</b></div>' +
+        '</div>' +
+        '<div class="box table-box game-activity-table-box">' +
+          '<table class="game-activity-table"><thead><tr>' +
+            '<th>Время</th><th>Событие</th>' +
+          '</tr></thead><tbody>' +
+            historyRows +
+          '</tbody></table>' +
+        '</div>';
 
-          '<div class="game-control-grid">' +
-            '<div class="box game-online-card">' +
-              '<small>СЕЙЧАС В ИГРЕ</small>' +
-              '<strong>' + E(String(summary.in_game == null ? 0 : summary.in_game)) + '</strong>' +
-              '<span>из ' + E(String(summary.total_active == null ? 0 : summary.total_active)) + ' остальных активных пользователей</span>' +
-            '</div>' +
-            '<div class="box game-online-card">' +
-              '<small>НЕ В ИГРЕ</small>' +
-              '<strong>' + E(String(summary.out_game == null ? 0 : summary.out_game)) + '</strong>' +
-              '<span>последний зафиксированный статус</span>' +
-            '</div>' +
-            '<div class="box game-online-card">' +
-              '<small>ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ</small>' +
-              '<strong>' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</strong>' +
-              '<span>данные системы</span>' +
-            '</div>' +
+      var managementHtml =
+        '<div class="game-control-grid">' +
+          '<div class="box game-online-card">' +
+            '<small>СЕЙЧАС В ИГРЕ</small>' +
+            '<strong>' + E(String(summary.in_game == null ? 0 : summary.in_game)) + '</strong>' +
+            '<span>из ' + E(String(summary.total_active == null ? 0 : summary.total_active)) + ' активных пользователей</span>' +
           '</div>' +
-
-          '<div class="page-toolbar game-control-toolbar">' +
-            '<div><small>КОНТРОЛЬ</small><b>Кто сейчас в игре</b></div>' +
-            '<button class="button button-secondary" id="gameActivityRefresh" type="button">↻ Обновить</button>' +
+          '<div class="box game-online-card">' +
+            '<small>НЕ В ИГРЕ</small>' +
+            '<strong>' + E(String(summary.out_game == null ? 0 : summary.out_game)) + '</strong>' +
+            '<span>последний зафиксированный статус</span>' +
           '</div>' +
-
-          '<div class="box table-box game-activity-table-box">' +
-            '<table class="game-activity-table"><thead><tr>' +
-              '<th>Никнейм</th><th>Должность</th><th>Статус</th><th>Последнее изменение</th>' +
-            '</tr></thead><tbody>' +
-              currentRows +
-            '</tbody></table>' +
+          '<div class="box game-online-card">' +
+            '<small>ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ</small>' +
+            '<strong>' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</strong>' +
+            '<span>данные системы</span>' +
           '</div>' +
+        '</div>' +
 
-          '<div class="page-toolbar game-control-toolbar">' +
-            '<div><small>ЖУРНАЛ</small><b>Последние входы и выходы</b></div>' +
+        '<div class="page-toolbar game-control-toolbar">' +
+          '<div><small>КОНТРОЛЬ</small><b>Кто сейчас в игре</b></div>' +
+          '<button class="button button-secondary" id="gameActivityRefresh" type="button">↻ Обновить</button>' +
+        '</div>' +
+
+        '<div class="box table-box game-activity-table-box">' +
+          '<table class="game-activity-table"><thead><tr>' +
+            '<th>Никнейм</th><th>Должность</th><th>Статус</th><th>Последнее изменение</th>' +
+          '</tr></thead><tbody>' +
+            currentRows +
+          '</tbody></table>' +
+        '</div>' +
+
+        '<div class="page-toolbar game-control-toolbar">' +
+          '<div><small>ЖУРНАЛ</small><b>Последние входы и выходы</b></div>' +
+        '</div>' +
+
+        '<div class="box table-box game-activity-table-box">' +
+          '<table class="game-activity-table"><thead><tr>' +
+            '<th>Время</th><th>Никнейм</th><th>Событие</th>' +
+          '</tr></thead><tbody>' +
+            recentRows +
+          '</tbody></table>' +
+        '</div>';
+
+      var managementStatusCard =
+        '<section class="box game-activity-card">' +
+          '<div class="game-activity-head">' +
+            '<div><small>ИГРОВОЙ СТАТУС</small><h2>Ваш статус в игре</h2></div>' +
+            '<span class="badge ' +
+              stateClass(mineState) +
+            '">' +
+              E(stateLabel(mineState)) +
+            '</span>' +
           '</div>' +
+          '<div class="game-activity-current">' +
+            '<div class="game-activity-current-icon">' +
+              (mineState === "in_game" ? "●" : "○") +
+            '</div>' +
+            '<div><strong>' +
+              E(stateLabel(mineState)) +
+              '</strong><span>' +
+              (
+                lastEvent && lastEvent.event_at
+                  ? "Последнее изменение: " + E(formatDateTime(lastEvent.event_at))
+                  : "Вы ещё не отмечали вход или выход"
+              ) +
+            '</span></div>' +
+          '</div>' +
+          '<div class="game-activity-buttons">' +
+            '<button class="button button-primary" id="gameEnterButton" type="button"' +
+              (mineState === "in_game" ? " disabled" : "") +
+              '>Вошёл в игру</button>' +
+            '<button class="button button-secondary" id="gameExitButton" type="button"' +
+              (mineState !== "in_game" ? " disabled" : "") +
+              '>Вышел из игры</button>' +
+          '</div>' +
+          '<div class="game-activity-note">Нажмите кнопку только при фактическом входе или выходе из игры. Событие сохраняется в журнале.</div>' +
+        '</section>';
 
-          '<div class="box table-box game-activity-table-box">' +
-            '<table class="game-activity-table"><thead><tr>' +
-              '<th>Время</th><th>Никнейм</th><th>Событие</th>' +
-            '</tr></thead><tbody>' +
-              recentRows +
-            '</tbody></table>' +
+      var personalButtons =
+        '<div class="box game-activity-personal-actions">' +
+          '<div class="game-activity-buttons">' +
+            '<button class="button button-primary" id="gameEnterButton" type="button"' +
+              (mineState === "in_game" ? " disabled" : "") +
+              '>Вошёл в игру</button>' +
+            '<button class="button button-secondary" id="gameExitButton" type="button"' +
+              (mineState !== "in_game" ? " disabled" : "") +
+              '>Вышел из игры</button>' +
           '</div>' +
         '</div>';
 
-      if (!keepContent) {
-        root.innerHTML = html;
-      } else {
-        root.innerHTML = html;
-      }
+      var html =
+        '<div class="game-activity-grid">' +
+          (isManagement ? managementStatusCard + managementHtml : personalButtons + personalHtml) +
+        '</div>';
+
+      root.innerHTML = html;
 
       var state = mineState;
 
@@ -2233,6 +1998,19 @@
         }
       }
 
+      function refreshAfterChange() {
+        if (isManagement) {
+          return Promise.all([
+            window.BR_API.gamePresenceMine(user.token),
+            window.BR_API.gamePresenceControl(user.token, 200)
+          ]);
+        }
+
+        return window.BR_API.gamePresenceMine(user.token).then(function (result) {
+          return [result, null];
+        });
+      }
+
       function setState(nextState) {
         setButtons(true);
 
@@ -2248,17 +2026,13 @@
               "success"
             );
 
-            return Promise.all([
-              window.BR_API.gamePresenceMine(user.token),
-              window.BR_API.gamePresenceControl(user.token, 200)
-            ]);
+            return refreshAfterChange();
           })
           .then(function (result) {
             render(
               root,
               result[0],
-              result[1],
-              false
+              result[1]
             );
           })
           .catch(function (error) {
@@ -2301,19 +2075,25 @@
           '<div class="box"><div class="empty">Загрузка контроля онлайна...</div></div>';
       }
 
-      Promise.all([
-        window.BR_API.gamePresenceMine(user.token),
-        window.BR_API.gamePresenceControl(user.token, 200)
-      ])
+      var request = isManagement
+        ? Promise.all([
+            window.BR_API.gamePresenceMine(user.token),
+            window.BR_API.gamePresenceControl(user.token, 200)
+          ])
+        : window.BR_API.gamePresenceMine(user.token).then(function (result) {
+            return [result, null];
+          });
+
+      request
         .then(function (result) {
-          render(root, result[0], result[1], silent);
+          render(root, result[0], result[1]);
         })
         .catch(function (error) {
           if (silent && root.innerHTML) {
             showToast(
               error && error.message
                 ? error.message
-                : "Не удалось обновить контроль онлайна.",
+                : "Не удалось обновить историю входа в игру.",
               "error"
             );
             return;
@@ -2323,14 +2103,16 @@
             '<div class="box"><div class="empty">' +
               E(error && error.message
                 ? error.message
-                : "Не удалось загрузить контроль онлайна.") +
+                : "Не удалось загрузить историю входа в игру.") +
             '</div></div>';
         });
     }
 
     return {
       title: "Вход и контроль игры",
-      subtitle: "Отметьте свой вход или выход и смотрите статус всех остальных пользователей с активным доступом",
+      subtitle: isManagement
+        ? "Отметьте свой вход или выход и контролируйте статус остальных пользователей"
+        : "Отметьте свой вход или выход и просматривайте только свою историю",
       render: function () {
         return (
           '<div id="gameActivityRoot">' +
@@ -2369,14 +2151,64 @@
       }[value] || value || "—";
     }
 
+    function moscowDateTime(value) {
+      if (!value) return "—";
+      var date = new Date(value);
+      if (!Number.isFinite(date.getTime())) return "—";
+      return date.toLocaleString("ru-RU", {
+        timeZone: "Europe/Moscow",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function moscowInputValue(offsetMinutes) {
+      var date = new Date(Date.now() + Number(offsetMinutes || 0) * 60000);
+      var parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Moscow",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).formatToParts(date);
+      var map = {};
+      parts.forEach(function (part) {
+        map[part.type] = part.value;
+      });
+      return map.year + "-" + map.month + "-" + map.day + "T" + map.hour + ":" + map.minute;
+    }
+
+    function parseMoscowInput(value) {
+      var raw = String(value || "").trim();
+      if (!raw) return null;
+      var date = new Date(raw + ":00+03:00");
+      return Number.isFinite(date.getTime()) ? date : null;
+    }
+
+    function reminderLabel(value) {
+      return {
+        1440: "за 24 часа",
+        180: "за 3 часа",
+        30: "за 30 минут"
+      }[Number(value)] || ("за " + value + " мин.");
+    }
+
     return {
       title: "Уведомления",
-      subtitle: "Новости, объявления и сообщения администрации",
+      subtitle: "Новости, объявления и умные напоминания администрации",
       render: function () {
-        var create = user.role === "management"
+        var createControls = user.role === "management"
           ? '<div class="page-toolbar">' +
-              '<div><small>УПРАВЛЕНИЕ</small><b>Центр уведомлений</b></div>' +
-              '<button class="button button-primary" id="openNotificationForm" type="button">＋ Создать уведомление</button>' +
+              '<div><small>УПРАВЛЕНИЕ</small><b>Центр уведомлений</b><span class="muted">Мероприятия автоматически напомнят участникам о сборе.</span></div>' +
+              '<div class="page-toolbar-actions">' +
+                '<button class="button button-secondary" id="openNotificationForm" type="button">＋ Уведомление</button>' +
+                '<button class="button button-primary" id="openEventForm" type="button">＋ Создать сбор</button>' +
+              '</div>' +
             '</div>' +
             '<div id="notificationCreateRoot" class="box compact-box notification-create-root" hidden>' +
               '<form id="notificationForm">' +
@@ -2391,11 +2223,39 @@
                   '<button class="button button-secondary" id="cancelNotification" type="button">Отмена</button>' +
                 '</div>' +
               '</form>' +
+            '</div>' +
+            '<div id="eventCreateRoot" class="box compact-box notification-create-root event-create-root" hidden>' +
+              '<form id="eventForm">' +
+                '<div class="form-grid">' +
+                  '<div class="form-field"><label>Название сбора</label><input id="eTitle" class="form-input" maxlength="160" required placeholder="Например: Общий сбор администрации"></div>' +
+                  '<div class="form-field"><label>Получатели</label><select id="eTarget" class="form-select"><option value="all">Вся администрация</option><option value="admin">Только администраторы</option><option value="management">Только руководство</option></select></div>' +
+                  '<div class="form-field form-full"><label>Дата и время (МСК)</label><input id="eAt" class="form-input" type="datetime-local" required></div>' +
+                  '<div class="form-field form-full"><label>Задание / описание <span class="muted">необязательно</span></label><textarea id="eText" class="form-textarea" maxlength="5000" placeholder="Что нужно подготовить или сделать на сборе"></textarea></div>' +
+                  '<div class="form-field form-full"><label>Напоминания</label>' +
+                    '<div class="event-reminder-options">' +
+                      '<label class="event-reminder-option"><input id="eReminder24" type="checkbox" value="1440" checked><span>За 24 часа</span></label>' +
+                      '<label class="event-reminder-option"><input id="eReminder3" type="checkbox" value="180" checked><span>За 3 часа</span></label>' +
+                      '<label class="event-reminder-option"><input id="eReminder30" type="checkbox" value="30" checked><span>За 30 минут</span></label>' +
+                    '</div>' +
+                    '<span class="field-hint">Напоминание появится в личном кабинете выбранных получателей.</span>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="form-actions">' +
+                  '<button class="button button-primary" type="submit">Создать сбор</button>' +
+                  '<button class="button button-secondary" id="cancelEvent" type="button">Отмена</button>' +
+                '</div>' +
+              '</form>' +
             '</div>'
           : '';
 
-        return create +
-          '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>';
+        return createControls +
+          (user.role === "management"
+            ? '<div id="pushStatusRoot" class="push-status-root"><div class="box"><div class="empty">Загрузка статуса push-подписок...</div></div></div>'
+            : '') +
+          '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>' +
+          (user.role === "management"
+            ? '<div id="eventsRoot" class="events-root"><div class="box"><div class="empty">Загрузка мероприятий...</div></div></div>'
+            : '');
       },
       bind: function () {
         var open = document.getElementById("openNotificationForm");
@@ -2403,10 +2263,23 @@
         var cancel = document.getElementById("cancelNotification");
         var form = document.getElementById("notificationForm");
 
+        var openEvent = document.getElementById("openEventForm");
+        var eventRoot = document.getElementById("eventCreateRoot");
+        var cancelEvent = document.getElementById("cancelEvent");
+        var eventForm = document.getElementById("eventForm");
+        var eventAt = document.getElementById("eAt");
+
+        if (eventAt) {
+          eventAt.min = moscowInputValue(60);
+          eventAt.value = moscowInputValue(120);
+        }
+
         if (open && root) {
           open.onclick = function () {
+            if (eventRoot) eventRoot.hidden = true;
             root.hidden = false;
             open.hidden = true;
+            if (openEvent) openEvent.hidden = false;
             var title = document.getElementById("nTitle");
             if (title) title.focus();
           };
@@ -2419,62 +2292,272 @@
           };
         }
 
-        if (!form) return;
+        if (openEvent && eventRoot) {
+          openEvent.onclick = function () {
+            if (root) root.hidden = true;
+            if (open) open.hidden = false;
+            eventRoot.hidden = false;
+            openEvent.hidden = true;
+            if (eventAt) {
+              eventAt.min = moscowInputValue(30);
+              if (!eventAt.value) eventAt.value = moscowInputValue(120);
+            }
+            var title = document.getElementById("eTitle");
+            if (title) title.focus();
+          };
+        }
 
-        form.onsubmit = async function (event) {
-          event.preventDefault();
+        if (cancelEvent && eventRoot && openEvent) {
+          cancelEvent.onclick = function () {
+            eventRoot.hidden = true;
+            openEvent.hidden = false;
+          };
+        }
 
-          var title = document.getElementById("nTitle").value.trim();
-          var text = document.getElementById("nText").value.trim();
-          var target = document.getElementById("nTarget").value;
-          var expiresInput = document.getElementById("nExpires").value;
-          var submit = form.querySelector("button[type=submit]");
+        if (form) {
+          form.onsubmit = async function (event) {
+            event.preventDefault();
 
-          if (!title || !text) return;
+            var title = document.getElementById("nTitle").value.trim();
+            var text = document.getElementById("nText").value.trim();
+            var target = document.getElementById("nTarget").value;
+            var expiresInput = document.getElementById("nExpires").value;
+            var submit = form.querySelector("button[type=submit]");
 
-          var expiresAt = "";
-          if (expiresInput) {
-            var expiration = new Date(expiresInput);
-            if (!Number.isFinite(expiration.getTime())) {
-              alert("Некорректная дата окончания уведомления.");
+            if (!title || !text) return;
+
+            var expiresAt = "";
+            if (expiresInput) {
+              var expiration = new Date(expiresInput);
+              if (!Number.isFinite(expiration.getTime())) {
+                alert("Некорректная дата окончания уведомления.");
+                return;
+              }
+              expiresAt = expiration.toISOString();
+            }
+
+            if (submit) {
+              submit.disabled = true;
+              submit.textContent = "Публикация…";
+            }
+
+            try {
+              await window.BR_API.notificationCreate(
+                user.token,
+                title,
+                text,
+                target,
+                expiresAt
+              );
+              form.reset();
+              if (root && open) {
+                root.hidden = true;
+                open.hidden = false;
+              }
+              await loadNotifications();
+            } catch (e) {
+              alert(e.message || "Не удалось опубликовать уведомление.");
+            } finally {
+              if (submit) {
+                submit.disabled = false;
+                submit.textContent = "Опубликовать";
+              }
+            }
+          };
+        }
+
+        if (eventForm) {
+          eventForm.onsubmit = async function (event) {
+            event.preventDefault();
+
+            var title = document.getElementById("eTitle").value.trim();
+            var text = document.getElementById("eText").value.trim();
+            var target = document.getElementById("eTarget").value;
+            var parsedEventAt = parseMoscowInput(document.getElementById("eAt").value);
+            var reminderOffsets = [];
+
+            ["eReminder24", "eReminder3", "eReminder30"].forEach(function (id) {
+              var checkbox = document.getElementById(id);
+              if (checkbox && checkbox.checked) reminderOffsets.push(Number(checkbox.value));
+            });
+
+            if (!title || !parsedEventAt) {
+              alert("Укажите название и корректное время сбора.");
               return;
             }
-            expiresAt = expiration.toISOString();
-          }
 
-          if (submit) {
-            submit.disabled = true;
-            submit.textContent = "Публикация…";
-          }
-
-          try {
-            await window.BR_API.notificationCreate(
-              user.token,
-              title,
-              text,
-              target,
-              expiresAt
-            );
-            form.reset();
-            if (root && open) {
-              root.hidden = true;
-              open.hidden = false;
+            if (!reminderOffsets.length) {
+              alert("Выберите хотя бы одно напоминание.");
+              return;
             }
-            await loadNotifications();
-          } catch (e) {
-            alert(e.message || "Не удалось опубликовать уведомление.");
-          } finally {
+
+            var submit = eventForm.querySelector("button[type=submit]");
             if (submit) {
-              submit.disabled = false;
-              submit.textContent = "Опубликовать";
+              submit.disabled = true;
+              submit.textContent = "Создание…";
             }
-          }
-        };
+
+            try {
+              await window.BR_API.eventCreate(
+                user.token,
+                title,
+                text,
+                parsedEventAt.toISOString(),
+                target,
+                reminderOffsets
+              );
+
+              eventForm.reset();
+              ["eReminder24", "eReminder3", "eReminder30"].forEach(function (id) {
+                var checkbox = document.getElementById(id);
+                if (checkbox) checkbox.checked = true;
+              });
+              if (eventAt) {
+                eventAt.min = moscowInputValue(30);
+                eventAt.value = moscowInputValue(120);
+              }
+              if (eventRoot && openEvent) {
+                eventRoot.hidden = true;
+                openEvent.hidden = false;
+              }
+              await loadEvents();
+            } catch (e) {
+              alert(e.message || "Не удалось создать сбор.");
+            } finally {
+              if (submit) {
+                submit.disabled = false;
+                submit.textContent = "Создать сбор";
+              }
+            }
+          };
+        }
       },
       load: async function () {
         await loadNotifications();
+        if (user.role === "management") {
+          await loadPushStatusAll();
+          await loadEvents();
+        }
       }
     };
+
+    async function loadPushStatusAll() {
+      var root = document.getElementById("pushStatusRoot");
+      if (!root || user.role !== "management") return;
+
+      try {
+        var result = await window.BR_API.pushStatusAll(user.token);
+        var list = Array.isArray(result.administrators)
+          ? result.administrators
+          : [];
+
+        var enabled = list.filter(function (item) {
+          return !!item.enabled;
+        }).length;
+
+        list.sort(function (a, b) {
+          var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === String(a.position || "").trim().toLowerCase(); });
+          var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === String(b.position || "").trim().toLowerCase(); });
+          return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) ||
+            String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
+        });
+
+        var rows = list.length
+          ? list.map(function (item) {
+              var devices = Array.isArray(item.devices)
+                ? item.devices.map(function (device) {
+                    return device === "phone"
+                      ? "Android"
+                      : device === "computer"
+                        ? "Windows / ПК"
+                        : device;
+                  })
+                : [];
+
+              var status = item.enabled
+                ? '<span class="badge badge-green">Включены</span>'
+                : '<span class="badge badge-red">Выключены</span>';
+
+              return '<tr data-push-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-push-position="' + E(item.position || "") + '" data-push-enabled="' + (item.enabled ? 'yes' : 'no') + '">' +
+                '<td><b>' + E(item.nickname) + '</b></td>' +
+                '<td>' + E(item.position || "—") + '</td>' +
+                '<td>' + status + '</td>' +
+                '<td>' + E(devices.length ? devices.join(" • ") : "—") + '</td>' +
+              '</tr>';
+            }).join("")
+          : '<tr><td colspan="4">Активных аккаунтов нет.</td></tr>';
+
+        root.innerHTML =
+          '<div class="page-toolbar push-status-head">' +
+            '<div><small>СОСТОЯНИЕ PUSH</small><b>Подписки администрации</b><span class="muted">Подписка хранится отдельно для каждого устройства.</span></div>' +
+            '<div class="push-status-head-actions">' +
+              '<span class="badge badge-blue">' + E(String(enabled)) + ' из ' + E(String(list.length)) + ' подключили</span>' +
+              '<button class="button button-secondary" id="refreshPushStatus" type="button">Обновить</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="box table-box push-status-table-box">' +
+            '<div class="push-roster-filters">' +
+              '<input id="pushRosterSearch" class="form-input" type="search" placeholder="Поиск по никнейму" aria-label="Поиск по никнейму">' +
+              '<select id="pushRosterPosition" class="form-select" aria-label="Должность"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).map(function (position) { return '<option value="' + E(position) + '">' + E(position) + '</option>'; }).join('') + '</select>' +
+              '<select id="pushRosterStatus" class="form-select" aria-label="Push-статус"><option value="">Любой Push-статус</option><option value="yes">Включены</option><option value="no">Выключены</option></select>' +
+              '<select id="pushRosterSort" class="form-select" aria-label="Сортировка"><option value="position">Должность: старшие сначала</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option></select>' +
+            '</div>' +
+            '<table id="pushRosterTable">' +
+              '<thead><tr><th>Никнейм</th><th>Должность</th><th>Push</th><th>Устройства</th></tr></thead>' +
+              '<tbody>' + rows + '</tbody>' +
+            '</table>' +
+          '</div>';
+
+        function applyPushRoster() {
+          var query = document.getElementById("pushRosterSearch").value.trim().toLowerCase();
+          var position = document.getElementById("pushRosterPosition").value;
+          var status = document.getElementById("pushRosterStatus").value;
+          document.querySelectorAll("#pushRosterTable tbody tr[data-push-nickname]").forEach(function (row) {
+            row.style.display = (!query || row.dataset.pushNickname.indexOf(query) !== -1) &&
+              (!position || row.dataset.pushPosition === position) &&
+              (!status || row.dataset.pushEnabled === status) ? "" : "none";
+          });
+        }
+        ["pushRosterSearch", "pushRosterPosition", "pushRosterStatus"].forEach(function (id) {
+          document.getElementById(id).addEventListener(id === "pushRosterSearch" ? "input" : "change", applyPushRoster);
+        });
+        document.getElementById("pushRosterSort").onchange = function () {
+          var mode = this.value;
+          var tbody = document.querySelector("#pushRosterTable tbody");
+          var rows = Array.from(tbody.querySelectorAll("tr[data-push-nickname]"));
+          rows.sort(function (a, b) {
+            if (mode === "nickname" || mode === "nickname_desc") {
+              var nameDiff = a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
+              return mode === "nickname_desc" ? -nameDiff : nameDiff;
+            }
+            var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === a.dataset.pushPosition.toLowerCase(); });
+            var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === b.dataset.pushPosition.toLowerCase(); });
+            return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) || a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
+          });
+          rows.forEach(function (row) { tbody.appendChild(row); });
+        };
+
+        var refresh = document.getElementById("refreshPushStatus");
+        if (refresh) {
+          refresh.onclick = async function () {
+            refresh.disabled = true;
+            refresh.textContent = "Обновление…";
+            try {
+              await loadPushStatusAll();
+            } finally {
+              refresh.disabled = false;
+            }
+          };
+        }
+      } catch (error) {
+        root.innerHTML =
+          '<div class="box">' +
+            '<div class="empty">Не удалось загрузить статус push-подписок: ' +
+              E(error.message || "Ошибка") +
+            '</div>' +
+          '</div>';
+      }
+    }
 
     async function loadNotifications() {
       var root = document.getElementById("notificationsRoot");
@@ -2524,6 +2607,7 @@
             try {
               await window.BR_API.notificationRead(user.token, Number(button.dataset.readNotification));
               await loadNotifications();
+              window.dispatchEvent(new Event("br:notifications-updated"));
             } catch (e) {
               alert(e.message || "Не удалось отметить уведомление.");
               button.disabled = false;
@@ -2548,467 +2632,115 @@
         root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить уведомления.") + '</div></div>';
       }
     }
-  }
 
-  function requestStatusBadge(status) {
-    var map = {
-      pending: ["На рассмотрении", "badge-yellow"],
-      approved: ["Одобрено", "badge-green"],
-      rejected: ["Отклонено", "badge-red"]
-    };
-    var value = map[String(status || "").toLowerCase()] || ["Неизвестно", ""];
-    return '<span class="badge ' + value[1] + '">' + E(value[0]) + '</span>';
-  }
+    async function loadEvents() {
+      var root = document.getElementById("eventsRoot");
+      if (!root) return;
 
-  function inactiveTypeLabel(value) {
-    return String(value || "").toLowerCase() === "group"
-      ? "Групповой"
-      : "Одиночный";
-  }
+      try {
+        var result = await window.BR_API.eventsList(user.token);
+        var list = Array.isArray(result.events) ? result.events : [];
 
-  function inactiveRequestPeriod(item) {
-    var start = String(item && item.start_date || "");
-    var end = String(item && item.end_date || "");
-    if (!start) return "—";
-    return start === end ? formatDateNumeric(start) : (
-      formatDateNumeric(start) + " — " + formatDateNumeric(end)
-    );
+        if (!list.length) {
+          root.innerHTML = '<div class="page-toolbar event-list-head"><div><small>МЕРОПРИЯТИЯ</small><b>Запланированных сборов нет</b></div></div>';
+          return;
+        }
+
+        var cards = list.map(function (item) {
+          var cancelled = !!item.cancelled_at;
+          var reminderText = Array.isArray(item.reminder_offsets)
+            ? item.reminder_offsets.map(reminderLabel).join(" • ")
+            : "—";
+          var action = cancelled
+            ? '<span class="badge">Отменено</span>'
+            : '<button class="small-button notification-delete" data-cancel-event="' + E(item.id) + '">Отменить</button>';
+
+          return '<article class="event-card' + (cancelled ? ' event-card-cancelled' : '') + '">' +
+            '<div class="event-card-head">' +
+              '<div><small>СБОР</small><h3>' + E(item.title) + '</h3>' +
+              '<div class="notification-meta">' + E(moscowDateTime(item.event_at)) + ' МСК • ' + E(targetLabel(item.target_role)) + '</div></div>' +
+              '<div class="notification-actions">' + action + '</div>' +
+            '</div>' +
+            (item.body ? '<div class="notification-text">' + E(item.body) + '</div>' : '') +
+            '<div class="event-card-reminders"><span>Напоминания: ' + E(reminderText) + '</span></div>' +
+          '</article>';
+        }).join("");
+
+        root.innerHTML =
+          '<div class="page-toolbar event-list-head"><div><small>МЕРОПРИЯТИЯ</small><b>Сборы и расписание</b></div><span class="muted">' + E(String(list.length)) + ' мероприятий</span></div>' +
+          '<div class="event-list">' + cards + '</div>';
+
+        document.querySelectorAll("[data-cancel-event]").forEach(function (button) {
+          button.onclick = async function () {
+            if (!confirm("Отменить этот сбор?")) return;
+            button.disabled = true;
+            try {
+              await window.BR_API.eventDelete(user.token, Number(button.dataset.cancelEvent));
+              await loadEvents();
+            } catch (e) {
+              alert(e.message || "Не удалось отменить сбор.");
+              button.disabled = false;
+            }
+          };
+        });
+      } catch (error) {
+        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить мероприятия.") + '</div></div>';
+      }
+    }
   }
 
   function requests(user) {
-    var inactiveList = [];
-    var generalList = [];
-    var activeSection = "inactive";
-
-    function renderInactiveRows() {
-      var body = document.getElementById("inactiveRequestsMineRoot");
-      if (!body) return;
-
-      if (!inactiveList.length) {
-        body.innerHTML = '<div class="box"><div class="empty">Заявок на неактив пока нет.</div></div>';
-        return;
-      }
-
-      var rows = inactiveList.map(function (item) {
-        return '<tr>' +
-          '<td>' + E(inactiveTypeLabel(item.inactive_type)) + '</td>' +
-          '<td>' + E(inactiveRequestPeriod(item)) + '</td>' +
-          '<td>' + requestStatusBadge(item.status) + '</td>' +
-          '<td>' + E(item.reason || "—") + '</td>' +
-          '<td>' + E(item.review_comment || "—") + '</td>' +
-        '</tr>';
-      }).join("");
-
-      body.innerHTML =
-        '<div class="box table-box"><table>' +
-          '<thead><tr><th>Тип</th><th>Период</th><th>Статус</th><th>Причина</th><th>Комментарий руководства</th></tr></thead>' +
-          '<tbody>' + rows + '</tbody>' +
-        '</table></div>';
-    }
-
-    function generalStatusBadge(status) {
-      return String(status || "") === "answered"
-        ? '<span class="badge badge-green">Отвечено</span>'
-        : '<span class="badge badge-yellow">На рассмотрении</span>';
-    }
-
-    function generalTypeLabel(type) {
-      var value = String(type || "").toLowerCase();
-      if (value === "complaint") return "Жалоба";
-      if (value === "suggestion") return "Предложение";
-      return "Вопрос";
-    }
-
-    function renderGeneralRows() {
-      var body = document.getElementById("generalRequestsMineRoot");
-      if (!body) return;
-
-      if (!generalList.length) {
-        body.innerHTML = '<tr><td colspan="5">Обращений пока нет.</td></tr>';
-        return;
-      }
-
-      body.innerHTML = generalList.map(function (item) {
-        return '<tr>' +
-          '<td>' + E(generalTypeLabel(item.request_type)) + '</td>' +
-          '<td>' + E(item.created_at ? formatDateTime(item.created_at) : "—") + '</td>' +
-          '<td>' + E(item.message || "—") + '</td>' +
-          '<td>' + generalStatusBadge(item.status) + '</td>' +
-          '<td>' + E(item.management_comment || "—") + '</td>' +
-        '</tr>';
-      }).join("");
-    }
-
-    function loadInactiveRequests() {
-      return window.BR_API.inactiveRequestsMine(user.token).then(function (result) {
-        inactiveList = Array.isArray(result && result.requests) ? result.requests : [];
-        renderInactiveRows();
-      }).catch(function (error) {
-        var body = document.getElementById("inactiveRequestsMineRoot");
-        if (body) {
-          body.innerHTML = '<div class="box"><div class="empty">' +
-            E(error.message || "Не удалось загрузить заявки на неактив.") +
-            '</div></div>';
-        }
-      });
-    }
-
-    function loadGeneralRequests() {
-      return window.BR_API.generalRequestsMine(user.token).then(function (result) {
-        generalList = Array.isArray(result && result.requests) ? result.requests : [];
-        renderGeneralRows();
-      }).catch(function (error) {
-        var body = document.getElementById("generalRequestsMineRoot");
-        if (body) {
-          body.innerHTML = '<tr><td colspan="5">' +
-            E(error.message || "Не удалось загрузить обращения.") +
-            '</td></tr>';
-        }
-      });
-    }
-
-    function renderSection() {
-      var inactivePanel = document.getElementById("requestsInactivePanel");
-      var generalPanel = document.getElementById("requestsGeneralPanel");
-      var inactiveButton = document.getElementById("requestsSectionInactive");
-      var generalButton = document.getElementById("requestsSectionGeneral");
-      var showInactive = activeSection === "inactive";
-
-      if (inactivePanel) inactivePanel.hidden = !showInactive;
-      if (generalPanel) generalPanel.hidden = showInactive;
-      if (inactiveButton) inactiveButton.classList.toggle("is-active", showInactive);
-      if (generalButton) generalButton.classList.toggle("is-active", !showInactive);
-    }
-
-    function syncInactiveType() {
-      var inactiveType = document.getElementById("inactiveRequestType");
-      var start = document.getElementById("inactiveStartDate");
-      var endField = document.getElementById("inactiveEndField");
-      var end = document.getElementById("inactiveEndDate");
-      var isGroup = inactiveType && inactiveType.value === "group";
-
-      if (endField) {
-        endField.hidden = !isGroup;
-        endField.style.display = isGroup ? "" : "none";
-      }
-
-      if (start && end && !isGroup) {
-        end.value = start.value;
-      }
-
-      if (end) end.required = !!isGroup;
-    }
-
     return {
       title: "Мои обращения",
-      subtitle: "Неактивы и обращения к руководству",
+      subtitle: "Обращения к руководству",
       render: function () {
-        return '<div class="box"><div class="stats-toolbar-actions">' +
-          '<button class="button button-secondary is-active" id="requestsSectionInactive" type="button">Неактивы</button>' +
-          '<button class="button button-secondary" id="requestsSectionGeneral" type="button">Обращения</button>' +
-        '</div></div>' +
+        var list = localList("br_requests").filter(function (item) {
+          return item.nickname === user.nickname;
+        });
 
-        '<section id="requestsInactivePanel">' +
-          '<div class="box">' +
-            '<div class="page-toolbar"><div><small>НЕАКТИВЫ</small><b>Подать неактив</b></div></div>' +
-            '<form id="inactiveRequestForm">' +
-              '<div class="form-grid">' +
-                '<div class="form-field"><label>Тип неактива</label>' +
-                  '<select id="inactiveRequestType" class="form-select">' +
-                    '<option value="single">Одиночный — 1 день</option>' +
-                    '<option value="group">Групповой — несколько дней</option>' +
-                  '</select>' +
-                '</div>' +
-                '<div class="form-field"><label>Дата неактива</label><input id="inactiveStartDate" class="form-input" type="date" value="' + dateIso(0) + '" required></div>' +
-                '<div id="inactiveEndField" class="form-field" hidden style="display:none"><label>Дата окончания</label><input id="inactiveEndDate" class="form-input" type="date" value="' + dateIso(0) + '"></div>' +
-                '<div class="form-field form-full"><label>Причина</label><textarea id="inactiveReason" class="form-textarea" required placeholder="Почему нужен неактив"></textarea></div>' +
-              '</div>' +
-              '<div class="form-actions"><button class="button button-primary" type="submit">Отправить руководству</button></div>' +
-            '</form>' +
-          '</div>' +
-          '<div class="page-toolbar"><div><small>ИСТОРИЯ</small><b>Мои заявки на неактив</b></div></div>' +
-          '<div id="inactiveRequestsMineRoot"><div class="box"><div class="empty">Загрузка заявок...</div></div></div>' +
-        '</section>' +
+        var rows = list.length ? list.map(function (item) {
+          return '<tr><td>' + E(item.type) + '</td><td>' + E(item.date) + '</td><td>' +
+            E(item.status) + '</td><td>' + E(item.text) + '</td></tr>';
+        }).join("") : '<tr><td colspan="4">Обращений пока нет.</td></tr>';
 
-        '<section id="requestsGeneralPanel" hidden>' +
-          '<div class="box">' +
-            '<div class="page-toolbar"><div><small>ОБРАЩЕНИЯ</small><b>Подать обращение</b></div></div>' +
-            '<form id="requestForm">' +
-              '<div class="form-grid">' +
-                '<div class="form-field"><label>Тип обращения</label>' +
-                  '<select id="requestType" class="form-select">' +
-                    '<option>Вопрос</option><option>Жалоба</option><option>Предложение</option>' +
-                  '</select>' +
-                '</div>' +
-                '<div class="form-field form-full"><label>Текст обращения</label><textarea id="requestText" class="form-textarea" required placeholder="Опишите обращение"></textarea></div>' +
-              '</div>' +
-              '<div class="form-actions"><button class="button button-primary" type="submit">Отправить обращение</button></div>' +
-            '</form>' +
-          '</div>' +
-          '<div class="page-toolbar"><div><small>ИСТОРИЯ</small><b>Мои обращения</b></div></div>' +
-          '<div class="box table-box"><table>' +
-            '<thead><tr><th>Тип</th><th>Дата</th><th>Текст</th><th>Статус</th><th>Комментарий руководства</th></tr></thead>' +
-            '<tbody id="generalRequestsMineRoot"><tr><td colspan="5">Загрузка обращений...</td></tr></tbody>' +
-          '</table></div>' +
-        '</section>';
+        return '<div class="box"><form id="requestForm"><div class="form-grid">' +
+          '<div class="form-field"><label>Тип обращения</label><select id="requestType" class="form-select"><option>Вопрос</option><option>Неактив</option><option>Жалоба</option><option>Предложение</option></select></div>' +
+          '<div class="form-field form-full"><label>Текст</label><textarea id="requestText" class="form-textarea" required></textarea></div>' +
+          '</div><button class="button button-primary" type="submit">Отправить обращение</button></form></div>' +
+          '<div class="box table-box spaced-box"><table><thead><tr><th>Тип</th><th>Дата</th><th>Статус</th><th>Текст</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
       },
-
       bind: function () {
-        var inactiveForm = document.getElementById("inactiveRequestForm");
-        var generalForm = document.getElementById("requestForm");
-        var inactiveType = document.getElementById("inactiveRequestType");
-        var startDate = document.getElementById("inactiveStartDate");
-        var endDate = document.getElementById("inactiveEndDate");
-        var inactiveButton = document.getElementById("requestsSectionInactive");
-        var generalButton = document.getElementById("requestsSectionGeneral");
-
-        function setSection(section) {
-          activeSection = section === "general" ? "general" : "inactive";
-          renderSection();
-        }
-
-        if (inactiveButton) inactiveButton.onclick = function () { setSection("inactive"); };
-        if (generalButton) generalButton.onclick = function () { setSection("general"); };
-        if (inactiveType) inactiveType.onchange = syncInactiveType;
-
-        if (startDate) {
-          startDate.onchange = function () {
-            if (inactiveType && inactiveType.value === "group" && endDate && endDate.value && endDate.value < startDate.value) {
-              endDate.value = startDate.value;
-            }
-            syncInactiveType();
-          };
-        }
-
-        if (endDate) {
-          endDate.onchange = function () {
-            if (startDate && endDate.value && endDate.value < startDate.value) {
-              endDate.value = startDate.value;
-            }
-          };
-        }
-
-        if (inactiveForm) {
-          inactiveForm.onsubmit = async function (event) {
-            event.preventDefault();
-            var button = inactiveForm.querySelector("button[type=submit]");
-            if (button) { button.disabled = true; button.textContent = "Отправка…"; }
-
-            try {
-              var type = inactiveType ? inactiveType.value : "single";
-              var start = startDate ? startDate.value : "";
-              var end = type === "single" ? start : (endDate ? endDate.value : "");
-
-              if (!start) throw new Error("Укажите дату неактива.");
-              if (type === "group" && (!end || end < start)) throw new Error("Укажите корректный период неактива.");
-
-              var overlapCheck = await window.BR_API.inactiveRequestOverlapCheck(user.token, start, end);
-
-              if (overlapCheck && overlapCheck.has_overlap) {
-                throw new Error("У вас уже есть одобренный неактив, пересекающийся с выбранным периодом.");
-              }
-
-              await window.BR_API.inactiveRequestCreate(
-                user.token,
-                type,
-                start,
-                end,
-                document.getElementById("inactiveReason").value.trim()
-              );
-
-              alert("Заявка на неактив отправлена руководству.");
-              inactiveForm.reset();
-              if (startDate) startDate.value = dateIso(0);
-              if (endDate) endDate.value = dateIso(0);
-              syncInactiveType();
-              await loadInactiveRequests();
-            } catch (error) {
-              alert(error.message || "Не удалось отправить заявку на неактив.");
-            } finally {
-              if (button) { button.disabled = false; button.textContent = "Отправить руководству"; }
-            }
-          };
-        }
-
-        if (generalForm) {
-          generalForm.onsubmit = async function (event) {
-            event.preventDefault();
-            var button = generalForm.querySelector("button[type=submit]");
-            if (button) { button.disabled = true; button.textContent = "Отправка…"; }
-
-            try {
-              var type = document.getElementById("requestType").value;
-              var message = document.getElementById("requestText").value.trim();
-              if (!message) throw new Error("Введите текст обращения.");
-
-              await window.BR_API.generalRequestCreate(user.token, type, message);
-
-              alert("Обращение отправлено руководству.");
-              generalForm.reset();
-              await loadGeneralRequests();
-            } catch (error) {
-              alert(error.message || "Не удалось отправить обращение.");
-            } finally {
-              if (button) { button.disabled = false; button.textContent = "Отправить обращение"; }
-            }
-          };
-        }
-
-        syncInactiveType();
-        renderSection();
-        loadInactiveRequests();
-        loadGeneralRequests();
+        document.getElementById("requestForm").onsubmit = function (event) {
+          event.preventDefault();
+          var list = localList("br_requests");
+          list.unshift({
+            nickname: user.nickname,
+            type: document.getElementById("requestType").value,
+            date: new Date().toLocaleDateString("ru-RU"),
+            status: "На рассмотрении",
+            text: document.getElementById("requestText").value.trim()
+          });
+          save("br_requests", list.slice(0, 200));
+          location.reload();
+        };
       }
     };
   }
 
   function requestsAll() {
-    var list = [];
-    var currentStatus = "";
-
-    function render() {
-      var root = document.getElementById("inactiveRequestsAllRoot");
-      if (!root) return;
-
-      var filtered = currentStatus
-        ? list.filter(function (item) { return item.status === currentStatus; })
-        : list.slice();
-
-      if (!filtered.length) {
-        root.innerHTML = '<div class="box"><div class="empty">Заявок по выбранному фильтру нет.</div></div>';
-        return;
-      }
-
-      var rows = filtered.map(function (item) {
-        var actions = item.status === "pending"
-          ? '<div class="form-actions">' +
-              '<button class="small-button" data-inactive-approve="' + E(item.id) + '">Одобрить</button>' +
-              '<button class="small-button" data-inactive-reject="' + E(item.id) + '">Отклонить</button>' +
-            '</div>'
-          : '<span class="muted">' +
-              (item.reviewed_at ? E(formatDateTime(item.reviewed_at)) : "Рассмотрено") +
-            '</span>';
-
-        return '<tr>' +
-          '<td>' + E(item.nickname) + '</td>' +
-          '<td>' + E(inactiveTypeLabel(item.inactive_type)) + '</td>' +
-          '<td>' + E(inactiveRequestPeriod(item)) + '</td>' +
-          '<td>' + E(item.reason || "—") + '</td>' +
-          '<td>' + requestStatusBadge(item.status) + '</td>' +
-          '<td>' + E(item.review_comment || "—") + '</td>' +
-          '<td>' + actions + '</td>' +
-        '</tr>';
-      }).join("");
-
-      root.innerHTML =
-        '<div class="box table-box">' +
-          '<table>' +
-            '<thead><tr><th>Никнейм</th><th>Тип</th><th>Период</th><th>Причина</th><th>Статус</th><th>Комментарий</th><th>Действие</th></tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-          '</table>' +
-        '</div>';
-
-      Array.from(root.querySelectorAll("[data-inactive-approve]")).forEach(function (button) {
-        button.onclick = function () {
-          review(Number(button.getAttribute("data-inactive-approve")), "approved");
-        };
-      });
-
-      Array.from(root.querySelectorAll("[data-inactive-reject]")).forEach(function (button) {
-        button.onclick = function () {
-          review(Number(button.getAttribute("data-inactive-reject")), "rejected");
-        };
-      });
-    }
-
-    async function review(id, status) {
-      var comment = "";
-
-      if (status === "rejected") {
-        comment = window.prompt("Причина отказа (необязательно):", "") || "";
-      } else {
-        var confirmText = window.confirm(
-          "Одобрить этот неактив? После одобрения период будет сохранён и учтён системой."
-        );
-        if (!confirmText) return;
-      }
-
-      var button = document.querySelector(
-        '[data-inactive-' + (status === "approved" ? "approve" : "reject") + '="' + id + '"]'
-      );
-
-      if (button) button.disabled = true;
-
-      try {
-        await window.BR_API.inactiveRequestReview(
-          window.BRApp.getSession().user.token,
-          id,
-          status,
-          comment
-        );
-
-        alert(status === "approved" ? "Неактив одобрен." : "Заявка отклонена.");
-        await load();
-      } catch (error) {
-        alert(error.message || "Не удалось обработать заявку.");
-        if (button) button.disabled = false;
-      }
-    }
-
-    async function load() {
-      var root = document.getElementById("inactiveRequestsAllRoot");
-      if (root && !list.length) {
-        root.innerHTML = '<div class="box"><div class="empty">Загрузка заявок...</div></div>';
-      }
-
-      try {
-        var result = await window.BR_API.inactiveRequestsAll(
-          window.BRApp.getSession().user.token,
-          ""
-        );
-
-        list = Array.isArray(result && result.requests)
-          ? result.requests
-          : [];
-
-        render();
-      } catch (error) {
-        if (root) {
-          root.innerHTML = '<div class="box"><div class="empty">' +
-            E(error.message || "Не удалось загрузить заявки.") +
-            '</div></div>';
-        }
-      }
-    }
-
     return {
       managementOnly: true,
       title: "Обращения администрации",
-      subtitle: "Заявки на неактив от состава",
+      subtitle: "Обзор обращений сотрудников",
       render: function () {
-        return '<div class="page-toolbar">' +
-          '<div><small>ЗАЯВКИ</small><b>Неактивы</b></div>' +
-          '<div class="stats-toolbar-actions">' +
-            '<button class="small-button" id="inactiveFilterAll" type="button">Все</button>' +
-            '<button class="small-button" id="inactiveFilterPending" type="button">На рассмотрении</button>' +
-            '<button class="small-button" id="inactiveFilterApproved" type="button">Одобрены</button>' +
-            '<button class="small-button" id="inactiveFilterRejected" type="button">Отклонены</button>' +
-          '</div>' +
-        '</div>' +
-        '<div id="inactiveRequestsAllRoot"><div class="box"><div class="empty">Загрузка заявок...</div></div></div>';
-      },
-      bind: function () {
-        var all = document.getElementById("inactiveFilterAll");
-        var pending = document.getElementById("inactiveFilterPending");
-        var approved = document.getElementById("inactiveFilterApproved");
-        var rejected = document.getElementById("inactiveFilterRejected");
+        var list = localList("br_requests");
+        var rows = list.length ? list.map(function (item) {
+          return '<tr><td>' + E(item.nickname) + '</td><td>' + E(item.type) + '</td><td>' +
+            E(item.date) + '</td><td>' + E(item.status) + '</td><td>' + E(item.text) + '</td></tr>';
+        }).join("") : '<tr><td colspan="5">Обращений нет.</td></tr>';
 
-        if (all) all.onclick = function () { currentStatus = ""; render(); };
-        if (pending) pending.onclick = function () { currentStatus = "pending"; render(); };
-        if (approved) approved.onclick = function () { currentStatus = "approved"; render(); };
-        if (rejected) rejected.onclick = function () { currentStatus = "rejected"; render(); };
-
-        load();
+        return '<div class="box table-box"><table><thead><tr><th>Никнейм</th><th>Тип</th><th>Дата</th><th>Статус</th><th>Текст</th></tr></thead><tbody>' +
+          rows + '</tbody></table></div>';
       }
     };
   }
@@ -3026,9 +2758,22 @@
     });
   }
 
-  function dateIso(offset) {
-    var date = new Date();
+  function dateIso(offset, baseValue) {
+    var date;
+    var base = String(baseValue || "").trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(base)) {
+      date = new Date(base + "T12:00:00");
+    } else {
+      date = new Date();
+    }
+
+    if (Number.isNaN(date.getTime())) {
+      date = new Date();
+    }
+
     date.setDate(date.getDate() + (offset || 0));
+
     return date.getFullYear() + "-" +
       String(date.getMonth() + 1).padStart(2, "0") + "-" +
       String(date.getDate()).padStart(2, "0");
@@ -3233,24 +2978,40 @@
 
     var selectedDate = dateIso(0);
 
-    function loadDaily() {
+    async function loadDaily() {
       var root = document.getElementById("normRoot");
       var dateInput = document.getElementById("controlDate");
-      if (dateInput) selectedDate = dateInput.value;
-      return window.BR_API.normativesDailyLocal(user.token, selectedDate).then(function (result) {
-        var list = Array.isArray(result.administrators) ? result.administrators : [];
+      if (!root) return null;
+      if (dateInput && dateInput.value) selectedDate = dateInput.value;
 
-        list.sort(function (a, b) {
-          var rankA = POSITIONS.indexOf(String(a.position || ""));
-          var rankB = POSITIONS.indexOf(String(b.position || ""));
-          return (rankA < 0 ? 999 : rankA) - (rankB < 0 ? 999 : rankB) || String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
+      try {
+        root.setAttribute("aria-busy", "true");
+
+        var result = await window.BR_API.normativesDailyLocal(user.token, selectedDate);
+        var list = Array.isArray(result.administrators) ? result.administrators.slice() : [];
+
+        // Сначала руководители по иерархии должностей, затем никнейм.
+        var positionRank = {};
+        POSITIONS.forEach(function (position, index) {
+          positionRank[String(position).trim().toLowerCase()] = index;
         });
+        list.sort(function (a, b) {
+          var aRank = Object.prototype.hasOwnProperty.call(positionRank, String(a.position || "").trim().toLowerCase())
+            ? positionRank[String(a.position || "").trim().toLowerCase()]
+            : POSITIONS.length + 1;
+          var bRank = Object.prototype.hasOwnProperty.call(positionRank, String(b.position || "").trim().toLowerCase())
+            ? positionRank[String(b.position || "").trim().toLowerCase()]
+            : POSITIONS.length + 1;
+          if (aRank !== bRank) return aRank - bRank;
+          return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
+        });
+
         var rows = list.map(function (item) {
           var action = item.submission_id
             ? '<button class="small-button" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Проверить</button>'
             : '<span class="muted">Нет файла</span>';
 
-          return '<tr>' +
+          return '<tr data-admin-id="' + E(item.admin_id || 0) + '">' +
             '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + E(item.nickname) + '</button></td>' +
             '<td>' + E(item.position || "—") + '</td>' +
             '<td>' + E(formatDateOnly(selectedDate)) + '</td>' +
@@ -3279,7 +3040,8 @@
         root.innerHTML =
           '<div class="box table-box"><div class="stats-table-head"><div><small>НОРМАТИВЫ ЗА ДАТУ</small><b>' +
           E(formatDateOnly(selectedDate)) +
-          '</b></div><span class="muted">' + E(String(list.length)) + ' администраторов</span></div>' +
+          '</b></div><span class="muted">' + E(String(list.length)) + ' аккаунтов с доступом</span></div>' +
+          '<div class="admins-source-row"><span>Текущие активные доступы</span><span>Синхронизация со списком доступа к сайту</span></div>' +
           statusButtons +
           '<table id="normativeJournalTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Дата</th><th>Время</th><th>Статус</th><th>Файлы</th><th>Решение</th><th>Действия</th></tr></thead><tbody>' +
           (rows || '<tr><td colspan="8" class="table-empty">Администраторов в реестре нет.</td></tr>') +
@@ -3358,15 +3120,30 @@
           };
         });
 
-
-      });
+        root.setAttribute(
+          "data-updated-at",
+          new Date().toISOString()
+        );
+        root.setAttribute("aria-busy", "false");
+        return result;
+      } catch (error) {
+        root.setAttribute("aria-busy", "false");
+        console.error("[BR AdminTools] Не удалось обновить нормативы администрации:", error);
+        root.innerHTML =
+          '<div class="box"><div class="empty">' +
+          E(error && error.message ? error.message : "Не удалось обновить нормативы.") +
+          '</div></div>';
+        throw error;
+      }
     }
 
     function openNormativeModal(options) {
       var modalRoot = document.getElementById("normativeModal");
       if (!modalRoot) return;
+
+      var fallbackNickname = String(options.nickname || "").trim() || "Администратор";
       modalRoot.innerHTML = '<div class="modal-backdrop" id="normativeBackdrop"><div class="modal-card">' +
-        '<div class="modal-head"><div><small>ПРОВЕРКА НОРМАТИВА</small><h2>Загрузка...</h2></div><button class="modal-close" id="normativeClose" type="button">×</button></div>' +
+        '<div class="modal-head"><div><small>ПРОВЕРКА НОРМАТИВА</small><h2>' + E(fallbackNickname) + '</h2></div><button class="modal-close" id="normativeClose" type="button">×</button></div>' +
         '<div id="normativeDetailRoot"><div class="empty">Загрузка данных...</div></div>' +
       '</div></div>';
 
@@ -3379,8 +3156,16 @@
         options.date
       ).then(function (result) {
         var s = result.submission;
-        var title = s ? E(s.nickname) : E("Норматив не сдан");
+        var actualNickname = s
+          ? String(s.nickname || "").trim()
+          : fallbackNickname;
+        var title = E(actualNickname || "Администратор");
         var meta = s ? "Дата норматива: " + E(s.submission_date) : "Дата норматива: " + E(options.date || "—");
+
+        var modalTitle = document.querySelector("#normativeBackdrop .modal-head h2");
+        if (modalTitle) {
+          modalTitle.textContent = actualNickname || "Администратор";
+        }
 
         var files = Array.isArray(result.files) ? result.files : [];
         var images = files.map(function (file) {
@@ -3393,11 +3178,12 @@
               '<div class="review-current">Текущий результат: ' + normativeStatus(currentStatus) + '</div>' +
               '<textarea id="reviewComment" class="form-textarea" placeholder="Комментарий проверки"></textarea>' +
               '<div class="review-actions">' +
-                '<button class="button button-secondary" data-review="rework">Перенорма</button>' +
-                '<button class="button button-primary" data-review="norm">Норма</button>' +
-                '<button class="button button-danger" data-review="no_norm">Нет нормы</button>' +
-                '<button class="button button-secondary" data-review="inactive">Неактив</button>' +
+                '<button class="button button-secondary" type="button" data-review="rework"' + (!s ? ' disabled' : '') + '>Перенорма</button>' +
+                '<button class="button button-primary" type="button" data-review="norm"' + (!s ? ' disabled' : '') + '>Норма</button>' +
+                '<button class="button button-danger" type="button" data-review="no_norm">Нет нормы</button>' +
+                '<button class="button button-secondary" type="button" data-review="inactive"' + (!s ? ' disabled' : '') + '>Неактив</button>' +
               '</div>' +
+              (!s ? '<small class="muted">Норматив за эту дату не отправлен. Можно зафиксировать результат «Нет нормы».</small>' : '') +
             '</div>'
           : '<div class="notice">Результат проверки: ' + normativeStatus(currentStatus) + (s && s.reviewed_at ? '<br><small>Проверено: ' + E(formatDateTime(s.reviewed_at)) + '</small>' : '') + '</div>';
 
@@ -3415,25 +3201,84 @@
 
         if (options.management) {
           document.querySelectorAll("[data-review]").forEach(function (button) {
-            button.onclick = async function () {
-              var comment = document.getElementById("reviewComment").value.trim();
+            button.onclick = async function (event) {
+              if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+
+              var commentInput = document.getElementById("reviewComment");
+              var comment = commentInput ? commentInput.value.trim() : "";
+              var reviewStatus = button.getAttribute("data-review") || "";
+
+              if (!reviewStatus) {
+                alert("Не выбран результат проверки.");
+                return;
+              }
+
               button.disabled = true;
+
+              var reviewButtons = document.querySelectorAll("[data-review]");
+              reviewButtons.forEach(function (item) {
+                item.disabled = true;
+              });
+
               try {
                 var reviewResult = await window.BR_API.normativeReview(
                   options.token,
                   options.submissionId,
                   options.adminId,
                   options.date,
-                  button.dataset.review,
+                  reviewStatus,
                   comment
                 );
+
+                // Показываем сохранённый результат сразу в текущей строке.
+                // Повторная загрузка списка ниже служит синхронизацией,
+                // а не единственным способом обновить интерфейс.
+                var savedStatus =
+                  reviewResult && reviewResult.status
+                    ? String(reviewResult.status)
+                    : reviewStatus;
+
+                var targetRow = document.querySelector(
+                  '#normativeJournalTable tbody tr[data-admin-id="' +
+                    String(options.adminId || 0) +
+                    '"]'
+                );
+
+                if (targetRow) {
+                  var cells = targetRow.children;
+
+                  if (cells[4]) {
+                    cells[4].innerHTML = normativeStatus(savedStatus);
+                  }
+
+                  if (cells[6]) {
+                    cells[6].textContent = comment || "—";
+                  }
+
+                  targetRow.setAttribute("data-normative-status", savedStatus);
+                }
+
                 modalRoot.innerHTML = "";
+
                 if (document.body.getAttribute("data-page") === "normatives-all") {
-                  await loadDaily();
+                  try {
+                    await loadDaily();
+                  } catch (refreshError) {
+                    console.warn(
+                      "[BR AdminTools] Статус сохранён, но список нормативов не удалось синхронизировать:",
+                      refreshError
+                    );
+                  }
                 }
               } catch (e) {
                 alert(e.message || "Не удалось сохранить решение.");
-                button.disabled = false;
+
+                reviewButtons.forEach(function (item) {
+                  item.disabled = false;
+                });
               }
             };
           });
@@ -3456,11 +3301,15 @@
         return '<div class="page-toolbar normative-toolbar">' +
           '<div><small>ВЫСТАВЛЕНИЕ И ПРОВЕРКА</small><b>Контроль норматива за выбранную дату</b></div>' +
           '<div class="date-controls">' +
-            '<button class="small-button" id="datePrev" type="button">←</button>' +
-            '<input id="controlDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
-            '<button class="small-button" id="dateNext" type="button">→</button>' +
-            '<button class="button button-secondary" id="dateToday" type="button">Сегодня</button>' +
-            '<button class="button button-secondary" id="normDailyRefresh" type="button">↻ Обновить</button>' +
+            '<div class="date-picker-nav">' +
+              '<button class="small-button" id="datePrev" type="button">←</button>' +
+              '<input id="controlDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
+              '<button class="small-button" id="dateNext" type="button">→</button>' +
+            '</div>' +
+            '<div class="date-actions">' +
+              '<button class="button button-secondary" id="dateToday" type="button">Сегодня</button>' +
+              '<button class="button button-secondary" id="normDailyRefresh" type="button">↻ Обновить</button>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         '<div id="normRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>' +
@@ -3473,17 +3322,42 @@
         var today = document.getElementById("dateToday");
         var refresh = document.getElementById("normDailyRefresh");
 
+        async function refreshDaily(showAlert) {
+          if (refresh) {
+            refresh.disabled = true;
+            refresh.textContent = "Загрузка…";
+          }
+
+          try {
+            await loadDaily();
+          } catch (error) {
+            console.error("[BR AdminTools] Ошибка обновления нормативов:", error);
+            if (showAlert) {
+              alert(
+                error && error.message
+                  ? error.message
+                  : "Не удалось обновить нормативы."
+              );
+            }
+          } finally {
+            if (refresh) {
+              refresh.disabled = false;
+              refresh.textContent = "↻ Обновить";
+            }
+          }
+        }
+
         function setDate(value) {
           selectedDate = value;
           if (input) input.value = value;
-          loadDaily();
+          refreshDaily(false);
         }
 
         if (input) input.onchange = function () { setDate(input.value); };
-        if (prev) prev.onclick = function () { setDate(dateIso(-1)); };
-        if (next) next.onclick = function () { setDate(dateIso(1)); };
+        if (prev) prev.onclick = function () { setDate(dateIso(-1, selectedDate)); };
+        if (next) next.onclick = function () { setDate(dateIso(1, selectedDate)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
-        if (refresh) refresh.onclick = loadDaily;
+        if (refresh) refresh.onclick = function () { refreshDaily(true); };
       },
       load: loadDaily
     };
@@ -3512,9 +3386,9 @@
           '<div class="settings-card-head"><div><small>БЕЗОПАСНОСТЬ</small><h2>Пароль</h2></div><span>Изменение пароля аккаунта</span></div>' +
           '<form id="passwordSettingsForm">' +
             '<div class="form-grid">' +
-              '<div class="form-field form-full"><label>Текущий пароль</label><div class="access-password-field"><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="currentPassword" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
-              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="newPassword" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
-              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="password-toggle access-password-eye" data-password-toggle="newPasswordConfirm" aria-label="Показать пароль" title="Показать пароль"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg></button></div></div>' +
+              '<div class="form-field form-full"><label>Текущий пароль</label><div class="access-password-field"><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required><button type="button" class="small-button password-toggle" data-password-toggle="currentPassword">Показать</button></div></div>' +
+              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPassword">Показать</button></div></div>' +
+              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPasswordConfirm">Показать</button></div></div>' +
             '</div>' +
             '<p class="settings-hint">Минимум 8 символов: заглавная и строчная латинские буквы (A–Z, a–z), цифра (0–9) и специальный символ (например, ! или @). После смены пароля все устройства выйдут из аккаунта.</p>' +
             '<div class="form-actions"><button class="button button-primary" id="passwordSettingsSubmit" type="submit">Изменить пароль</button></div>' +
@@ -3530,19 +3404,6 @@
             '</div>' +
             '<div class="form-actions"><button class="button button-primary" type="submit">Сохранить тему</button></div>' +
           '</form>' +
-        '</section>' +
-
-        '<section class="box settings-card settings-push-card">' +
-          '<div class="settings-card-head"><div><small>УВЕДОМЛЕНИЯ</small><h2>Push-уведомления</h2></div><span>Важные сообщения от руководства могут приходить даже при закрытой панели</span></div>' +
-          '<div class="settings-push-row">' +
-            '<div class="settings-push-copy">' +
-              '<b id="pushSettingsTitle">Push на этом устройстве</b>' +
-              '<span id="pushSettingsDescription">Проверяем возможность получать уведомления.</span>' +
-            '</div>' +
-            '<button class="button button-primary" id="pushSettingsToggle" type="button">Проверка…</button>' +
-          '</div>' +
-          '<div id="pushSettingsStatus" class="settings-push-status" aria-live="polite"></div>' +
-          '<p class="settings-hint">Поддерживается на современных браузерах Android и Windows. Разрешение на уведомления выдаётся самим браузером.</p>' +
         '</section>' +
 
         (isManagement
@@ -3620,99 +3481,6 @@
         var passwordForm = document.getElementById("passwordSettingsForm");
         var themeForm = document.getElementById("themeSettingsForm");
         var googleForm = document.getElementById("googleUrlSettingsForm");
-        var pushToggle = document.getElementById("pushSettingsToggle");
-        var pushDescription = document.getElementById("pushSettingsDescription");
-        var pushStatus = document.getElementById("pushSettingsStatus");
-
-        function setPushView(state) {
-          if (!pushToggle || !pushDescription || !pushStatus) return;
-
-          if (!state.supported) {
-            pushToggle.disabled = true;
-            pushToggle.textContent = "Недоступно";
-            pushDescription.textContent = "Этот браузер или режим сайта не поддерживает push-уведомления.";
-            pushStatus.textContent = state.permission === "denied"
-              ? "Уведомления запрещены в настройках браузера."
-              : "Нужен HTTPS и поддержка Service Worker / Push API.";
-            pushStatus.className = "settings-push-status settings-push-status-error";
-            return;
-          }
-
-          if (state.localEnabled) {
-            pushToggle.disabled = false;
-            pushToggle.textContent = "Отключить";
-            pushToggle.className = "button button-secondary";
-            pushDescription.textContent = "Push-уведомления включены на этом устройстве.";
-            pushStatus.textContent = "Статус: включены" +
-              (state.serverCount > 1 ? " • подключено устройств: " + state.serverCount : "");
-            pushStatus.className = "settings-push-status settings-push-status-ok";
-            return;
-          }
-
-          pushToggle.disabled = false;
-          pushToggle.textContent = "Включить push";
-          pushToggle.className = "button button-primary";
-          pushDescription.textContent = "На этом устройстве Push не подключён. Подписки других устройств не включают его автоматически здесь." + (state.serverCount ? " Всего у аккаунта подключено устройств: " + state.serverCount + "." : "");
-          
-          if (state.permission === "denied") {
-            pushToggle.disabled = true;
-            pushToggle.textContent = "Разрешите уведомления";
-            pushStatus.textContent = "Разрешите уведомления для сайта в настройках браузера.";
-            pushStatus.className = "settings-push-status settings-push-status-error";
-          } else {
-            pushStatus.textContent = state.browserSubscribed ? "Статус: не подключено к текущему аккаунту в этом браузере." : "Статус: выключены на этом устройстве.";
-            pushStatus.className = "settings-push-status";
-          }
-        }
-
-        async function refreshPushView() {
-          if (!pushToggle || !window.BRPush) return;
-
-          pushToggle.disabled = true;
-          pushToggle.textContent = "Проверка…";
-
-          try {
-            var state = await window.BRPush.status(user.token);
-            setPushView(state);
-          } catch (error) {
-            pushToggle.disabled = true;
-            pushToggle.textContent = "Ошибка";
-            pushDescription.textContent = "Не удалось получить статус push-уведомлений.";
-            pushStatus.textContent = error.message || "Попробуйте обновить страницу.";
-            pushStatus.className = "settings-push-status settings-push-status-error";
-          }
-        }
-
-        if (pushToggle && window.BRPush) {
-          pushToggle.onclick = async function () {
-            var wasEnabled =
-              pushToggle.textContent === "Отключить";
-
-            pushToggle.disabled = true;
-            pushToggle.textContent = wasEnabled
-              ? "Отключение…"
-              : "Подключение…";
-
-            try {
-              if (wasEnabled) {
-                await window.BRPush.disable(user.token);
-                showStatus("Push-уведомления отключены на этом устройстве.", true);
-              } else {
-                await window.BRPush.enable(user.token);
-                showStatus("Push-уведомления включены на этом устройстве.", true);
-              }
-            } catch (error) {
-              showStatus(
-                error.message || "Не удалось изменить настройку push-уведомлений.",
-                false
-              );
-            } finally {
-              await refreshPushView();
-            }
-          };
-
-          refreshPushView();
-        }
 
         if (passwordForm) {
           passwordForm.querySelectorAll("[data-password-toggle]").forEach(function (toggle) {
@@ -3724,19 +3492,7 @@
 
               var show = input.type === "password";
               input.type = show ? "text" : "password";
-
-              toggle.setAttribute(
-                "aria-label",
-                show ? "Скрыть пароль" : "Показать пароль"
-              );
-              toggle.setAttribute(
-                "title",
-                show ? "Скрыть пароль" : "Показать пароль"
-              );
-
-              toggle.innerHTML = show
-                ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 5.2A9.5 9.5 0 0 1 12 5c5.8 0 9.2 7 9.2 7a16.8 16.8 0 0 1-4.2 4.8"></path><path d="M6.1 6.5C3.8 8.2 2.8 12 2.8 12s3.4 6 9.2 6c1.5 0 2.8-.3 4-.9"></path><path d="M9.6 9.6a3.4 3.4 0 0 0 4.8 4.8"></path></svg>'
-                : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>';
+              toggle.textContent = show ? "Скрыть" : "Показать";
             };
           });
 
@@ -3919,26 +3675,416 @@
   }
 
   function logs() {
+    var state = {
+      nickname: "",
+      action: "",
+      date: ""
+    };
+
+    var actions = {
+      login: "Вход в систему",
+      logout: "Выход из системы",
+      auth: "Авторизация",
+      access: "Доступ",
+      grant: "Выдача доступа",
+      revoke: "Отзыв доступа",
+      access_grant: "Выдача доступа",
+      access_update: "Изменение доступа",
+      access_unbind: "Сброс привязки",
+      access_block: "Блокировка доступа",
+      access_unblock: "Разблокировка доступа",
+      access_remove: "Удаление доступа",
+      remove: "Удаление",
+      update: "Изменение",
+      edit: "Редактирование",
+      create: "Создание",
+      delete: "Удаление",
+      block: "Блокировка",
+      unblock: "Разблокировка",
+      unbind: "Сброс привязки",
+      game_login: "Вход в игру",
+      game_logout: "Выход из игры",
+      game_enter: "Вход в игру",
+      game_exit: "Выход из игры",
+      admins_list: "Просмотр администрации",
+      create_admins: "Создание аккаунтов",
+      settings_update: "Изменение настроек",
+      normative_created: "Отправка норматива",
+      normative_review: "Проверка норматива",
+      inactive_request_created: "Подача заявки на неактив",
+      inactive_request_approved: "Одобрение неактива",
+      inactive_request_rejected: "Отклонение неактива",
+      notification_created: "Создание уведомления",
+      notification_deleted: "Удаление уведомления",
+      push_status_list: "Просмотр push-подписок",
+      push_config_updated: "Изменение настроек push",
+      push_subscribed: "Подключение push-уведомлений",
+      push_unsubscribed: "Отключение push-уведомлений",
+      push_status: "Проверка push-подписки",
+      push_status_all: "Просмотр push-подписок",
+      access_reset_sessions: "Сброс сессий администратора",
+      admin_request_created: "Создание обращения",
+      admin_request_replied: "Ответ на обращение",
+      game_enter: "Вход в игру",
+      game_exit: "Выход из игры",
+      normatives_daily: "Просмотр нормативов",
+      normative_mark: "Проставка норматива",
+      audit_logs: "Просмотр журнала",
+      audit_logs_clear: "Очистка журнала"
+    };
+
+    var pages = {
+      auth: "Авторизация",
+      login: "Авторизация",
+      dashboard: "Главная",
+      profile: "Мой профиль",
+      access: "Выдать доступ",
+      admins: "Администраторы",
+      notifications: "Уведомления",
+      normatives: "Нормативы",
+      "normatives-all": "Проставка нормативов",
+      requests: "Мои обращения",
+      "statistics-all": "Статистика администрации",
+      "requests-all": "Обращения администрации",
+      "game-activity": "Вход в игру",
+      logs: "Журнал действий",
+      rules: "Регламент",
+      settings: "Настройки"
+    };
+
+    var details = {
+      "Login successful": "Авторизация выполнена",
+      "Authentication successful": "Авторизация выполнена",
+      "Logout successful": "Выход из системы выполнен",
+      "Logged out": "Выход из системы выполнен",
+      "Access granted": "Доступ выдан",
+      "Access revoked": "Доступ отозван",
+      "Access removed": "Доступ удалён",
+      "Account blocked": "Аккаунт заблокирован",
+      "Account unblocked": "Аккаунт разблокирован",
+      "Device unbound": "Привязка устройства сброшена"
+    };
+
+    function formatAuditDetails(value) {
+      var raw = String(value == null ? "" : value).trim();
+      var accessUpdate = raw.match(/^измен[её]н\s+доступ\s*:?\s*(.+)$/i);
+
+      if (accessUpdate && accessUpdate[1]) {
+        // Никнейм выводится целиком, без удаления символов или пробелов из имени.
+        var nickname = accessUpdate[1].trim();
+        return "Доступ изменён: " + nickname;
+      }
+
+      return details[raw] || raw || "—";
+    }
+
+    var actionOptions = Object.keys(actions)
+      .filter(function (key, index, list) {
+        return list.indexOf(key) === index;
+      })
+      .sort(function (a, b) {
+        return (actions[a] || a).localeCompare(actions[b] || b, "ru");
+      });
+
+    function criticality(action) {
+      var key = String(action || "").toLowerCase();
+
+      if ([
+        "access_block",
+        "access_remove",
+        "settings_update",
+        "create_admins"
+      ].indexOf(key) !== -1) {
+        return {
+          key: "critical",
+          label: "Критическая",
+          className: "badge-red"
+        };
+      }
+
+      if ([
+        "access_grant",
+        "access_update",
+        "access_unbind",
+        "access_unblock",
+        "inactive_request_created",
+        "inactive_request_approved",
+        "inactive_request_rejected",
+        "normative_created",
+        "normative_review",
+        "notification_created",
+        "notification_deleted"
+      ].indexOf(key) !== -1) {
+        return {
+          key: "important",
+          label: "Важная",
+          className: "badge-yellow"
+        };
+      }
+
+      return {
+        key: "normal",
+        label: "Обычная",
+        className: "badge-gray"
+      };
+    }
+
+    function rangeForDate(value) {
+      var text = String(value || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        return {
+          from: "",
+          to: ""
+        };
+      }
+
+      var start = new Date(text + "T00:00:00");
+      var end = new Date(start.getTime() + 86400000);
+
+      return {
+        from: start.toISOString(),
+        to: end.toISOString()
+      };
+    }
+
+    function renderTable(root, list) {
+      var rows = list.length
+        ? list.map(function (x) {
+            var actionKey = String(x.action || "").toLowerCase();
+            var pageKey = String(x.page || "").toLowerCase();
+            var detailKey = String(x.details || "");
+            var level = criticality(actionKey);
+
+            if (
+              x.criticality === "critical" ||
+              x.criticality === "important" ||
+              x.criticality === "normal"
+            ) {
+              level = criticality(actionKey);
+              level.key = x.criticality;
+
+              if (x.criticality === "critical") {
+                level.label = "Критическая";
+                level.className = "badge-red";
+              } else if (x.criticality === "important") {
+                level.label = "Важная";
+                level.className = "badge-yellow";
+              } else {
+                level.label = "Обычная";
+                level.className = "badge-gray";
+              }
+            }
+
+            return '<tr><td>' +
+              E(formatDateTime(x.created_at || x.time)) +
+              '</td><td>' +
+              E(x.nickname || "—") +
+              '</td><td>' +
+              E(actions[actionKey] || x.action || "—") +
+              '</td><td>' +
+              '<span class="badge ' + level.className + '">' +
+                E(level.label) +
+              '</span>' +
+              '</td><td>' +
+              E(pages[pageKey] || x.page || "—") +
+              '</td><td>' +
+              E(formatAuditDetails(x.details)) +
+              '</td></tr>';
+          }).join("")
+        : '<tr><td colspan="6" class="table-empty">По заданным фильтрам записи не найдены.</td></tr>';
+
+      root.innerHTML =
+        '<div class="box table-box">' +
+          '<table>' +
+            '<thead><tr>' +
+              '<th>Время</th>' +
+              '<th>Никнейм</th>' +
+              '<th>Действие</th>' +
+              '<th>Критичность</th>' +
+              '<th>Раздел</th>' +
+              '<th>Подробности</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table>' +
+        '</div>';
+    }
+
     return {
       managementOnly: true,
       title: "Журнал действий",
-      subtitle: "Журнал системы",
+      subtitle: "История действий администрации с фильтрацией и уровнем критичности",
       render: function () {
-        return '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>';
+        var options = actionOptions.map(function (key) {
+          return '<option value="' + E(key) + '">' +
+            E(actions[key]) +
+            '</option>';
+        }).join("");
+
+        return '<div class="box logs-filter-box">' +
+          '<form id="logsFilterForm" class="logs-filter-form">' +
+            '<div class="form-field">' +
+              '<label for="logsNickname">По никнейму</label>' +
+              '<input id="logsNickname" class="form-input" type="search" placeholder="Введите никнейм">' +
+            '</div>' +
+            '<div class="form-field">' +
+              '<label for="logsAction">По действию</label>' +
+              '<select id="logsAction" class="form-select">' +
+                '<option value="">Все действия</option>' +
+                options +
+              '</select>' +
+            '</div>' +
+            '<div class="form-field">' +
+              '<label for="logsDate">По дате</label>' +
+              '<input id="logsDate" class="form-input" type="date">' +
+            '</div>' +
+            '<div class="logs-filter-actions">' +
+              '<button class="button button-primary" type="submit">Найти</button>' +
+              '<button class="button button-secondary" id="logsFilterReset" type="button">Сбросить</button>' +
+            '</div>' +
+          '</form>' +
+        '</div>' +
+        '<div class="box logs-cleanup-box">' +
+          '<div class="logs-cleanup-head">' +
+            '<div><small>ОЧИСТКА</small><b>Удаление старых записей</b></div>' +
+            '<span>Действие доступно только руководству</span>' +
+          '</div>' +
+          '<div class="logs-cleanup-controls">' +
+            '<div class="form-field">' +
+              '<label for="logsCleanupPeriod">Период</label>' +
+              '<select id="logsCleanupPeriod" class="form-select">' +
+                '<option value="older_7_days">За последние 7 дней</option>' +
+                '<option value="older_30_days">За последние 30 дней</option>' +
+                '<option value="older_180_days" selected>За последние 6 месяцев</option>' +
+                '<option value="all">Весь журнал</option>' +
+              '</select>' +
+            '</div>' +
+            '<button class="button button-danger" id="logsCleanupButton" type="button">Очистить журнал</button>' +
+          '</div>' +
+        '</div>' +
+        '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>';
+      },
+      bind: function (user) {
+        var form = document.getElementById("logsFilterForm");
+        var nicknameInput = document.getElementById("logsNickname");
+        var actionInput = document.getElementById("logsAction");
+        var dateInput = document.getElementById("logsDate");
+        var reset = document.getElementById("logsFilterReset");
+        var cleanupPeriod = document.getElementById("logsCleanupPeriod");
+        var cleanupButton = document.getElementById("logsCleanupButton");
+
+        if (cleanupButton) {
+          cleanupButton.onclick = async function () {
+            var period = cleanupPeriod
+              ? cleanupPeriod.value
+              : "older_180_days";
+
+            var labels = {
+              older_7_days: "все записи за последние 7 дней",
+              older_30_days: "все записи за последние 30 дней",
+              older_180_days: "все записи за последние 6 месяцев",
+              all: "весь журнал действий"
+            };
+
+            var description =
+              labels[period] || "выбранные записи";
+
+            var confirmed = window.confirm(
+              "Внимание! Будут удалены " +
+              description +
+              ".\n\nПродолжить?"
+            );
+
+            if (!confirmed) return;
+
+            cleanupButton.disabled = true;
+            cleanupButton.textContent = "Очистка…";
+
+            try {
+              var result = await window.BR_API.auditLogsClear(
+                user.token,
+                period
+              );
+
+              var deleted = Number(
+                result && result.deleted_count
+                  ? result.deleted_count
+                  : 0
+              );
+
+              window.alert(
+                deleted
+                  ? "Журнал очищен. Удалено записей: " + deleted
+                  : "За выбранный период записей нет."
+              );
+
+              await load(user, false);
+            } catch (error) {
+              window.alert(
+                error && error.message
+                  ? error.message
+                  : "Не удалось очистить журнал."
+              );
+            } finally {
+              cleanupButton.disabled = false;
+              cleanupButton.textContent = "Очистить журнал";
+            }
+          };
+        }
+
+        if (form) {
+          form.onsubmit = function (event) {
+            event.preventDefault();
+
+            state.nickname = nicknameInput ? nicknameInput.value.trim() : "";
+            state.action = actionInput ? actionInput.value.trim() : "";
+            state.date = dateInput ? dateInput.value.trim() : "";
+
+            load(user, false);
+          };
+        }
+
+        if (reset) {
+          reset.onclick = function () {
+            state.nickname = "";
+            state.action = "";
+            state.date = "";
+
+            if (nicknameInput) nicknameInput.value = "";
+            if (actionInput) actionInput.value = "";
+            if (dateInput) dateInput.value = "";
+
+            load(user, false);
+          };
+        }
       },
       load: async function (user) {
         var root = document.getElementById("logsRoot");
+        if (!root) return;
+
         try {
-          var result = await window.BR_API.auditLogs(user.token, 200);
-          var list = Array.isArray(result.logs) ? result.logs : [];
-          var rows = list.length ? list.map(function (x) {
-            return '<tr><td>' + E(formatDateTime(x.created_at || x.time)) + '</td><td>' + E(x.nickname) + '</td><td>' +
-              E(x.action) + '</td><td>' + E(x.page) + '</td><td>' + E(x.details) + '</td></tr>';
-          }).join("") : '<tr><td colspan="5">Журнал пуст.</td></tr>';
-          root.innerHTML = '<div class="box table-box"><table><thead><tr><th>Время</th><th>Никнейм</th><th>Действие</th><th>Раздел</th><th>Подробности</th></tr></thead><tbody>' +
-            rows + '</tbody></table></div>';
+          var range = rangeForDate(state.date);
+
+          var result = await window.BR_API.auditLogs(
+            user.token,
+            500,
+            {
+              nickname: state.nickname,
+              action: state.action,
+              created_from: range.from,
+              created_to: range.to
+            }
+          );
+
+          var list = Array.isArray(result.logs)
+            ? result.logs
+            : [];
+
+          renderTable(root, list);
         } catch (e) {
-          root.innerHTML = '<div class="box"><div class="empty">' + E(e.message || "Не удалось загрузить журнал.") + '</div></div>';
+          root.innerHTML =
+            '<div class="box"><div class="empty">' +
+              E(e.message || "Не удалось загрузить журнал.") +
+            '</div></div>';
         }
       }
     };
@@ -3979,10 +4125,55 @@
       return '<span class="badge">Доступ удалён</span>';
     }
 
-    function bindingLabel(item) {
-      return item.device_bound
-        ? '<span class="badge badge-blue">Привязано</span>'
-        : '<span class="badge">Нет привязки</span>';
+    // Иерархия должностей: от младшего модератора к главному администратору.
+    function accessPositionRank(position) {
+      var text = String(position || "")
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .replace(/[().,;:]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (!text) return 999;
+      if (text.indexOf("основной заместитель главного администратора") >= 0) return 15.5;
+      if (text.indexOf("главный администратор") >= 0 && text.indexOf("заместитель") < 0) return 16;
+      if (text.indexOf("заместитель главного администратора") >= 0 || text.indexOf("зам. главного администратора") >= 0) return 14;
+      if (text.indexOf("куратор администрации") >= 0) {
+        return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 12 : 13;
+      }
+      if (text.indexOf("куратор агентов поддержки") >= 0) {
+        return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 10 : 11;
+      }
+      if (text.indexOf("куратор организаций") >= 0) {
+        return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 8 : 9;
+      }
+      if (text.indexOf("старший следящий") >= 0 || text.indexOf("ст. след") >= 0) return 6;
+      if (text.indexOf("старший администратор") >= 0) return 7;
+      if (text.indexOf("старший модератор") >= 0) return 4;
+      if (text.indexOf("младший модератор") >= 0) return 1;
+      if (text === "следящий" || text.indexOf(" следящий") >= 0) return 2;
+      if (text.indexOf("модератор") >= 0) return 3;
+      if (text === "администратор" || text.indexOf(" администратор") >= 0) return 5;
+      return 999;
+    }
+
+    function sortAccessAccounts(list, mode) {
+      var items = Array.isArray(list) ? list.slice() : [];
+      items.sort(function (a, b) {
+        if (mode === "nickname" || mode === "nickname_desc") {
+          var comparison = String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru", { sensitivity: "base" });
+          return mode === "nickname_desc" ? -comparison : comparison;
+        }
+        if (mode === "last_login") return new Date(b.last_login_at || 0) - new Date(a.last_login_at || 0);
+        var rankA = accessPositionRank(a.position);
+        var rankB = accessPositionRank(b.position);
+        if (rankA !== rankB) return mode === "position_asc" ? rankA - rankB : rankB - rankA;
+        var positionCompare = String(a.position || "").localeCompare(String(b.position || ""), "ru", { sensitivity: "base" });
+        if (positionCompare !== 0) return positionCompare;
+        return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru", { sensitivity: "base" });
+      });
+      return items;
     }
 
     function generatePassword() {
@@ -4091,92 +4282,8 @@
           return;
         }
 
-        state.accounts.sort(function (a, b) {
-          var ar = POSITIONS.indexOf(String(a.position || ""));
-          var br = POSITIONS.indexOf(String(b.position || ""));
-          return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) || String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
-        });
-        var rows = state.accounts.map(function (item) {
-          return '<tr data-access-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-access-login="' + E(String(item.login || "").toLowerCase()) + '" data-access-position="' + E(item.position || "") + '" data-access-id="' + E(item.id) + '">' +
-            '<td class="access-select-cell"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"></td>' +
-            '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
-            '<td>' + E(roleLabel(item.role)) + '</td>' +
-            '<td>' + E(item.position || "—") + '</td>' +
-            '<td>' + statusLabel(item) + '</td>' +
-            '<td>' + bindingLabel(item) + '</td>' +
-            '<td>' + E(item.last_login_ip || "—") + '</td>' +
-            '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
-            '<td>' + E(String(item.active_sessions || 0)) + '</td>' +
-            '<td class="access-actions-cell">' +
-              '<div class="admin-menu-wrap access-menu-wrap">' +
-                '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
-                '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
-                  '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
-                  '<button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
-                  (item.device_bound ? '<button type="button" data-access-action="unbind" data-admin-id="' + E(item.id) + '">Сбросить привязку</button>' : '') +
-                  (item.blocked_at
-                    ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
-                    : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
-                  '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button>' +
-                '</div>' +
-              '</div>' +
-            '</td>' +
-          '</tr>';
-        }).join("");
-
-        root.innerHTML =
-          '<div class="box table-box access-registry">' +
-            '<div class="stats-table-head access-registry-head">' +
-              '<div><small>РЕЕСТР ДОСТУПОВ</small><b id="accessRegistryCount">' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
-              '<div class="access-registry-toolbar">' +
-                '<input id="accessRegistrySearch" class="form-input" type="search" placeholder="Поиск по никнейму или логину" aria-label="Поиск администратора">' +
-                '<select id="accessRegistryPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + Array.from(new Set(state.accounts.map(function (a) { return String(a.position || "").trim(); }).filter(Boolean))).sort(function (a,b) { return POSITIONS.indexOf(a)-POSITIONS.indexOf(b); }).map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join("") + '</select>' +
-                '<select id="accessRegistrySort" class="form-select" aria-label="Сортировка"><option value="position">Должность: старшие сначала</option><option value="position_asc">Должность: младшие сначала</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option><option value="last_login">Последний вход</option></select>' +
-              '</div>' +
-            '</div>' +
-            '<div class="admins-source-row"><span>Текущие доступы</span><span>Привязка устройства • сессии</span></div>' +
-            '<div class="access-batch-toolbar" id="accessBatchToolbar" hidden>' +
-              '<select id="accessBatchPosition" class="form-select" aria-label="Новая должность"><option value="">Новая должность</option>' + POSITIONS.map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join("") + '</select>' +
-              '<button id="accessBatchApply" class="button button-secondary" type="button" disabled>Изменить должность</button>' +
-              '<button id="accessBatchRemove" class="button" type="button" disabled>Удалить доступ выбранным</button>' +
-              '<button id="accessBatchClear" class="small-button" type="button" disabled>Снять выбор</button></div>' +
-            '<table id="accessRegistryTable"><thead><tr>' +
-              '<th class="access-select-cell"><input id="accessSelectVisible" type="checkbox" aria-label="Выбрать все видимые аккаунты"></th><th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>Привязка</th><th>IP</th><th>Последний вход</th><th>Сессии</th><th>Действия</th>' +
-            '</tr></thead><tbody>' + rows + '</tbody></table>' +
-          '</div>';
-
-        var filterRegistry = function () {
-          var query = document.getElementById("accessRegistrySearch").value.trim().toLowerCase();
-          var position = document.getElementById("accessRegistryPosition").value;
-          document.querySelectorAll("#accessRegistryTable tbody tr[data-access-id]").forEach(function (row) {
-            row.hidden = !((!query || row.dataset.accessNickname.indexOf(query) >= 0 || row.dataset.accessLogin.indexOf(query) >= 0) && (!position || row.dataset.accessPosition === position));
-            row.style.display = row.hidden ? "none" : "";
-          });
-        };
-        document.getElementById("accessRegistrySearch").oninput = filterRegistry;
-        document.getElementById("accessRegistryPosition").onchange = filterRegistry;
-        document.getElementById("accessRegistrySort").onchange = function () {
-          var mode = this.value;
-          var tbody = document.querySelector("#accessRegistryTable tbody");
-          var rows = Array.from(tbody.querySelectorAll("tr[data-access-id]"));
-          var lookup = {};
-          state.accounts.forEach(function (item) { lookup[String(item.id)] = item; });
-          rows.sort(function (a,b) {
-            var x = lookup[a.dataset.accessId], y = lookup[b.dataset.accessId];
-            if (mode === "nickname" || mode === "nickname_desc") {
-              var diff = String(x.nickname || "").localeCompare(String(y.nickname || ""), "ru");
-              return mode === "nickname_desc" ? -diff : diff;
-            }
-            if (mode === "last_login") return new Date(y.last_login_at || 0) - new Date(x.last_login_at || 0);
-            var ar = POSITIONS.indexOf(String(x.position || "")), br = POSITIONS.indexOf(String(y.position || ""));
-            var diffRank = (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br);
-            return (mode === "position_asc" ? -diffRank : diffRank) || String(x.nickname || "").localeCompare(String(y.nickname || ""), "ru");
-          });
-          rows.forEach(function (row) { tbody.appendChild(row); });
-        };
-        bindAccessMenus();
-        (function bindBulkRegistry() {
-          var selected = new Set();
+        var selected = new Set();
+        function bindBulkRegistry() {
           var selector = root.querySelector("#accessSelectVisible");
           var positionSelect = root.querySelector("#accessBatchPosition");
           var apply = root.querySelector("#accessBatchApply");
@@ -4252,7 +4359,86 @@
           apply.onclick = function () { run("update"); };
           remove.onclick = function () { run("remove"); };
           refresh();
-        })();
+        }
+        function renderAccessRegistry(mode, query, positionFilter) {
+          mode = mode || "position";
+          query = query || "";
+          positionFilter = positionFilter || "";
+          var positions = Array.from(new Set(state.accounts.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { return accessPositionRank(b) - accessPositionRank(a) || a.localeCompare(b, "ru"); });
+          var sortedAccounts = sortAccessAccounts(
+            state.accounts.filter(function (item) { return (!query || String(item.nickname || "").toLowerCase().indexOf(query.toLowerCase()) >= 0 || String(item.login || "").toLowerCase().indexOf(query.toLowerCase()) >= 0) && (!positionFilter || item.position === positionFilter); }),
+            mode
+          );
+
+          var rows = sortedAccounts.map(function (item) {
+            return '<tr>' +
+              '<td class="access-select-cell"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '></td>' +
+              '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
+              '<td>' + E(roleLabel(item.role)) + '</td>' +
+              '<td>' + E(item.position || "—") + '</td>' +
+              '<td>' + statusLabel(item) + '</td>' +
+              '<td>' + E(item.last_login_ip || "—") + '</td>' +
+              '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
+              '<td class="access-actions-cell">' +
+                '<div class="admin-menu-wrap access-menu-wrap">' +
+                  '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
+                  '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
+                    '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
+                  '<button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
+                    (item.blocked_at
+                      ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
+                      : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
+                    '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button>' +
+                  '</div>' +
+                '</div>' +
+              '</td>' +
+            '</tr>';
+          }).join("");
+
+          root.innerHTML =
+            '<div class="box table-box access-registry">' +
+              '<div class="stats-table-head access-registry-head">' +
+                '<div><small>РЕЕСТР ДОСТУПОВ</small><b id="accessRegistryCount">' + E(String(state.accounts.length)) + ' аккаунтов</b></div>' +
+                '<div class="access-registry-toolbar">' +
+                  '<input id="accessRegistrySearch" class="form-input" type="search" placeholder="Поиск по никнейму или логину" aria-label="Поиск администратора" value="' + E(query) + '">' +
+                  '<select id="accessRegistryPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + positions.map(function (p) { return '<option value="' + E(p) + '"' + (p === positionFilter ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' +
+                  '<span class="muted">Сортировка</span>' +
+                  '<select id="accessRegistrySort" class="form-select access-registry-sort" aria-label="Сортировка реестра доступов">' +
+                    '<option value="position"' + (mode === "position" ? " selected" : "") + '>Должность: старшие сначала</option>' +
+                    '<option value="position_asc"' + (mode === "position_asc" ? " selected" : "") + '>Должность: младшие сначала</option>' +
+                    '<option value="nickname"' + (mode === "nickname" ? " selected" : "") + '>Никнейм: А–Я</option>' +
+                    '<option value="nickname_desc"' + (mode === "nickname_desc" ? " selected" : "") + '>Никнейм: Я–А</option>' +
+                    '<option value="last_login"' + (mode === "last_login" ? " selected" : "") + '>Последний вход</option>' +
+                  '</select>' +
+                '</div>' +
+              '</div>' +
+              '<div class="admins-source-row"><span>Текущие доступы</span><span>Главный администратор → Младший модератор</span></div>' +
+              '<div class="access-batch-toolbar" id="accessBatchToolbar" hidden>' +
+              '<select id="accessBatchPosition" class="form-select" aria-label="Новая должность"><option value="">Новая должность</option>' + POSITIONS.map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join("") + '</select>' +
+              '<button id="accessBatchApply" class="button button-secondary" type="button" disabled>Изменить должность</button>' +
+              '<button id="accessBatchRemove" class="button" type="button" disabled>Удалить доступ выбранным</button>' +
+              '<button id="accessBatchClear" class="small-button" type="button" disabled>Снять выбор</button></div>' +
+            '<table id="accessRegistryTable"><thead><tr>' +
+                '<th class="access-select-cell"><input id="accessSelectVisible" type="checkbox" aria-label="Выбрать все видимые аккаунты"></th><th>Никнейм</th><th>Роль</th><th>Должность</th><th>Статус</th><th>IP</th><th>Последний вход</th><th>Действия</th>' +
+              '</tr></thead><tbody>' + rows + '</tbody></table>' +
+            '</div>';
+
+          bindAccessMenus();
+          bindBulkRegistry();
+
+          var sortSelect = document.getElementById("accessRegistrySort");
+          if (sortSelect) {
+            sortSelect.onchange = function () {
+              renderAccessRegistry(sortSelect.value, document.getElementById("accessRegistrySearch").value, document.getElementById("accessRegistryPosition").value);
+            };
+          }
+          document.getElementById("accessRegistrySearch").oninput = function () { var position = this.selectionStart; renderAccessRegistry(mode, this.value, document.getElementById("accessRegistryPosition").value); var next = document.getElementById("accessRegistrySearch"); next.focus(); next.setSelectionRange(position, position); };
+          document.getElementById("accessRegistryPosition").onchange = function () { renderAccessRegistry(mode, document.getElementById("accessRegistrySearch").value, this.value); };
+        }
+
+        renderAccessRegistry("position");
+
+
       } catch (error) {
         root.innerHTML =
           '<div class="box"><div class="empty">' +
@@ -4338,10 +4524,9 @@
 
           var messages = {
             reset_sessions: "Завершить все активные сессии аккаунта «" + item.nickname + "»?\n\nНа всех устройствах потребуется повторный вход. Пароль и привязка устройства не изменятся.",
-            unbind: "Сбросить привязку устройства у " + item.nickname + "?",
             block: "Заблокировать " + item.nickname + "?",
             unblock: "Разблокировать " + item.nickname + "?",
-            remove: "Удалить доступ у " + item.nickname + "?"
+            remove: "Полностью удалить " + item.nickname + "?\n\nБудут удалены аккаунт и его история в панели: нормативы, обращения, неактивы, игровая активность, push-подписки, отправленные им уведомления и связанные данные. Восстановить это действие нельзя."
           };
 
           if (!confirm(messages[action] || "Выполнить действие?")) {
@@ -4407,8 +4592,7 @@
             '<div class="access-details-grid">' +
               '<div><small>IP</small><b>' + E(item.last_login_ip || "—") + '</b></div>' +
               '<div><small>ПОСЛЕДНИЙ ВХОД</small><b>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</b></div>' +
-              '<div><small>ПРИВЯЗКА</small><b>' + (item.device_bound ? "Привязано" : "Не привязано") + '</b></div>' +
-              '<div><small>АКТИВНЫЕ СЕССИИ</small><b>' + E(item.active_sessions || 0) + '</b></div>' +
+
             '</div>' +
             '<form id="accessEditForm">' +
               '<div class="form-grid">' +
@@ -4757,6 +4941,18 @@
         loadAccounts(
           document.getElementById("accessRegistryRoot")
         );
+
+        window.addEventListener("br:remote-data-changed", function (event) {
+          var action = event && event.detail ? event.detail.action : "";
+          if (["access_grant", "access_manage"].indexOf(action) === -1) {
+            return;
+          }
+
+          loadAccounts(
+            document.getElementById("accessRegistryRoot")
+          );
+        });
+
       }
     };
   }
