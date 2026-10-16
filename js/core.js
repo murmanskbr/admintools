@@ -370,7 +370,7 @@
       '<div class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-hidden="true"></div>' +
       '<main class="main">' +
         '<header class="top"><button class="mobile-menu" id="mobileMenu" type="button" aria-label="Открыть меню">☰</button>' +
-          '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span><div class="top-right"></div>' +
+          '<span>АДМИНИСТРАЦИЯ • МУРМАНСК</span><div class="top-right"><span id="pageUpdatedAt" class="page-updated-at" aria-live="polite">Данные ещё не обновлены</span><button class="small-button" id="pageRefresh" type="button">↻ Обновить</button></div>' +
         '</header>' +
         '<section class="content"><div class="head"><h1>' + esc(title) + '</h1><p>' +
           esc(subtitle || "") + '</p></div>' + body + '</section>' +
@@ -585,6 +585,18 @@
     var pageDataInFlight = null;
     var pageDataRefreshQueued = false;
     var pageDataLastStartedAt = 0;
+    var pageDataLastSuccessAt = 0;
+    var pageRefreshButton = document.getElementById("pageRefresh");
+    var pageUpdatedAtLabel = document.getElementById("pageUpdatedAt");
+
+    function updatePageRefreshStatus() {
+      if (!pageUpdatedAtLabel || !pageDataLastSuccessAt) return;
+      var seconds = Math.max(0, Math.floor((Date.now() - pageDataLastSuccessAt) / 1000));
+      var label = seconds < 5 ? "только что" :
+        seconds < 60 ? seconds + " сек. назад" :
+        Math.floor(seconds / 60) + " мин. назад";
+      pageUpdatedAtLabel.textContent = "Обновлено " + label;
+    }
     var pendingRemoteDataChange = null;
     var lastSoftRefreshAt = Date.now();
     var activePageName =
@@ -619,6 +631,11 @@
         .then(function () {
           return options.load(currentSession.user, true);
         })
+        .then(function (result) {
+          pageDataLastSuccessAt = Date.now();
+          updatePageRefreshStatus();
+          return result;
+        })
         .catch(function (error) {
           console.error(
             "[BR AdminTools] Ошибка загрузки страницы:",
@@ -634,6 +651,10 @@
         })
         .finally(function () {
           pageDataInFlight = null;
+          if (pageRefreshButton) {
+            pageRefreshButton.disabled = false;
+            pageRefreshButton.textContent = "↻ Обновить";
+          }
 
           if (pageDataRefreshQueued) {
             pageDataRefreshQueued = false;
@@ -643,6 +664,20 @@
 
       return pageDataInFlight;
     }
+
+    if (pageRefreshButton) {
+      pageRefreshButton.addEventListener("click", function () {
+        if (pageDataInFlight) {
+          pageDataRefreshQueued = true;
+          return;
+        }
+        pageRefreshButton.disabled = true;
+        pageRefreshButton.textContent = "Обновление…";
+        loadPageData(true);
+      });
+    }
+
+    window.setInterval(updatePageRefreshStatus, 5000);
 
     function dispatchRemoteDataChange(detail) {
       lastSoftRefreshAt = Date.now();
