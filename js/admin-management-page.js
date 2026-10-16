@@ -597,7 +597,19 @@
     goLogin();
   }, { once: true });
 
+  function disableServiceWorkers() {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.getRegistrations()
+      .then(function (registrations) {
+        return Promise.all(registrations.map(function (registration) {
+          return registration.unregister();
+        }));
+      })
+      .catch(function () {});
+  }
+
   function boot() {
+    disableServiceWorkers();
     var session = readSession();
 
     if (!session || !session.user) {
