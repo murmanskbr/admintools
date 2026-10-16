@@ -506,6 +506,7 @@
       }
     }
     return {
+      managementOnly: true,
       title: "Состав администрации",
       subtitle: "Полный состав из Google Таблица",
       render: function () {
