@@ -3640,7 +3640,22 @@
       inactive_request_approved: "Одобрение неактива",
       inactive_request_rejected: "Отклонение неактива",
       notification_created: "Создание уведомления",
-      notification_deleted: "Удаление уведомления"
+      notification_deleted: "Удаление уведомления",
+      push_status_list: "Просмотр push-подписок",
+      push_config_updated: "Изменение настроек push",
+      push_subscribed: "Подключение push-уведомлений",
+      push_unsubscribed: "Отключение push-уведомлений",
+      push_status: "Проверка push-подписки",
+      push_status_all: "Просмотр push-подписок",
+      access_reset_sessions: "Сброс сессий администратора",
+      admin_request_created: "Создание обращения",
+      admin_request_replied: "Ответ на обращение",
+      game_enter: "Вход в игру",
+      game_exit: "Выход из игры",
+      normatives_daily: "Просмотр нормативов",
+      normative_mark: "Проставка норматива",
+      audit_logs: "Просмотр журнала",
+      audit_logs_clear: "Очистка журнала"
     };
 
     var pages = {
