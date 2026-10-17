@@ -474,7 +474,7 @@
       options.title,
       options.subtitle,
       options.render ? options.render(session.user) : "",
-      typeof options.load === "function"
+      typeof options.load === "function" && !["settings", "rules", "access"].includes(options.active || document.body.getAttribute("data-page"))
     );
 
     disableServiceWorkers();
@@ -666,7 +666,8 @@
 
     // Автоматические фоновые запросы, опросы, обновление при возврате
     // на вкладку и реакции на изменения в других вкладках отключены.
-    // Данные загружаются только по ручному нажатию.
+    // Данные загружаются при открытии страницы и по ручному нажатию.
+    loadPageData(true);
 
     // A cached mobile page must never restore a stale menu lock.
     document.body.classList.remove("mobile-menu-open");
