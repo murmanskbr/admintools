@@ -4439,3 +4439,24 @@ body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{
   #accessRegistryTable td:first-child{min-width:0!important}
   #accessRegistryTable td:nth-child(2){min-width:0}
 }
+
+/* Access registry: compact single-column controls and clean mobile account cards. */
+@media(max-width:700px){
+  body[data-page="access"] .access-registry{width:100%;min-width:0;max-width:100%;box-sizing:border-box;overflow:visible!important}
+  body[data-page="access"] .access-registry-head{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:14px!important;width:100%;min-width:0!important}
+  body[data-page="access"] .access-registry-head>div:first-child{width:100%;flex:0 0 auto!important}
+  body[data-page="access"] .access-registry-toolbar{display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-items:stretch!important;justify-content:stretch!important;gap:10px!important;flex:none!important;width:100%!important;min-width:0!important;max-width:100%!important}
+  body[data-page="access"] .access-registry-toolbar #accessRegistrySearch,
+  body[data-page="access"] .access-registry-toolbar #accessRegistryPosition,
+  body[data-page="access"] .access-registry-toolbar #accessRegistrySort{grid-column:1!important;display:block!important;flex:none!important;width:100%!important;min-width:0!important;max-width:100%!important;min-height:42px!important;box-sizing:border-box!important;margin:0!important;font-size:13px!important}
+  body[data-page="access"] .access-registry-toolbar>.muted{grid-column:1!important;display:block!important;width:auto!important;min-width:0!important;white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important;writing-mode:horizontal-tb!important;line-height:1.4!important;margin:2px 0 -5px!important}
+  body[data-page="access"] .admins-source-row{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0}
+  body[data-page="access"] #accessRegistryTable{display:block!important;min-width:0!important;width:100%!important;max-width:100%!important}
+  body[data-page="access"] #accessRegistryTable tbody{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important;width:100%!important}
+  body[data-page="access"] #accessRegistryTable tbody tr{display:block!important;min-width:0!important;width:100%!important;box-sizing:border-box!important}
+  body[data-page="access"] #accessRegistryTable tbody td{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+  body[data-page="access"] #accessRegistryTable tbody td:first-child{display:flex!important;align-items:center!important;justify-content:flex-start!important;padding:10px 0!important;min-height:38px!important}
+  body[data-page="access"] #accessRegistryTable tbody td:first-child::before{content:"Выбрать";display:inline-block!important;flex:0 0 auto!important;margin-right:12px;white-space:nowrap}
+  body[data-page="access"] #accessRegistryTable tbody td:first-child input{flex:0 0 auto!important;width:18px!important;height:18px!important;margin:0!important}
+  body[data-page="access"] #accessRegistryTable tbody td:nth-child(2){min-width:0!important}
+}
