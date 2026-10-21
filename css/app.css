@@ -4551,3 +4551,74 @@ body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{
     display:none!important;
   }
 }
+
+
+/* Statistics-all: mobile cards; preserve the desktop table layout. */
+.stats-mobile-list { display:none; }
+@media (max-width: 800px) {
+  body[data-page="statistics-all"] #allStatsRoot .table-box {
+    overflow-x:visible!important;
+    max-width:100%!important;
+  }
+  body[data-page="statistics-all"] #allStatsRoot #allStatsTable {
+    display:none!important;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-list {
+    display:flex!important;
+    flex-direction:column;
+    gap:12px;
+    width:100%;
+    box-sizing:border-box;
+    padding:12px;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card {
+    min-width:0;
+    width:100%;
+    box-sizing:border-box;
+    padding:14px;
+    border:1px solid var(--border-color, #303440);
+    border-radius:14px;
+    background:var(--card-bg, rgba(255,255,255,.035));
+    overflow-wrap:anywhere;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-title {
+    margin:0 0 10px;
+    font-size:16px;
+    line-height:1.4;
+    font-weight:700;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-details {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:9px;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-field {
+    min-width:0;
+    padding-top:8px;
+    border-top:1px solid var(--border-color, #303440);
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-label {
+    display:block;
+    margin-bottom:4px;
+    color:var(--muted, #9298a7);
+    font-size:12px;
+    line-height:1.35;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-value {
+    min-width:0;
+    font-size:14px;
+    line-height:1.45;
+    overflow-wrap:anywhere;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-value .stats-norm-actions {
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-section {
+    padding:10px 12px;
+    border-radius:10px;
+    font-weight:700;
+    background:var(--surface, rgba(255,255,255,.06));
+  }
+}
