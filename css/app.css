@@ -4414,3 +4414,28 @@ body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{
 .page-updated-at{color:var(--muted);font-size:11px;line-height:1.4;overflow-wrap:anywhere}
 .page-refresh-tools .small-button{flex:0 0 auto;white-space:nowrap}
 @media(max-width:560px){.top{padding-left:14px;padding-right:14px}.page-refresh-tools{gap:8px}.page-refresh-tools .page-updated-at{flex:1 1 100%}.page-refresh-tools .small-button{width:auto;max-width:100%;min-height:38px;padding:9px 13px;font-size:11px}}
+
+
+/* Access registry: responsive filter layout and readable mobile cards. */
+.access-registry-head{min-width:0}
+.access-registry-head>div:first-child{flex:0 0 auto}
+.access-registry-toolbar{flex:1 1 0;min-width:0;max-width:100%;flex-wrap:wrap;justify-content:flex-end}
+.access-registry-toolbar .form-input,.access-registry-toolbar .form-select{min-width:0;max-width:100%;box-sizing:border-box}
+.access-registry-toolbar #accessRegistrySearch{flex:1 1 170px;width:auto}
+.access-registry-toolbar #accessRegistryPosition{flex:1 1 150px;width:auto}
+.access-registry-toolbar .access-registry-sort{flex:1 1 170px;width:auto;min-width:0}
+.access-registry-toolbar>.muted{flex:0 0 auto;white-space:nowrap}
+#accessRegistryTable td:first-child{min-width:0}
+#accessRegistryTable td:nth-child(2){min-width:145px}
+@media(max-width:700px){
+  .access-registry-head{display:flex;flex-direction:column;align-items:stretch;gap:14px}
+  .access-registry-head>div:first-child{width:100%;min-width:0}
+  .access-registry-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;max-width:100%;gap:9px;justify-content:stretch;align-items:stretch}
+  .access-registry-toolbar #accessRegistrySearch{grid-column:1/-1;width:100%;min-width:0}
+  .access-registry-toolbar #accessRegistryPosition{grid-column:1/-1;width:100%;min-width:0}
+  .access-registry-toolbar>.muted{grid-column:1/-1;align-self:end;white-space:normal}
+  .access-registry-toolbar .access-registry-sort{grid-column:1/-1;width:100%;min-width:0;min-height:40px}
+  .access-registry-toolbar .form-input,.access-registry-toolbar .form-select{width:100%;min-height:40px}
+  #accessRegistryTable td:first-child{min-width:0!important}
+  #accessRegistryTable td:nth-child(2){min-width:0}
+}
