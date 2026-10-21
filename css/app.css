@@ -4460,3 +4460,15 @@ body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{
   body[data-page="access"] #accessRegistryTable tbody td:first-child input{flex:0 0 auto!important;width:18px!important;height:18px!important;margin:0!important}
   body[data-page="access"] #accessRegistryTable tbody td:nth-child(2){min-width:0!important}
 }
+
+/* Mobile navigation: visible above browser controls and safe-area inset. */
+.mobile-bottom-nav{display:none}
+@media(max-width:800px){
+  .mobile-bottom-nav{position:fixed;z-index:90;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;gap:2px;padding:7px 8px calc(7px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(0,0,0,.18)}
+  .mobile-bottom-nav a,.mobile-bottom-nav button{min-width:0;min-height:49px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:10px;background:transparent;color:var(--muted);text-decoration:none;font:inherit;font-size:21px;line-height:1;cursor:pointer}
+  .mobile-bottom-nav small{font-size:10px;line-height:1.2;font-weight:650;white-space:nowrap}
+  .mobile-bottom-nav [aria-current="page"]{background:var(--surface-2,var(--surface));color:var(--text)}
+  .main{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))!important}
+  .content{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))!important}
+  .page-refresh-tools{display:none!important}
+}
