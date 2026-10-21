@@ -4711,3 +4711,91 @@ body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{
     text-align:left!important;
   }
 }
+
+
+/* Mobile administrator edit modal: fixed, opaque action footer and full-screen sheet. */
+@media (max-width: 800px) {
+  #adminEditBackdrop {
+    position: fixed;
+    inset: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+    overflow: hidden;
+    background: rgba(0, 0, 0, .72);
+  }
+
+  #adminEditBackdrop .admin-edit-card {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+    max-width: none;
+    max-height: 100dvh;
+    height: 100dvh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 18px 17px 0;
+    border-radius: 16px 16px 0 0;
+    overflow: hidden;
+  }
+
+  #adminEditBackdrop #adminEditForm {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 16px;
+  }
+
+  #adminEditBackdrop #adminEditForm .form-grid {
+    gap: 10px;
+  }
+
+  #adminEditBackdrop #adminEditForm .form-field label {
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+
+  #adminEditBackdrop #adminEditForm .form-input,
+  #adminEditBackdrop #adminEditForm .form-select {
+    height: 44px;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  #adminEditBackdrop .admin-edit-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    align-items: stretch;
+    flex: 0 0 auto;
+    gap: 10px;
+    margin: 0 -17px 0;
+    padding: 12px 17px calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    box-sizing: border-box;
+    width: calc(100% + 34px);
+    opacity: 1;
+    isolation: isolate;
+  }
+
+  #adminEditBackdrop .admin-edit-actions button,
+  #adminEditBackdrop .admin-edit-actions .button {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 46px;
+    height: auto;
+    box-sizing: border-box;
+    padding: 0 10px;
+    font-size: 14px;
+    line-height: 1.25;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+}
