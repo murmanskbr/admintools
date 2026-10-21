@@ -1364,6 +1364,64 @@
           '</tr></thead><tbody>' + (rows || '<tr><td colspan="7" class="table-empty">По заданным фильтрам никого не найдено.</td></tr>') + '</tbody></table>' +
         '</div><div id="adminEditModal"></div>';
 
+      // На телефонах отображаем те же строки как карточки, не меняя таблицу для ПК.
+      (function buildMobileStatsCards() {
+        var table = document.getElementById("allStatsTable");
+        if (!table || !table.tHead || !table.tBodies.length) return;
+        var container = table.parentElement;
+        var oldCards = container.querySelector(".stats-mobile-list");
+        if (oldCards) oldCards.remove();
+
+        var headers = Array.prototype.map.call(table.tHead.rows[0].cells, function (cell) {
+          return (cell.textContent || "").trim();
+        });
+        var list = document.createElement("div");
+        list.className = "stats-mobile-list";
+
+        Array.prototype.forEach.call(table.tBodies[0].rows, function (row) {
+          if (row.classList.contains("stats-section-row")) {
+            var section = document.createElement("div");
+            section.className = "stats-mobile-section";
+            section.textContent = row.textContent.trim();
+            list.appendChild(section);
+            return;
+          }
+          var cells = Array.prototype.slice.call(row.cells);
+          if (!cells.length || row.querySelector(".table-empty")) return;
+
+          var card = document.createElement("article");
+          card.className = "stats-mobile-card";
+          var titleIndex = lastNicknameIndex >= 0 ? lastNicknameIndex : 0;
+          var title = document.createElement("h3");
+          title.className = "stats-mobile-card-title";
+          title.textContent = (cells[titleIndex] && cells[titleIndex].textContent.trim()) || "Сотрудник";
+          card.appendChild(title);
+
+          var details = document.createElement("div");
+          details.className = "stats-mobile-card-details";
+          cells.forEach(function (cell, index) {
+            if (index === titleIndex) return;
+            var valueText = (cell.textContent || "").trim();
+            if (!valueText && !cell.querySelector("button,a,input,select")) return;
+
+            var field = document.createElement("div");
+            field.className = "stats-mobile-card-field";
+            var label = document.createElement("span");
+            label.className = "stats-mobile-card-label";
+            label.textContent = headers[index] || ("Столбец " + (index + 1));
+            var value = document.createElement("div");
+            value.className = "stats-mobile-card-value";
+            value.innerHTML = cell.innerHTML;
+            field.appendChild(label);
+            field.appendChild(value);
+            details.appendChild(field);
+          });
+          card.appendChild(details);
+          list.appendChild(card);
+        });
+        container.appendChild(list);
+      })();
+
       document.querySelectorAll("#allStatsTable tbody tr").forEach(function (row) {
         row.addEventListener("click", function (event) {
           if (event.target.closest("button, a, input, select, textarea")) return;
