@@ -1364,7 +1364,7 @@
           '</tr></thead><tbody>' + (rows || '<tr><td colspan="7" class="table-empty">По заданным фильтрам никого не найдено.</td></tr>') + '</tbody></table>' +
         '</div><div id="adminEditModal"></div>';
 
-      // На телефонах отображаем те же строки как карточки, не меняя таблицу для ПК.
+      // Компактные раскрывающиеся карточки для мобильной версии.
       (function buildMobileStatsCards() {
         var table = document.getElementById("allStatsTable");
         if (!table || !table.tHead || !table.tBodies.length) return;
@@ -1375,6 +1375,15 @@
         var headers = Array.prototype.map.call(table.tHead.rows[0].cells, function (cell) {
           return (cell.textContent || "").trim();
         });
+        function norm(value) {
+          return String(value || "").trim().toLowerCase().replace(/ё/g, "е").replace(/\\s+/g, " ");
+        }
+        var compactFields = [
+          "возраст", "доступ с пк", "неактивы", "баллы активности",
+          "дни на посту", "страйки", "предупреждения", "предупреждение",
+          "баллы", "последнее повышение"
+        ];
+        var fullWidthFields = ["должность", "норматив", "действия"];
         var list = document.createElement("div");
         list.className = "stats-mobile-list";
 
@@ -1390,25 +1399,37 @@
           if (!cells.length || row.querySelector(".table-empty")) return;
 
           var card = document.createElement("article");
-          card.className = "stats-mobile-card";
+          card.className = "stats-mobile-card is-collapsed";
           var titleIndex = lastNicknameIndex >= 0 ? lastNicknameIndex : 0;
-          var title = document.createElement("h3");
+          var title = document.createElement("button");
+          title.type = "button";
           title.className = "stats-mobile-card-title";
-          title.textContent = (cells[titleIndex] && cells[titleIndex].textContent.trim()) || "Сотрудник";
+          title.setAttribute("aria-expanded", "false");
+          title.innerHTML = '<span class="stats-mobile-title-text"></span><span class="stats-mobile-chevron" aria-hidden="true">⌄</span>';
+          title.querySelector(".stats-mobile-title-text").textContent =
+            (cells[titleIndex] && cells[titleIndex].textContent.trim()) || "Сотрудник";
           card.appendChild(title);
 
           var details = document.createElement("div");
           details.className = "stats-mobile-card-details";
+          var positionValue = "";
+          var normativeValue = "";
           cells.forEach(function (cell, index) {
             if (index === titleIndex) return;
+            var labelText = headers[index] || ("Столбец " + (index + 1));
+            var labelNorm = norm(labelText);
             var valueText = (cell.textContent || "").trim();
             if (!valueText && !cell.querySelector("button,a,input,select")) return;
 
             var field = document.createElement("div");
             field.className = "stats-mobile-card-field";
+            if (compactFields.indexOf(labelNorm) !== -1) field.classList.add("is-compact");
+            if (fullWidthFields.indexOf(labelNorm) !== -1) field.classList.add("is-full");
+            if (labelNorm === "должность") positionValue = valueText;
+            if (labelNorm === "норматив") normativeValue = valueText;
             var label = document.createElement("span");
             label.className = "stats-mobile-card-label";
-            label.textContent = headers[index] || ("Столбец " + (index + 1));
+            label.textContent = labelText;
             var value = document.createElement("div");
             value.className = "stats-mobile-card-value";
             value.innerHTML = cell.innerHTML;
@@ -1416,7 +1437,26 @@
             field.appendChild(value);
             details.appendChild(field);
           });
+
+          // В свернутом состоянии остаются должность и норматив; действия и прочие поля раскрываются.
           card.appendChild(details);
+          card.dataset.position = positionValue;
+          card.dataset.normative = normativeValue;
+          function applyCollapsedSummary() {
+            details.querySelectorAll(".stats-mobile-card-field").forEach(function (field) {
+              var label = norm(field.querySelector(".stats-mobile-card-label") && field.querySelector(".stats-mobile-card-label").textContent);
+              field.hidden = card.classList.contains("is-collapsed") &&
+                label !== "должность" && label !== "норматив";
+            });
+            title.setAttribute("aria-expanded", card.classList.contains("is-collapsed") ? "false" : "true");
+            var chevron = title.querySelector(".stats-mobile-chevron");
+            if (chevron) chevron.textContent = card.classList.contains("is-collapsed") ? "⌄" : "⌃";
+          }
+          title.addEventListener("click", function () {
+            card.classList.toggle("is-collapsed");
+            applyCollapsedSummary();
+          });
+          applyCollapsedSummary();
           list.appendChild(card);
         });
         container.appendChild(list);
