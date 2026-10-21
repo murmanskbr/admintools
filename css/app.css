@@ -4799,3 +4799,16 @@ body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{
     text-align: center;
   }
 }
+
+
+@media (max-width: 800px) {
+  body:has(#adminEditBackdrop) .back-to-top,
+  body:has(#adminEditBackdrop) .back-to-top-button,
+  body:has(#adminEditBackdrop) .scroll-to-top,
+  body:has(#adminEditBackdrop) .scroll-top,
+  body:has(#adminEditBackdrop) #backToTop,
+  body:has(#adminEditBackdrop) #scrollToTop,
+  body:has(#adminEditBackdrop) [data-action="back-to-top"] {
+    display: none;
+  }
+}
