@@ -365,13 +365,6 @@
           esc(subtitle || "") + '</p>' +
           '' +
         '</div>' + body + '</section>' +
-        '<nav class="mobile-bottom-nav" aria-label="Быстрая навигация">' +
-          '<a href="../pages/dashboard.html"' + (location.pathname.endsWith('/dashboard.html') ? ' aria-current="page"' : '') + '>⌂<small>Главная</small></a>' +
-          '<a href="../pages/notifications.html"' + (location.pathname.endsWith('/notifications.html') ? ' aria-current="page"' : '') + '>♧<small>Уведомления</small></a>' +
-          '<a href="../pages/' + (management(user) ? 'statistics-all' : 'statistics') + '.html">▥<small>Статистика</small></a>' +
-          '<a href="../pages/profile.html"' + (location.pathname.endsWith('/profile.html') ? ' aria-current="page"' : '') + '>◉<small>Профиль</small></a>' +
-          '<button id="mobileBottomMenu" type="button" aria-label="Открыть все разделы">☰<small>Разделы</small></button>' +
-        '</nav>' +
         '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><img class="watermark-logo" src="../favicon.svg" alt=""><span>' +
           esc(user.nickname) + '</span><small>BLACK RUSSIA • МУРМАНСК</small></div></div>' +
       '</main>' +
