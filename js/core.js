@@ -368,6 +368,13 @@
         '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><img class="watermark-logo" src="../favicon.svg" alt=""><span>' +
           esc(user.nickname) + '</span><small>BLACK RUSSIA • МУРМАНСК</small></div></div>' +
       '</main>' +
+      '<nav class="mobile-bottom-nav" aria-label="Быстрая навигация">' +
+        '<a href="../pages/dashboard.html"><span aria-hidden="true">⌂</span><small>Главная</small></a>' +
+        '<a href="../pages/' + (management(user) ? 'statistics-all' : 'statistics') + '.html"><span aria-hidden="true">▥</span><small>Статистика</small></a>' +
+        '<a href="../pages/' + (management(user) ? 'normatives-all' : 'normatives') + '.html"><span aria-hidden="true">↑</span><small>Нормативы</small></a>' +
+        '<a href="../pages/notifications.html"><span aria-hidden="true">♧</span><small>Уведомления</small></a>' +
+        '<button type="button" id="mobileBottomMenu" aria-label="Открыть меню"><span aria-hidden="true">☰</span><small>Меню</small></button>' +
+      '</nav>' +
     '</div>';
   }
 
