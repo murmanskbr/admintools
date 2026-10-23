@@ -104,10 +104,9 @@
     var nav = [
       ["pages/dashboard.html", "⌂", "Главная"],
       ["pages/profile.html", "◉", "Мой профиль"],
-      ["pages/statistics.html", "▥", "Моя статистика"],
       ["pages/access.html", "⚿", "Выдать доступ"],
       ["pages/statistics-all.html", "▥", "Статистика администрации"],
-      ["pages/admin-management.html", "♙", "Создание / удаление администратора"],
+      ["pages/admin-management.html", "♙", "Администраторы"],
       ["pages/notifications.html", "!", "Уведомления"],
       ["pages/normatives-all.html", "↑", "Проставка нормативов"],
       ["pages/requests-all.html", "✦", "Обращения администрации"],
@@ -156,6 +155,7 @@
           '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><img class="watermark-logo" src="../favicon.svg" alt=""><span>' +
             esc(nickname) + '</span><small>BLACK RUSSIA • МУРМАНСК</small></div></div>' +
         '</main>' +
+        window.BRApp.bottomNavHtml(user) +
       '</div>';
 
     function renderMenuLink(item) {
@@ -574,6 +574,8 @@
       };
     }
 
+    var bottomMenu = document.getElementById("mobileBottomMenu");
+    if (bottomMenu && mobileMenu) bottomMenu.onclick = function () { mobileMenu.click(); };
     if (backdrop) backdrop.onclick = closeMenu;
     sidebar.querySelectorAll("a").forEach(function (link) {
       link.onclick = closeMenu;
