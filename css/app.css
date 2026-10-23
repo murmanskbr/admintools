@@ -4812,3 +4812,23 @@ body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{
     display: none;
   }
 }
+
+/* Compact dashboard and form controls. */
+@media(max-width:800px){
+  body[data-page="dashboard"] .server-stats-grid,
+  body[data-page="dashboard"] .dashboard-grid,
+  body[data-page="dashboard"] .dashboard-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  body[data-page="dashboard"] .dashboard-action{min-width:0;padding:12px}
+  body[data-page="dashboard"] .dashboard-action span{display:none}
+  body[data-page="dashboard"] .server-stat{min-width:0;padding:12px}
+  body[data-page="statistics-all"] #statsDateToday,
+  body[data-page="statistics-all"] #allStatsRefresh{flex:1 1 0;min-width:0}
+  body[data-page="statistics-all"] .stats-all-toolbar .stats-toolbar-actions{display:flex;flex-wrap:wrap}
+}
+.server-refresh{min-width:34px;width:34px;height:34px;padding:0;font-size:22px;line-height:1}
+.empty{min-height:60px;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}
+#passwordSettingsForm .access-password-field{position:relative;display:block}
+#passwordSettingsForm .access-password-field .form-input{width:100%;padding-right:46px}
+#passwordSettingsForm .access-password-field .password-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:grid;place-items:center;min-width:34px;width:34px;height:34px;padding:0;border:0;background:transparent;color:var(--muted);font-size:20px}
+body[data-page="statistics-all"] .stats-all-toolbar .muted,
+body[data-page="statistics-all"] .settings-hint{font-size:11px;color:var(--muted)}
