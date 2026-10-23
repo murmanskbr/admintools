@@ -3768,7 +3768,9 @@
     var state = {
       nickname: "",
       action: "",
-      date: ""
+      date: "",
+      severity: "all",
+      visible: 20
     };
 
     var actions = {
@@ -3938,8 +3940,9 @@
     }
 
     function renderTable(root, list) {
-      var rows = list.length
-        ? list.map(function (x) {
+      var filtered = list.filter(function (item) { return state.severity === "all" || (item.criticality || criticality(item.action).key) === state.severity; });
+      var rows = filtered.length
+        ? filtered.slice(0, state.visible).map(function (x) {
             var actionKey = String(x.action || "").toLowerCase();
             var pageKey = String(x.page || "").toLowerCase();
             var detailKey = String(x.details || "");
@@ -3996,7 +3999,9 @@
             '</tr></thead>' +
             '<tbody>' + rows + '</tbody>' +
           '</table>' +
-        '</div>';
+        '</div>' + (filtered.length > state.visible ? '<button type="button" class="button button-secondary logs-more" id="logsShowMore">Показать ещё</button>' : '');
+      var more = document.getElementById("logsShowMore");
+      if (more) more.onclick = function () { state.visible += 20; renderTable(root, list); };
     }
 
     return {
@@ -4024,15 +4029,17 @@
               '</select>' +
             '</div>' +
             '<div class="form-field">' +
-              '<label for="logsDate">По дате</label>' +
+              '<label for="logsDate">Любая дата</label>' +
               '<input id="logsDate" class="form-input" type="date">' +
             '</div>' +
+            '<div class="logs-severity-chips" aria-label="Критичность"><button type="button" data-log-severity="all" class="active">Все</button><button type="button" data-log-severity="normal">Обычная</button><button type="button" data-log-severity="important">Важная</button><button type="button" data-log-severity="critical">Критическая</button></div>' +
             '<div class="logs-filter-actions">' +
               '<button class="button button-primary" type="submit">Найти</button>' +
               '<button class="button button-secondary" id="logsFilterReset" type="button">Сбросить</button>' +
             '</div>' +
           '</form>' +
         '</div>' +
+        '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>' +
         '<div class="box logs-cleanup-box">' +
           '<div class="logs-cleanup-head">' +
             '<div><small>ОЧИСТКА</small><b>Удаление старых записей</b></div>' +
@@ -4050,8 +4057,7 @@
             '</div>' +
             '<button class="button button-danger" id="logsCleanupButton" type="button">Очистить журнал</button>' +
           '</div>' +
-        '</div>' +
-        '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>';
+        '</div>';
       },
       bind: function (user) {
         var form = document.getElementById("logsFilterForm");
@@ -4062,6 +4068,14 @@
         var cleanupPeriod = document.getElementById("logsCleanupPeriod");
         var cleanupButton = document.getElementById("logsCleanupButton");
 
+        document.querySelectorAll("[data-log-severity]").forEach(function (chip) {
+          chip.onclick = function () {
+            state.severity = chip.dataset.logSeverity;
+            state.visible = 20;
+            document.querySelectorAll("[data-log-severity]").forEach(function (other) { other.classList.toggle("active", other === chip); });
+            load(user, false);
+          };
+        });
         if (cleanupButton) {
           cleanupButton.onclick = async function () {
             var period = cleanupPeriod
@@ -4128,6 +4142,7 @@
             state.nickname = nicknameInput ? nicknameInput.value.trim() : "";
             state.action = actionInput ? actionInput.value.trim() : "";
             state.date = dateInput ? dateInput.value.trim() : "";
+            state.visible = 20;
 
             load(user, false);
           };
