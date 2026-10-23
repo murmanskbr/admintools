@@ -352,12 +352,12 @@
               '<div class="server-box-head"><div><small>СТАТИСТИКА СЕРВЕРА</small><h2>Мурманск</h2></div>' +
               '<div class="server-box-actions">' +
                 '<span class="server-status"><i style="background:' + (online != null ? "#36d47d" : "#8d96a7") + '"></i>' + status + '</span>' +
-                '<button class="small-button server-refresh" id="serverRefresh" type="button">↻ Обновить</button>' +
+                '<button class="small-button server-refresh" id="serverRefresh" type="button" aria-label="Обновить" title="Обновить">⟳</button>' +
               '</div></div>' +
               '<div class="server-stats-grid">' +
-                '<div class="server-stat"><small>ОНЛАЙН</small><strong>' + E(online == null ? "—" : String(online) + (max != null ? " / " + max : "")) + '</strong><span>игроков онлайн</span></div>' +
-                '<div class="server-stat"><small>X2</small><strong>' + E(x2) + '</strong><span>режим опыта</span></div>' +
-                '<div class="server-stat"><small>СЕРВЕР</small><strong>Мурманск</strong><span>Black Russia</span></div>' +
+                '<div class="server-stat"><small>ИГРОКИ</small><strong>' + E(online == null ? "—" : String(online) + (max != null ? " / " + max : "")) + '</strong><span>игроков онлайн</span></div>' +
+                '<div class="server-stat"><small>ОПЫТ</small><strong>' + E(x2) + '</strong><span>режим опыта</span></div>' +
+                '<div class="server-stat"><small>СЕРВЕР</small><strong>№ 53</strong><span>Black Russia</span></div>' +
                 '<div class="server-stat"><small>СОСТОЯНИЕ</small><strong>' + status + '</strong><span>обновление по запросу</span></div>' +
               '</div>' +
               '<div class="server-updated" id="serverUpdated">Данные обновлены: ' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</div>' +
@@ -2566,7 +2566,7 @@
 
               var status = item.enabled
                 ? '<span class="badge badge-green">Включены</span>'
-                : '<span class="badge badge-red">Выключены</span>';
+                : '<span class="badge badge-gray">Выключены</span>';
 
               return '<tr data-push-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-push-position="' + E(item.position || "") + '" data-push-enabled="' + (item.enabled ? 'yes' : 'no') + '">' +
                 '<td><b>' + E(item.nickname) + '</b></td>' +
@@ -3476,9 +3476,9 @@
           '<div class="settings-card-head"><div><small>БЕЗОПАСНОСТЬ</small><h2>Пароль</h2></div><span>Изменение пароля аккаунта</span></div>' +
           '<form id="passwordSettingsForm">' +
             '<div class="form-grid">' +
-              '<div class="form-field form-full"><label>Текущий пароль</label><div class="access-password-field"><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required><button type="button" class="small-button password-toggle" data-password-toggle="currentPassword">Показать</button></div></div>' +
-              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPassword">Показать</button></div></div>' +
-              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPasswordConfirm">Показать</button></div></div>' +
+              '<div class="form-field form-full"><label>Текущий пароль</label><div class="access-password-field"><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required><button type="button" class="small-button password-toggle" data-password-toggle="currentPassword" aria-label="Показать пароль" title="Показать пароль">◉</button></div></div>' +
+              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPassword" aria-label="Показать пароль" title="Показать пароль">◉</button></div></div>' +
+              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPasswordConfirm" aria-label="Показать пароль" title="Показать пароль">◉</button></div></div>' +
             '</div>' +
             '<p class="settings-hint">Минимум 8 символов: заглавная и строчная латинские буквы (A–Z, a–z), цифра (0–9) и специальный символ (например, ! или @). После смены пароля все устройства выйдут из аккаунта.</p>' +
             '<div class="form-actions"><button class="button button-primary" id="passwordSettingsSubmit" type="submit">Изменить пароль</button></div>' +
