@@ -4832,3 +4832,10 @@ body[data-page="logs"] .content>.box,body[data-page="logs"] .content .table-box{
 #passwordSettingsForm .access-password-field .password-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:grid;place-items:center;min-width:34px;width:34px;height:34px;padding:0;border:0;background:transparent;color:var(--muted);font-size:20px}
 body[data-page="statistics-all"] .stats-all-toolbar .muted,
 body[data-page="statistics-all"] .settings-hint{font-size:11px;color:var(--muted)}
+
+/* Five-item mobile navigation. */
+@media(max-width:800px){
+  body .mobile-bottom-nav{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));}
+  body .main{padding-bottom:calc(78px + env(safe-area-inset-bottom,0px));}
+  body:has(#adminEditBackdrop) .mobile-bottom-nav{display:none!important;}
+}
