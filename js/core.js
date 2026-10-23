@@ -330,6 +330,19 @@
       });
   }
 
+  function bottomNavHtml(user) {
+    var page = (location.pathname.split("/").pop() || "").replace(/\.html$/, "");
+    var selected = page === "dashboard" ? "dashboard" : page === "profile" || page === "statistics" ? "statistics" : page === "statistics-all" ? "statistics" : page === "normatives" || page === "normatives-all" ? "normatives" : page === "notifications" ? "notifications" : "menu";
+    function active(key) { return selected === key ? ' class="active" aria-current="page"' : ""; }
+    return '<nav class="mobile-bottom-nav" aria-label="Быстрая навигация">' +
+        '<a' + active('dashboard') + ' href="../pages/dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/></svg><small>Главная</small></a>' +
+        '<a' + active('dashboard') + ' href="../pages/' + (management(user) ? 'statistics-all' : 'profile') + '.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11h4v9M10 20V4h4v16M16 20v-7h4v7M3 20h18"/></svg><small>Статистика</small></a>' +
+        '<a' + active('dashboard') + ' href="../pages/' + (management(user) ? 'normatives-all' : 'normatives') + '.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="m8 12 3 3 5-6"/></svg><small>Нормативы</small></a>' +
+        '<a' + active('dashboard') + ' href="../pages/notifications.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><small>Уведомления</small></a>' +
+        '<button' + active('menu') + ' type="button" id="mobileBottomMenu" aria-label="Открыть меню"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><small>Меню</small></button>' +
+      '</nav>';
+  }
+
   function shell(user, title, subtitle, body, showRefresh) {
     var menu = management(user)
       ? '<div class="section-title">УПРАВЛЕНИЕ</div>' +
@@ -368,13 +381,7 @@
         '<div class="watermark" aria-hidden="true"><div class="watermark-mark"><img class="watermark-logo" src="../favicon.svg" alt=""><span>' +
           esc(user.nickname) + '</span><small>BLACK RUSSIA • МУРМАНСК</small></div></div>' +
       '</main>' +
-      '<nav class="mobile-bottom-nav" aria-label="Быстрая навигация">' +
-        '<a href="../pages/dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/></svg><small>Главная</small></a>' +
-        '<a href="../pages/' + (management(user) ? 'statistics-all' : 'profile') + '.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11h4v9M10 20V4h4v16M16 20v-7h4v7M3 20h18"/></svg><small>Статистика</small></a>' +
-        '<a href="../pages/' + (management(user) ? 'normatives-all' : 'normatives') + '.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="m8 12 3 3 5-6"/></svg><small>Нормативы</small></a>' +
-        '<a href="../pages/notifications.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><small>Уведомления</small></a>' +
-        '<button type="button" id="mobileBottomMenu" aria-label="Открыть меню"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><small>Меню</small></button>' +
-      '</nav>' +
+      bottomNavHtml(user) +
     '</div>';
   }
 
@@ -724,6 +731,7 @@
     isManagement: management,
     applyTheme: applyTheme,
     updateSessionUser: updateSessionUser,
-    init: init
+    init: init,
+    bottomNavHtml: bottomNavHtml
   };
 })();
