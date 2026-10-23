@@ -4863,3 +4863,20 @@ body[data-page="statistics-all"] .settings-hint{font-size:11px;color:var(--muted
  body[data-page="normatives"] .normative-mobile-comment p:is(:empty){display:none}
  body[data-page="normatives"] .normative-mobile-meta{gap:8px}
 }
+
+/* Dashboard layout and accessible eye control, mobile. */
+@media(max-width:800px){
+ body[data-page="dashboard"] .dashboard-grid{grid-template-columns:1fr}
+ body[data-page="dashboard"] .dashboard-account,body[data-page="dashboard"] .dashboard-links{width:100%;min-width:0;overflow-wrap:normal;word-break:normal;hyphens:none}
+ body[data-page="dashboard"] .dashboard-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ body[data-page="dashboard"] .dashboard-action{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;min-height:82px;overflow-wrap:normal;word-break:normal;hyphens:none}
+ body[data-page="dashboard"] .dashboard-action span{display:block;font-size:10px;color:var(--muted);line-height:1.35}
+ body[data-page="dashboard"] .dashboard-action::before{content:"↗";display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--line);border-radius:7px;font-size:15px}
+ body[data-page="dashboard"] .dashboard-performance summary{cursor:pointer;font-size:13px;font-weight:700}
+ .mobile-bottom-nav svg{display:block;width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+}
+#passwordSettingsForm .access-password-field{position:relative}
+#passwordSettingsForm .access-password-field .form-input{padding-right:52px}
+#passwordSettingsForm .access-password-field .password-toggle{position:absolute;right:0;top:50%;transform:translateY(-50%);width:44px;height:44px;min-width:44px;min-height:44px;display:grid;place-items:center;border:0;background:transparent;padding:0}
+#passwordSettingsForm .password-toggle::before{content:"";display:block;width:22px;height:22px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 5c5.5 0 9.5 5.2 10 7-.5 1.8-4.5 7-10 7S2.5 13.8 2 12c.5-1.8 4.5-7 10-7Zm0 2C8 7 5.1 10.4 4.2 12 5.1 13.6 8 17 12 17s6.9-3.4 7.8-5C18.9 10.4 16 7 12 7Zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z'/%3E%3C/svg%3E") center/contain no-repeat}
+#passwordSettingsForm .password-toggle.is-visible::after{content:"";position:absolute;width:25px;height:2px;background:currentColor;transform:rotate(-42deg);box-shadow:0 0 0 2px var(--surface2)}
