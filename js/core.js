@@ -15,7 +15,7 @@
     requests: ["pages/requests.html", "✦", "Мои обращения"],
     statistics: ["pages/statistics.html", "▥", "Моя статистика"],
     access: ["pages/access.html", "⚿", "Выдать доступ"],
-    "admin-management": ["pages/admin-management.html", "♙", "Создание / удаление администратора"],
+    "admin-management": ["pages/admin-management.html", "♙", "Администраторы"],
     "statistics-all": ["pages/statistics-all.html", "▥", "Статистика администрации"],
     "normatives-all": ["pages/normatives-all.html", "↑", "Проставка нормативов"],
     "requests-all": ["pages/requests-all.html", "✦", "Обращения администрации"],
