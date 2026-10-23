@@ -309,13 +309,13 @@
             '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы</b><span>Подача и просмотр</span></a>';
 
         var managementNotice = user.role === "management"
-          ? '<div class="box" style="margin-top:14px;padding:16px 18px;line-height:1.6">' +
-              '<div class="dashboard-section-head"><div><small>СТАБИЛЬНОСТЬ ПАНЕЛИ</small><h2>От чего зависит скорость работы</h2></div></div>' +
+          ? '<details class="box dashboard-performance" style="margin-top:14px;padding:16px 18px;line-height:1.6">' +
+              '<summary>От чего зависит скорость работы</summary>' +
               '<p style="margin:0 0 8px">Скорость ответа зависит от качества интернет-соединения пользователя, загрузки устройства и браузера, состояния серверной базы данных и внешних сервисов.</p>' +
               '<p style="margin:0 0 8px">При отправке нормативов время зависит также от количества и размера изображений. Нестабильный интернет и большие файлы могут замедлить загрузку.</p>' +
               '<p style="margin:0 0 8px">Если запрос долго выполняется, дождитесь сообщения о результате. Не отправляйте ту же форму повторно сразу: операция могла сохраниться, даже если ответ не успел прийти. После этого обновите список или проверьте, появилась ли запись.</p>' +
               '<p style="margin:0">При повторяющихся задержках запишите время, раздел панели и действие, при котором возникла проблема, и передайте сведения ответственному за сайт.</p>' +
-            '</div>'
+            '</details>'
           : '';
 
         return '<div id="serverRoot"><div class="box"><div class="empty">Загрузка статистики сервера...</div></div></div>' +
@@ -3476,9 +3476,9 @@
           '<div class="settings-card-head"><div><small>БЕЗОПАСНОСТЬ</small><h2>Пароль</h2></div><span>Изменение пароля аккаунта</span></div>' +
           '<form id="passwordSettingsForm">' +
             '<div class="form-grid">' +
-              '<div class="form-field form-full"><label>Текущий пароль</label><div class="access-password-field"><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required><button type="button" class="small-button password-toggle" data-password-toggle="currentPassword" aria-label="Показать пароль" title="Показать пароль">◉</button></div></div>' +
-              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPassword" aria-label="Показать пароль" title="Показать пароль">◉</button></div></div>' +
-              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPasswordConfirm" aria-label="Показать пароль" title="Показать пароль">◉</button></div></div>' +
+              '<div class="form-field form-full"><label>Текущий пароль</label><div class="access-password-field"><input id="currentPassword" class="form-input" type="password" autocomplete="current-password" required><button type="button" class="small-button password-toggle" data-password-toggle="currentPassword" aria-label="Показать пароль" title="Показать пароль" aria-pressed="false"></button></div></div>' +
+              '<div class="form-field"><label>Новый пароль</label><div class="access-password-field"><input id="newPassword" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPassword" aria-label="Показать пароль" title="Показать пароль" aria-pressed="false"></button></div></div>' +
+              '<div class="form-field"><label>Повторите новый пароль</label><div class="access-password-field"><input id="newPasswordConfirm" class="form-input" type="password" autocomplete="new-password" minlength="8" required><button type="button" class="small-button password-toggle" data-password-toggle="newPasswordConfirm" aria-label="Показать пароль" title="Показать пароль" aria-pressed="false"></button></div></div>' +
             '</div>' +
             '<p class="settings-hint">Минимум 8 символов: заглавная и строчная латинские буквы (A–Z, a–z), цифра (0–9) и специальный символ (например, ! или @). После смены пароля все устройства выйдут из аккаунта.</p>' +
             '<div class="form-actions"><button class="button button-primary" id="passwordSettingsSubmit" type="submit">Изменить пароль</button></div>' +
@@ -3582,7 +3582,9 @@
 
               var show = input.type === "password";
               input.type = show ? "text" : "password";
-              toggle.textContent = show ? "Скрыть" : "Показать";
+              toggle.setAttribute("aria-pressed", show ? "true" : "false");
+              toggle.setAttribute("aria-label", show ? "Скрыть пароль" : "Показать пароль");
+              toggle.classList.toggle("is-visible", show);
             };
           });
 
