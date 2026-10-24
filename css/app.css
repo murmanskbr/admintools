@@ -4993,3 +4993,16 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
  body[data-page="dashboard"] .dashboard-action span{display:block}
  body[data-page="dashboard"] .dashboard-grid{grid-template-columns:1fr}
 }
+
+
+/* Cache-first loading UI shared by the profile, statistics and normative journal. */
+.cache-skeleton{display:flex;flex-direction:column;gap:12px;padding:18px;min-width:0}
+.cache-skeleton-line{display:block;height:12px;width:68%;border-radius:7px;background:linear-gradient(90deg,var(--surface2) 20%,var(--surface3) 45%,var(--surface2) 70%);background-size:220% 100%;animation:br-cache-skeleton 1.25s ease-in-out infinite}
+.cache-skeleton-line.is-wide{width:96%}
+.cache-skeleton-line.is-medium{width:82%}
+@keyframes br-cache-skeleton{0%{background-position:100% 0}100%{background-position:-120% 0}}
+.cache-page-tools{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;min-width:0}
+.cache-updated-at{display:inline-block;font-size:11px;white-space:nowrap}
+.profile-cache-toolbar .cache-page-tools{max-width:100%}
+@media(max-width:800px){.cache-page-tools{justify-content:flex-start}.cache-updated-at{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.cache-skeleton-line{animation:none}}
