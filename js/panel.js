@@ -30,6 +30,75 @@
     }
   }
 
+
+  function cacheSkeleton(lines) {
+    var count = Math.max(4, Math.min(10, Number(lines) || 6));
+    var bars = [];
+    for (var i = 0; i < count; i += 1) bars.push('<i class="cache-skeleton-line' + (i % 4 === 0 ? ' is-wide' : i % 4 === 1 ? ' is-medium' : '') + '" aria-hidden="true"></i>');
+    return '<div class="box cache-skeleton" role="status" aria-label="Загрузка данных"><span class="sr-only">Загрузка данных</span>' + bars.join('') + '</div>';
+  }
+
+  function cachedPageLoad(user, key, fetcher, render, opts) {
+    opts = opts || {};
+    var storageKey = "br_cache_v1:" + user.id + ":" + key;
+    var saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(storageKey) || "null"); } catch (_) {}
+    var valid = !!(saved && typeof saved.t === "number" && saved.data != null);
+    var old = valid ? saved.data : null;
+    var root = document.getElementById(opts.root);
+    var refresh = opts.refreshId ? document.getElementById(opts.refreshId) : null;
+    var force = !!opts.force;
+    function isCurrent() { return typeof opts.isCurrent !== "function" || opts.isCurrent(); }
+    function stamp(t) {
+      if (!opts.stampId) return;
+      var label = document.getElementById(opts.stampId);
+      if (!label) return;
+      label.setAttribute("data-cache-timestamp", String(t));
+      label.title = new Date(t).toLocaleString("ru-RU");
+      label.textContent = "Обновлено " + Math.max(0, Math.floor((Date.now() - t) / 60000)) + " мин назад";
+      if (!window.__brCacheStampTimer) {
+        window.__brCacheStampTimer = window.setInterval(function () {
+          document.querySelectorAll("[data-cache-timestamp]").forEach(function (item) {
+            var savedAt = Number(item.getAttribute("data-cache-timestamp"));
+            if (Number.isFinite(savedAt)) item.textContent = "Обновлено " + Math.max(0, Math.floor((Date.now() - savedAt) / 60000)) + " мин назад";
+          });
+        }, 60000);
+      }
+    }
+    if (valid) {
+      if (!force && isCurrent()) render(old);
+      stamp(saved.t);
+    } else if (root && isCurrent()) {
+      root.innerHTML = cacheSkeleton(opts.skeletonLines || 6);
+    }
+    if (valid && !force && Date.now() - saved.t < 300000) return Promise.resolve(old);
+    if (force && refresh) {
+      refresh.disabled = true;
+      refresh.textContent = "Обновление…";
+    }
+    return Promise.resolve().then(fetcher).then(function (data) {
+      var changed = !valid || JSON.stringify(data) !== JSON.stringify(old);
+      if (changed && isCurrent()) render(data);
+      try { sessionStorage.setItem(storageKey, JSON.stringify({t:Date.now(),data:data})); } catch (_) {}
+      if (isCurrent()) stamp(Date.now());
+      return data;
+    }).catch(function (error) {
+      if (valid) {
+        if (isCurrent()) stamp(saved.t);
+        if (typeof opts.onError === "function") opts.onError(error, true);
+        return old;
+      }
+      if (root && isCurrent()) {
+        if (typeof opts.onError === "function") opts.onError(error, false);
+        else root.innerHTML = '<div class="box"><div class="empty">' + E(error && error.message ? error.message : "Не удалось загрузить данные.") + '</div></div>';
+      }
+      if (opts.throwOnError) throw error;
+      return null;
+    }).finally(function () {
+      if (force && refresh) { refresh.disabled = false; refresh.textContent = opts.refreshLabel || "↻ Обновить"; }
+    });
+  }
+
   function num(value) {
     if (typeof value === "number" && Number.isFinite(value)) return value;
     var match = String(value == null ? "" : value).match(/\d+(?:[.,]\d+)?/);
@@ -407,32 +476,49 @@
 
 
   function profile(user) {
+    function renderProfile(result, pageUser) {
+      var root = document.getElementById("profileRoot");
+      if (!root) return;
+      root.innerHTML =
+        '<div class="box"><div class="form-grid">' +
+          '<div class="form-field"><label>Никнейм аккаунта</label><input class="profile-input" readonly value="' + E(pageUser.nickname) + '"></div>' +
+          '<div class="form-field"><label>Роль панели</label><input class="profile-input" readonly value="' + E(pageUser.role === "management" ? "Руководство" : "Администратор") + '"></div>' +
+        '</div></div>' +
+        googleRowTable(result, "Профиль " + pageUser.nickname);
+    }
+    function loadProfile(loadUser, forceRefresh) {
+      var pageUser = loadUser || user;
+      var root = document.getElementById("profileRoot");
+      if (!root || !pageUser) return Promise.resolve(null);
+      var nickname = String(pageUser.nickname || "").trim();
+      return cachedPageLoad(pageUser, "profile:" + nickname.toLowerCase(), function () {
+        return window.BR_API.getStatisticsAdmin(pageUser.token, nickname);
+      }, function (result) { renderProfile(result, pageUser); }, {
+        root: "profileRoot", stampId: "profileUpdated", refreshId: "profileRefresh",
+        force: !!forceRefresh, throwOnError: true,
+        onError: function (error, hasCache) {
+          if (!hasCache && root) {
+            root.innerHTML = error && error.code === "STATISTICS_NOT_FOUND"
+              ? '<div class="box"><div class="empty">Никнейм «' + E(pageUser.nickname) + '» отсутствует в данных. Профиль не найден.</div></div>'
+              : '<div class="box"><div class="empty">' + E(error && error.message ? error.message : "Не удалось загрузить профиль.") + '</div></div>';
+          }
+        }
+      }).catch(function () { return null; });
+    }
     return {
       title: "Мой профиль",
       subtitle: "Полные данные из реестра администрации",
       render: function () {
-        return '<div id="profileRoot"><div class="box"><div class="empty">Поиск администратора...</div></div></div>';
+        return '<div class="page-toolbar profile-cache-toolbar">' +
+          '<div><small>ДАННЫЕ АККАУНТА</small><b>Профиль из реестра администрации</b></div>' +
+          '<div class="cache-page-tools"><small id="profileUpdated" class="cache-updated-at muted">Обновлено —</small><button class="button button-secondary" id="profileRefresh" type="button">↻ Обновить</button></div>' +
+        '</div><div id="profileRoot">' + cacheSkeleton(6) + '</div>';
       },
-      load: async function (user) {
-        var root = document.getElementById("profileRoot");
-        if (!root) return;
-        try {
-          var profileNickname = String(user.nickname || "").trim();
-          var result = await window.BR_API.getStatisticsAdmin(user.token, profileNickname);
-          root.innerHTML =
-            '<div class="box"><div class="form-grid">' +
-              '<div class="form-field"><label>Никнейм аккаунта</label><input class="profile-input" readonly value="' + E(user.nickname) + '"></div>' +
-              '<div class="form-field"><label>Роль панели</label><input class="profile-input" readonly value="' + E(user.role === "management" ? "Руководство" : "Администратор") + '"></div>' +
-            '</div></div>' +
-            googleRowTable(result, "Профиль " + user.nickname);
-        } catch (error) {
-          if (error.code === "STATISTICS_NOT_FOUND") {
-            root.innerHTML = '<div class="box"><div class="empty">Никнейм «' + E(user.nickname) + '» отсутствует в данных. Профиль не найден.</div></div>';
-            return;
-          }
-          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить профиль.") + '</div></div>';
-        }
-      }
+      bind: function () {
+        var refresh = document.getElementById("profileRefresh");
+        if (refresh) refresh.onclick = function () { loadProfile(user, true); };
+      },
+      load: loadProfile
     };
   }
 
@@ -1558,24 +1644,15 @@
               "success"
             );
 
-            // Для совместимости со старыми ответами без снимка таблицы
-            // выполняем один обычный refresh как резервный путь.
-            if (!hasFreshSnapshot) {
-              try {
-                await load(user, true);
-              } catch (refreshError) {
-                console.warn(
-                  "[BR AdminTools] Статус сохранён, но резервное обновление статистики не удалось:",
-                  refreshError
-                );
-
-                showNormativeResult(
-                  "✅ " + (labels[status] || status) +
-                  " проставлен для " + nickname +
-                  ". Данные на экране не удалось обновить.",
-                  "error"
-                );
+            try {
+              if (hasFreshSnapshot) {
+                var cacheKey = "br_cache_v1:" + user.id + ":statisticsAll:" + selectedDate;
+                try { sessionStorage.setItem(cacheKey, JSON.stringify({t:Date.now(),data:result})); } catch (_) {}
               }
+              await load(user, true);
+            } catch (refreshError) {
+              console.warn("[BR AdminTools] Статус сохранён, но статистику не удалось синхронизировать:", refreshError);
+              showNormativeResult("✅ " + (labels[status] || status) + " проставлен для " + nickname + ". Данные на экране не удалось обновить.", "error");
             }
           } catch (error) {
             showNormativeResult(
@@ -1704,75 +1781,33 @@
 
     function load(user, forceRefresh) {
       var root = document.getElementById("allStatsRoot");
-      var refresh = document.getElementById("allStatsRefresh");
       var dateInput = document.getElementById("allStatsDate");
-      if (!root) return Promise.resolve();
-
-      if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(String(dateInput.value || ""))) {
-        selectedDate = String(dateInput.value);
-      }
-
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(selectedDate || ""))) {
+      if (!root) return Promise.resolve(null);
+      if (dateInput && /^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateInput.value || ""))) selectedDate = String(dateInput.value);
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(selectedDate || ""))) {
         selectedDate = dateIso(0);
         if (dateInput) dateInput.value = selectedDate;
       }
-
-      if (refresh) {
-        refresh.disabled = true;
-        refresh.textContent = forceRefresh ? "Обновление…" : "Загрузка…";
-      }
-
-      var hasRenderedData =
-        lastResult &&
-        Array.isArray(lastResult.headers) &&
-        Array.isArray(lastResult.rows);
-
-      if (!hasRenderedData) {
-        root.innerHTML =
-          '<div class="box"><div class="empty">' +
-          (forceRefresh
-            ? "Получение актуальной статистики из Google Таблицы..."
-            : "Загрузка актуальной статистики...") +
-          '</div></div>';
-      } else if (forceRefresh) {
-        showNormativeResult(
-          "Обновление статистики из Google Таблицы…",
-          "success"
-        );
-      }
-
-      return window.BR_API.allStatistics(
-        user.token,
-        selectedDate
-      ).then(function (result) {
+      var requestedDate = selectedDate;
+      var requestedUser = user || window.BRApp.session && window.BRApp.session.user;
+      if (!requestedUser) return Promise.resolve(null);
+      return cachedPageLoad(requestedUser, "statisticsAll:" + requestedDate, function () {
+        return window.BR_API.allStatistics(requestedUser.token, requestedDate);
+      }, function (result) {
         lastResult = result || {};
         renderTable();
-      }).catch(function (error) {
-        console.error("[BR AdminTools] Ошибка общей статистики:", error);
-
-        if (hasRenderedData) {
-          showNormativeResult(
-            "Не удалось обновить статистику. Текущие данные оставлены без изменений.",
-            "error"
-          );
-          return;
+      }, {
+        root: "allStatsRoot", stampId: "allStatsUpdated", refreshId: "allStatsRefresh",
+        force: !!forceRefresh, throwOnError: true,
+        isCurrent: function () { return selectedDate === requestedDate; },
+        onError: function (error, hasCache) {
+          if (hasCache) showNormativeResult("Не удалось обновить статистику. Сохранённые данные оставлены на экране.", "error");
+          else {
+            lastResult = null; lastData = []; lastHeaders = []; lastNicknameIndex = -1;
+            if (root) root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить актуальную статистику из Google Таблицы.") + '</div></div>';
+          }
         }
-
-        lastResult = null;
-        lastData = [];
-        lastHeaders = [];
-        lastNicknameIndex = -1;
-
-        root.innerHTML =
-          '<div class="box"><div class="empty">' +
-          E(error.message || "Не удалось загрузить актуальную статистику из Google Таблицы.") +
-          '</div></div>';
-      }).finally(function () {
-        if (refresh) {
-          refresh.disabled = false;
-          refresh.textContent = "↻ Обновить";
-        }
-      });
+      }).catch(function () { return null; });
     }
 
     return {
@@ -1787,10 +1822,10 @@
             '<input id="allStatsDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
             '<button class="small-button" id="statsDateNext" type="button">→</button>' +
             '<div class="stats-date-actions"><button class="button button-secondary" id="statsDateToday" type="button">Сегодня</button>' +
-            '<button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button></div>' +
+            '<div class="cache-page-tools"><small id="allStatsUpdated" class="cache-updated-at muted">Обновлено —</small><button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button></div></div>' +
           '</div>' +
         '</div>' +
-        '<div id="allStatsRoot"><div class="box"><div class="empty">Загрузка статистики администрации...</div></div></div>';
+        '<div id="allStatsRoot">' + cacheSkeleton(7) + '</div>';
       },
       bind: function (user) {
         var date = document.getElementById("allStatsDate");
@@ -1803,7 +1838,7 @@
           if (!value) return;
           selectedDate = value;
           if (date) date.value = value;
-          load(user, true);
+          load(user, false);
         }
 
         if (date) date.onchange = function () { setDate(date.value); };
@@ -3110,16 +3145,10 @@
 
     var selectedDate = dateIso(0);
 
-    async function loadDaily() {
+    function renderDailyResult(result, renderDate) {
       var root = document.getElementById("normRoot");
-      var dateInput = document.getElementById("controlDate");
-      if (!root) return null;
-      if (dateInput && dateInput.value) selectedDate = dateInput.value;
-
-      try {
-        root.setAttribute("aria-busy", "true");
-
-        var result = await window.BR_API.normativesDailyLocal(user.token, selectedDate);
+      if (!root) return result;
+      result = result || {};
         var list = Array.isArray(result.administrators) ? result.administrators.slice() : [];
 
         // Сначала руководители по иерархии должностей, затем никнейм.
@@ -3146,7 +3175,7 @@
           return '<tr data-admin-id="' + E(item.admin_id || 0) + '">' +
             '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + E(item.nickname) + '</button></td>' +
             '<td>' + E(item.position || "—") + '</td>' +
-            '<td>' + E(formatDateOnly(selectedDate)) + '</td>' +
+            '<td>' + E(formatDateOnly(renderDate)) + '</td>' +
             '<td>' + E(item.created_at ? formatDateTime(item.created_at) : "—") + '</td>' +
             '<td>' + normativeStatus(item.status) + '</td>' +
             '<td>' + E(item.file_count || 0) + '</td>' +
@@ -3171,7 +3200,7 @@
 
         root.innerHTML =
           '<div class="box table-box"><div class="stats-table-head"><div><small>НОРМАТИВЫ ЗА ДАТУ</small><b>' +
-          E(formatDateOnly(selectedDate)) +
+          E(formatDateOnly(renderDate)) +
           '</b></div><span class="muted">' + E(String(list.length)) + ' аккаунтов с доступом</span></div>' +
           '<div class="admins-source-row"><span>Текущие активные доступы</span><span>Синхронизация со списком доступа к сайту</span></div>' +
           statusButtons +
@@ -3246,7 +3275,7 @@
               submissionId: Number(button.dataset.openAdminNorm || 0),
               adminId: Number(button.dataset.adminId || 0),
               nickname: button.dataset.adminNickname || "",
-              date: selectedDate,
+              date: renderDate,
               management: true
             });
           };
@@ -3258,15 +3287,29 @@
         );
         root.setAttribute("aria-busy", "false");
         return result;
-      } catch (error) {
-        root.setAttribute("aria-busy", "false");
-        console.error("[BR AdminTools] Не удалось обновить нормативы администрации:", error);
-        root.innerHTML =
-          '<div class="box"><div class="empty">' +
-          E(error && error.message ? error.message : "Не удалось обновить нормативы.") +
-          '</div></div>';
-        throw error;
-      }
+    }
+
+    function loadDaily(forceRefresh) {
+      var root = document.getElementById("normRoot");
+      var dateInput = document.getElementById("controlDate");
+      if (!root) return Promise.resolve(null);
+      if (dateInput && dateInput.value) selectedDate = dateInput.value;
+      var requestedDate = selectedDate;
+      root.setAttribute("aria-busy", "true");
+      return cachedPageLoad(user, "normativesAll:" + requestedDate, function () {
+        return window.BR_API.normativesDailyLocal(user.token, requestedDate);
+      }, function (result) { renderDailyResult(result, requestedDate); }, {
+        root: "normRoot", stampId: "normDailyUpdated",
+        force: !!forceRefresh, throwOnError: true,
+        isCurrent: function () { return selectedDate === requestedDate; },
+        onError: function (error, hasCache) {
+          if (!hasCache && root && selectedDate === requestedDate) {
+            root.innerHTML = '<div class="box"><div class="empty">' + E(error && error.message ? error.message : "Не удалось обновить нормативы.") + '</div></div>';
+          }
+        }
+      }).finally(function () {
+        if (selectedDate === requestedDate) root.setAttribute("aria-busy", "false");
+      });
     }
 
     function openNormativeModal(options) {
@@ -3397,7 +3440,7 @@
 
                 if (document.body.getAttribute("data-page") === "normatives-all") {
                   try {
-                    await loadDaily();
+                    await loadDaily(true);
                   } catch (refreshError) {
                     console.warn(
                       "[BR AdminTools] Статус сохранён, но список нормативов не удалось синхронизировать:",
@@ -3454,7 +3497,7 @@
         var today = document.getElementById("dateToday");
         var refresh = document.getElementById("normDailyRefresh");
 
-        async function refreshDaily(showAlert) {
+        async function refreshDaily(showAlert, forceRefresh) {
           if (refresh) {
             refresh.disabled = true;
             refresh.textContent = "Загрузка…";
@@ -3489,7 +3532,7 @@
         if (prev) prev.onclick = function () { setDate(dateIso(-1, selectedDate)); };
         if (next) next.onclick = function () { setDate(dateIso(1, selectedDate)); };
         if (today) today.onclick = function () { setDate(dateIso(0)); };
-        if (refresh) refresh.onclick = function () { refreshDaily(true); };
+        if (refresh) refresh.onclick = function () { refreshDaily(true, true); };
       },
       load: loadDaily
     };
