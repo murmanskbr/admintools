@@ -1417,6 +1417,7 @@
           cells.forEach(function (cell, index) {
             if (index === titleIndex) return;
             var labelText = headers[index] || ("Столбец " + (index + 1));
+            cell.setAttribute("data-mobile-label", labelText);
             var labelNorm = norm(labelText);
             var valueText = (cell.textContent || "").trim();
             if (!valueText && !cell.querySelector("button,a,input,select")) return;
