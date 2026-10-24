@@ -320,9 +320,9 @@
 
         return '<div id="serverRoot"><div class="box"><div class="empty">Загрузка статистики сервера...</div></div></div>' +
           '<div class="dashboard-grid">' +
-            '<div class="box dashboard-account">' +
+            '<div class="box dashboard-account card-ok">' +
               '<div class="dashboard-section-head"><div><small>ВАШ АККАУНТ</small><h2>' + E(user.nickname) + '</h2></div>' +
-              '<span class="badge badge-green">Активен</span></div>' +
+              '<span class="badge badge-green">✓ Активен</span></div>' +
               '<div class="dashboard-account-grid">' +
                 '<div><small>ДОЛЖНОСТЬ</small><b>' + E(user.position || "—") + '</b></div>' +
                 '<div><small>РОЛЬ</small><b>' + E(user.role === "management" ? "Руководство" : "Администратор") + '</b></div>' +
@@ -1252,12 +1252,12 @@
         "Перенорма": "badge-blue",
         "Неактив": "badge-gray",
         "Нет нормы": "badge-red",
-        "Не сдан": ""
+        "Не сдан": "badge-red", "Не сдана": "badge-red", "На проверке": "badge-yellow"
       };
 
       return '<span class="badge ' +
         (classes[status] || "") +
-        '">' + E(status) + '</span>';
+        '">' + ({'Норма':'✓ ','На проверке':'⏳ ','Не сдана':'✕ ','Не сдан':'✕ ','Нет нормы':'✕ '}[status] || '') + E(status) + '</span>';
     }
 
     function renderTable() {
@@ -1406,6 +1406,9 @@
 
           var card = document.createElement("article");
           card.className = "stats-mobile-card is-collapsed";
+          var normCell = cells[cells.length - 2];
+          var normBadge = normCell && normCell.querySelector(".badge");
+          if (normBadge) card.classList.add(normBadge.classList.contains("badge-green") ? "card-ok" : normBadge.classList.contains("badge-yellow") ? "card-wait" : normBadge.classList.contains("badge-red") ? "card-bad" : "");
           var titleIndex = lastNicknameIndex >= 0 ? lastNicknameIndex : 0;
           var title = document.createElement("button");
           title.type = "button";
@@ -4259,7 +4262,7 @@
 
     function statusLabel(item) {
       if (item.blocked_at) {
-        return '<span class="badge badge-red">Заблокирован</span>';
+        return '<span class="badge badge-red">✕ Заблокирован</span>';
       }
 
       if (item.is_active) {
@@ -4515,7 +4518,7 @@
           );
 
           var rows = sortedAccounts.map(function (item) {
-            return '<tr>' +
+            return '<tr class="' + (item.blocked_at ? 'card-bad' : item.is_active ? 'card-ok' : '') + '">' +
               '<td class="access-select-cell"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '></td>' +
               '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
               '<td>' + E(roleLabel(item.role)) + '</td>' +
