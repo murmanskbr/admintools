@@ -1,0 +1,8 @@
+/* Mobile administration statistics: preserve whole words and readable labels. */
+@media(max-width:800px){
+ body[data-page="statistics-all"] .stats-mobile-card,body[data-page="statistics-all"] .stats-mobile-card *{overflow-wrap:normal;word-break:normal;hyphens:none}
+ body[data-page="statistics-all"] .stats-mobile-card-field{min-width:0}
+ body[data-page="statistics-all"] .stats-mobile-card-label{white-space:normal;overflow-wrap:normal;word-break:normal;hyphens:none}
+ body[data-page="statistics-all"] .stats-mobile-card-value{min-width:0;overflow-wrap:normal;word-break:normal;hyphens:none}
+ body[data-page="statistics-all"] .stats-mobile-card-value button{white-space:nowrap}
+}
