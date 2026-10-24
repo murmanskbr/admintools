@@ -23,13 +23,13 @@
       rejected: ["Отклонено", "badge-red"]
     };
     var x = map[String(status || "")] || ["Неизвестно", ""];
-    return '<span class="badge ' + x[1] + '">' + E(x[0]) + "</span>";
+    return '<span class="badge ' + x[1] + '">' + ({approved:'✓ ',pending:'⏳ ',rejected:'✕ '}[String(status || '')] || '') + E(x[0]) + "</span>";
   }
 
   function generalStatus(status) {
     return String(status || "") === "answered"
       ? '<span class="badge badge-green">Отвечено</span>'
-      : '<span class="badge badge-yellow">На рассмотрении</span>';
+      : '<span class="badge badge-yellow">⏳ На рассмотрении</span>';
   }
 
   function typeLabel(value) {
@@ -169,7 +169,7 @@
                 '</div>'
               : '<span class="muted">' + E(item.reviewed_at ? dateTime(item.reviewed_at) : "Рассмотрено") + '</span>';
 
-            return '<tr>' +
+            return '<tr class="' + ({approved:'card-ok',pending:'card-wait',rejected:'card-bad'}[String(item.status || '')] || '') + '">' +
               '<td><span class="request-card-title">' + E(item.nickname || "—") + '</span><span class="request-mobile-status">' + inactiveStatus(item.status) + '</span></td>' +
               '<td>' + E(typeLabel(item.inactive_type)) + '</td>' +
               '<td>' + E(inactivePeriod(item)) + '</td>' +
@@ -210,7 +210,7 @@
               ? '<button class="small-button" type="button" data-general-reply="' + E(item.id) + '">Ответить</button>'
               : '<span class="muted">' + E(item.commented_at ? dateTime(item.commented_at) : "Отвечено") + '</span>';
 
-            return '<tr>' +
+            return '<tr class="' + (String(item.status || '') === 'answered' ? 'card-ok' : 'card-wait') + '">' +
               '<td><span class="request-card-title">' + E(item.nickname || "—") + '</span><span class="request-mobile-status">' + generalStatus(item.status) + '</span></td>' +
               '<td>' + E(typeLabel(item.request_type)) + '</td>' +
               '<td>' + E(item.message || "—") + '</td>' +
