@@ -4913,3 +4913,8 @@ body[data-page="statistics-all"] .settings-hint{font-size:11px;color:var(--muted
  body[data-page="requests-all"] #managementInactiveSection tbody td:nth-child(6) .badge,body[data-page="requests-all"] #managementGeneralSection tbody td:nth-child(4) .badge{display:inline-flex}
  .back-to-top,.back-to-top-button,.scroll-to-top,.scroll-top,#backToTop,#scrollToTop,[data-action="back-to-top"]{bottom:calc(76px + env(safe-area-inset-bottom,0px))!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;opacity:.78}
 }
+
+@media(max-width:800px){
+ body[data-page="statistics-all"] .stats-all-toolbar .stats-date-actions{grid-column:1/-1;grid-row:2;display:flex;gap:8px;width:100%;min-width:0}
+ body[data-page="statistics-all"] .stats-date-actions #statsDateToday,body[data-page="statistics-all"] .stats-date-actions #allStatsRefresh{flex:1 1 0!important;width:0!important;min-width:0!important;white-space:nowrap!important;grid-column:auto;grid-row:auto}
+}
