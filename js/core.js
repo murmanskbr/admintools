@@ -13,7 +13,7 @@
     "game-activity": ["pages/game-activity.html", "◉", "Вход в игру"],
     normatives: ["pages/normatives.html", "↑", "Нормативы"],
     requests: ["pages/requests.html", "✦", "Мои обращения"],
-    statistics: ["pages/statistics.html", "▥", "Моя статистика"],
+    statistics: ["pages/profile.html", "▥", "Моя статистика"],
     access: ["pages/access.html", "⚿", "Выдать доступ"],
     "admin-management": ["pages/admin-management.html", "♙", "Администраторы"],
     "statistics-all": ["pages/statistics-all.html", "▥", "Статистика администрации"],
