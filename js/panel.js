@@ -3483,11 +3483,11 @@
             '</div>' +
             '<div class="date-actions">' +
               '<button class="button button-secondary" id="dateToday" type="button">Сегодня</button>' +
-              '<button class="button button-secondary" id="normDailyRefresh" type="button">↻ Обновить</button>' +
+              '<div class="cache-page-tools"><small id="normDailyUpdated" class="cache-updated-at muted">Обновлено —</small><button class="button button-secondary" id="normDailyRefresh" type="button">↻ Обновить</button></div>' +
             '</div>' +
           '</div>' +
         '</div>' +
-        '<div id="normRoot"><div class="box"><div class="empty">Загрузка...</div></div></div>' +
+        '<div id="normRoot">' + cacheSkeleton(6) + '</div>' +
         '<div id="normativeModal"></div>';
       },
       bind: function () {
@@ -3504,7 +3504,7 @@
           }
 
           try {
-            await loadDaily();
+            await loadDaily(!!forceRefresh);
           } catch (error) {
             console.error("[BR AdminTools] Ошибка обновления нормативов:", error);
             if (showAlert) {
@@ -3525,7 +3525,7 @@
         function setDate(value) {
           selectedDate = value;
           if (input) input.value = value;
-          refreshDaily(false);
+          refreshDaily(false, false);
         }
 
         if (input) input.onchange = function () { setDate(input.value); };
