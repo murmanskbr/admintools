@@ -1299,7 +1299,7 @@
       });
 
       var headerCells = lastHeaders.map(function (header) {
-        return '<th>' + E(header == null ? "" : header) + '</th>';
+        return '<th' + (lastHeaders.indexOf(header) === lastNicknameIndex ? ' class="stats-nickname-sticky"' : '') + '>' + E(header == null ? "" : header) + '</th>';
       }).join("");
 
       if (hasSourceNormativeColumn) {
@@ -1327,20 +1327,11 @@
 
         var cells = lastHeaders.map(function (_, columnIndex) {
           var value = rawCellValue(row[columnIndex]);
-          return '<td data-stat-column="' + columnIndex + '">' + E(value) + '</td>';
+          return '<td data-stat-column="' + columnIndex + '" data-mobile-label="' + E(lastHeaders[columnIndex] || '') + '"' + (columnIndex === lastNicknameIndex ? ' class="stats-nickname-sticky"' : '') + '>' + E(value) + '</td>';
         }).join("");
 
         var nickname = lastNicknameIndex >= 0
           ? rawCellValue(row[lastNicknameIndex]).trim()
-          : "";
-
-        var actionButtons = nickname
-          ? '<div class="stats-norm-actions">' +
-              '<button class="normative-icon-button normative-mark-norm" data-stat-norm="norm" data-nickname="' + E(nickname) + '" title="Норма" aria-label="Норма">✓</button>' +
-              '<button class="normative-icon-button normative-mark-rework" data-stat-norm="rework" data-nickname="' + E(nickname) + '" title="Перенорма" aria-label="Перенорма">↻</button>' +
-              '<button class="normative-icon-button normative-mark-no-norm" data-stat-norm="no_norm" data-nickname="' + E(nickname) + '" title="Нет нормы" aria-label="Нет нормы">✕</button>' +
-              '<button class="normative-icon-button normative-mark-inactive" data-stat-norm="inactive" data-nickname="' + E(nickname) + '" title="Неактив" aria-label="Неактив">—</button>' +
-            '</div>'
           : "";
 
         var normativeStatus = normativeDisplayStatus(
@@ -1353,7 +1344,6 @@
             '<span class="stats-norm-value">' +
               normativeStatusBadge(normativeStatus) +
             '</span>' +
-            actionButtons +
           '</td>';
 
         var actionCell = nickname
@@ -1373,9 +1363,7 @@
             '<small>СТАТИСТИКА АДМИНИСТРАЦИИ</small>' +
             '<b>' + E(String(displayRecords.length)) + ' сотрудников</b>' +
           '</div><span class="muted">Актуальные данные</span></div>' +
-          '<div class="admins-source-row"><span>Отображаются значения и столбцы без подстановок сайта</span><span>' +
-            "Данные получены" +
-          '</span></div>' +
+          
           '<table id="allStatsTable"><thead><tr>' +
             headerCells +
             '<th>Норматив</th><th>Действия</th>' +
