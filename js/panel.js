@@ -326,6 +326,8 @@
               '<div class="dashboard-account-grid">' +
                 '<div><small>ДОЛЖНОСТЬ</small><b>' + E(user.position || "—") + '</b></div>' +
                 '<div><small>РОЛЬ</small><b>' + E(user.role === "management" ? "Руководство" : "Администратор") + '</b></div>' +
+                '<div><small>ПОСЛЕДНИЙ ВХОД</small><b>' + E(user.last_login_at ? formatDateTime(user.last_login_at) : "—") + '</b></div>' +
+                '<div class="dashboard-normative-today"><small>НОРМАТИВ СЕГОДНЯ</small><b id="dashboardNormativeToday"><span class="badge badge-yellow">Проверяем…</span></b></div>' +
               '</div>' +
             '</div>' +
             '<div class="box dashboard-links">' +
@@ -361,7 +363,7 @@
                 '<div class="server-stat"><small>ИГРОКИ</small><strong>' + E(online == null ? "—" : String(online) + (max != null ? " / " + max : "")) + '</strong><span>игроков онлайн</span></div>' +
                 '<div class="server-stat"><small>ОПЫТ</small><strong>' + E(x2) + '</strong><span>режим опыта</span></div>' +
                 '<div class="server-stat"><small>СЕРВЕР</small><strong>№ 53</strong><span>Black Russia</span></div>' +
-                '<div class="server-stat"><small>СОСТОЯНИЕ</small><strong>' + status + '</strong><span>обновление по запросу</span></div>' +
+                '<div class="server-stat server-stat-updated"><small>ОБНОВЛЕНО</small><strong id="serverUpdatedTile">—</strong><span>с последнего обновления</span></div>' +
               '</div>' +
               '<div class="server-updated" id="serverUpdated">Данные обновлены: ' + E(new Date(t).toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</div>' +
             '</div>';
