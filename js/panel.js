@@ -306,7 +306,7 @@
             '<a class="dashboard-action" href="../pages/requests-all.html"><b>Обращения</b><span>Контроль обращений</span></a>'
           : '<a class="dashboard-action" href="../pages/profile.html"><b>Мой профиль</b><span>Данные аккаунта</span></a>' +
             '<a class="dashboard-action" href="../pages/requests.html"><b>Мои обращения</b><span>Связь с руководством</span></a>' +
-            '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы</b><span>Подача и просмотр</span></a>';
+            '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы</b><span>Подача и просмотр</span></a>' + '<a class="dashboard-action" href="../pages/notifications.html"><b>Уведомления</b><span>Новости и сообщения</span></a>';
 
         var managementNotice = user.role === "management"
           ? '<details class="box dashboard-performance" style="margin-top:14px;padding:16px 18px;line-height:1.6">' +
@@ -336,8 +336,11 @@
       },
       load: async function () {
         var root = document.getElementById("serverRoot");
-        try {
-          var data = await window.BR_API.serverStats(user.token);
+        var key = "br_cache_v1:" + user.id + ":serverStats";
+        var cached = null;
+        try { cached = JSON.parse(sessionStorage.getItem(key) || "null"); } catch (_) {}
+        var valid = cached && typeof cached.t === "number" && cached.data != null;
+        function renderServer(data, t) {
           var s = findMurmansk(data);
           if (!s) throw new Error("Сервер «Мурманск» не найден в ответе API.");
 
@@ -360,24 +363,39 @@
                 '<div class="server-stat"><small>СЕРВЕР</small><strong>№ 53</strong><span>Black Russia</span></div>' +
                 '<div class="server-stat"><small>СОСТОЯНИЕ</small><strong>' + status + '</strong><span>обновление по запросу</span></div>' +
               '</div>' +
-              '<div class="server-updated" id="serverUpdated">Данные обновлены: ' + E(new Date().toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</div>' +
+              '<div class="server-updated" id="serverUpdated">Данные обновлены: ' + E(new Date(t).toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit",second:"2-digit"})) + '</div>' +
             '</div>';
 
           var refresh = document.getElementById("serverRefresh");
           if (refresh) {
             refresh.onclick = function () {
-              location.reload();
+              loadServer(true);
             };
           }
-        } catch (error) {
-          root.innerHTML =
-            '<div class="box dashboard-error">' +
-              '<div class="empty">' + "Не удалось загрузить статистику сервера." + '</div>' +
-              '<div class="dashboard-error-action"><button class="small-button server-refresh" id="serverRefresh" type="button">↻ Повторить</button></div>' +
-            '</div>';
-          var retry = document.getElementById("serverRefresh");
-          if (retry) retry.onclick = function () { location.reload(); };
+
+          var updated = document.getElementById("serverUpdated");
+          if (updated) updated.textContent = "Обновлено " + Math.max(0, Math.floor((Date.now() - t) / 60000)) + " мин назад";
         }
+        async function loadServer(force) {
+          if (valid && !force) renderServer(cached.data, cached.t);
+          if (valid && !force && Date.now() - cached.t < 300000) return;
+          try {
+            var data = await window.BR_API.serverStats(user.token);
+            if (!valid || JSON.stringify(data) !== JSON.stringify(cached.data)) renderServer(data, Date.now());
+            else {
+              var updated = document.getElementById("serverUpdated");
+              if (updated) updated.textContent = "Обновлено 0 мин назад";
+            }
+            cached = {t:Date.now(),data:data}; valid = true;
+            try { sessionStorage.setItem(key, JSON.stringify(cached)); } catch (_) {}
+          } catch (error) {
+            if (valid) return;
+            root.innerHTML = '<div class="box dashboard-error"><div class="empty">Не удалось загрузить статистику сервера.</div><div class="dashboard-error-action"><button class="small-button server-refresh" id="serverRefresh" type="button">↻ Повторить</button></div></div>';
+            var retry = document.getElementById("serverRefresh");
+            if (retry) retry.onclick = function () { loadServer(true); };
+          }
+        }
+        await loadServer(false);
       }
     };
   }
