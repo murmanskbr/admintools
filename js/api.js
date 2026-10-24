@@ -1771,6 +1771,8 @@
                 );
             },
 
+        pageView: function (token, page) { return request({ action: 'page_view', page: String(page || '') }, token); },
+
         auditLogs:
             function (
                 token,
