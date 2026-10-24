@@ -695,6 +695,11 @@
     // на вкладку и реакции на изменения в других вкладках отключены.
     // Данные загружаются при открытии страницы и по ручному нажатию.
     loadPageData(true);
+    if (window.BR_API && typeof window.BR_API.pageView === "function" && user && user.token) {
+      window.BR_API.pageView(user.token, activePageName).catch(function (error) {
+        console.warn("[BR AdminTools] Не удалось записать открытие раздела:", error);
+      });
+    }
 
     // A cached mobile page must never restore a stale menu lock.
     document.body.classList.remove("mobile-menu-open");
