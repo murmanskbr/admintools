@@ -4962,3 +4962,19 @@ body[data-page="requests-all"] #managementInactiveTab.is-active,body[data-page="
 body[data-page="requests-all"] #managementInactiveSection tbody td:nth-child(6) .badge,body[data-page="requests-all"] #managementGeneralSection tbody td:nth-child(4) .badge{display:inline-flex}
 body[data-page="logs"] .logs-severity-chips button{cursor:pointer}
 body[data-page="dashboard"] .dashboard-action{position:relative}
+
+/* Access page responsive layout and compact account rows. */
+.access-issue-cards,.access-grant-cards,.access-provision-cards{min-width:0}
+.access-grant-cards,.access-provision-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.access-issue-cards h2,.access-grant-cards h2,.access-provision-cards h2,.access-issue-cards h3,.access-grant-cards h3,.access-provision-cards h3{overflow-wrap:normal;word-break:normal;hyphens:none}
+.access-issue-cards p,.access-grant-cards p,.access-provision-cards p,.access-issue-cards small,.access-grant-cards small,.access-provision-cards small{font-size:12px;min-font-size:12px}
+.access-role-position-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.access-sort-control{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0}
+.access-sort-control>.muted{display:block}
+.access-account-top{display:flex;align-items:center;gap:9px;min-width:0}
+.access-account-top>b{font-weight:800;overflow-wrap:normal;word-break:normal;min-width:0}
+.access-account-top .badge{flex-shrink:0}
+.access-account-menu-slot{display:none}
+.access-account-sub,.access-account-ip{display:block;color:var(--muted);font-size:12px;margin-top:5px;overflow-wrap:normal;word-break:normal}
+@media(max-width:1099px){.access-grant-cards,.access-provision-cards,.access-issue-cards{grid-template-columns:minmax(0,1fr)!important}.access-grant-cards>.box,.access-provision-cards>.box,.access-issue-cards>.box{width:100%;min-width:0}}
+@media(max-width:800px){body[data-page="access"] .access-registry-toolbar{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}body[data-page="access"] .access-sort-control{grid-column:1/-1;width:100%}body[data-page="access"] #accessRegistryTable thead{display:none}body[data-page="access"] #accessRegistryTable,body[data-page="access"] #accessRegistryTable tbody,body[data-page="access"] #accessRegistryTable tr,body[data-page="access"] #accessRegistryTable td{display:block;width:100%;min-width:0}body[data-page="access"] #accessRegistryTable tr{position:relative;padding:12px 12px 12px 10px;margin:0 0 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-sizing:border-box}body[data-page="access"] #accessRegistryTable td{padding:0;border:0;background:transparent}body[data-page="access"] #accessRegistryTable .access-select-desktop,body[data-page="access"] #accessRegistryTable .access-account-extra{display:none!important}body[data-page="access"] #accessRegistryTable .access-account-main{display:block!important}body[data-page="access"] #accessRegistryTable .access-actions-cell{position:absolute;right:10px;top:8px;width:auto}body[data-page="access"] #accessRegistryTable .access-account-top{padding-right:36px}body[data-page="access"] #accessRegistryTable .access-account-top input{flex-shrink:0}body[data-page="access"] #accessRegistryTable .access-account-top .badge{margin-left:auto}body[data-page="access"] .access-account-sub{padding-left:28px;padding-right:30px}body[data-page="access"] .access-account-ip{padding-left:28px}body[data-page="access"] .access-role-position-row{grid-template-columns:minmax(0,1fr)}}
