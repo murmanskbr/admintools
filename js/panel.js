@@ -2233,6 +2233,42 @@
 
 
   function notifications(user) {
+    function cachedLoad(key, fetcher, render, opts) {
+      opts = opts || {};
+      var storageKey = "br_cache_v1:" + user.id + ":" + key;
+      var saved = null;
+      try { saved = JSON.parse(sessionStorage.getItem(storageKey) || "null"); } catch (_) {}
+      var valid = saved && typeof saved.t === "number" && saved.data != null;
+      var old = valid ? saved.data : null;
+      var root = document.getElementById(opts.root);
+      function stamp(t) {
+        if (!root) return;
+        var label = root.querySelector(".cache-updated-at");
+        if (!label) {
+          label = document.createElement("small");
+          label.className = "cache-updated-at muted";
+          root.insertBefore(label, root.firstChild);
+        }
+        label.textContent = "Обновлено " + Math.max(0, Math.floor((Date.now() - t) / 60000)) + " мин назад";
+      }
+      if (valid && !opts.force) { render(old); stamp(saved.t); }
+      if (!valid && root) root.innerHTML = '<div class="box"><div class="empty"><span aria-hidden="true">▰ ▰ ▰</span><span class="sr-only">Загрузка</span></div></div>';
+      if (valid && !opts.force && Date.now() - saved.t < 300000) return Promise.resolve(old);
+      return Promise.resolve().then(fetcher).then(function (data) {
+        if (!valid || JSON.stringify(data) !== JSON.stringify(old)) render(data);
+        try { sessionStorage.setItem(storageKey, JSON.stringify({t:Date.now(),data:data})); } catch (_) {}
+        stamp(Date.now());
+        return data;
+      }).catch(function (error) {
+        if (!valid && root) root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить данные.") + '</div></div>';
+        return null;
+      });
+    }
+    async function refreshAll(force) {
+      var jobs = [loadNotifications(force)];
+      if (user.role === "management") jobs.push(loadPushStatusAll(force), loadEvents(force));
+      await Promise.all(jobs);
+    }
     function targetLabel(value) {
       return {
         all: "Вся администрация",
@@ -2338,7 +2374,7 @@
             '</div>'
           : '';
 
-        return createControls +
+        return '<div class="page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + createControls +
           (user.role === "management"
             ? '<div id="pushStatusRoot" class="push-status-root"><div class="box"><div class="empty">Загрузка статуса push-подписок...</div></div></div>'
             : '') +
@@ -2348,6 +2384,17 @@
             : '');
       },
       bind: function () {
+        var refresh = document.getElementById("notificationsRefresh");
+        if (refresh) refresh.onclick = async function () {
+          refresh.disabled = true;
+          refresh.textContent = "⟳ Обновление…";
+          refresh.classList.add("is-loading");
+          try { await refreshAll(true); } finally {
+            refresh.disabled = false;
+            refresh.classList.remove("is-loading");
+            refresh.textContent = "⟳ Обновить";
+          }
+        };
         var open = document.getElementById("openNotificationForm");
         var root = document.getElementById("notificationCreateRoot");
         var cancel = document.getElementById("cancelNotification");
@@ -2444,7 +2491,7 @@
                 root.hidden = true;
                 open.hidden = false;
               }
-              await loadNotifications();
+              await loadNotifications(true);
             } catch (e) {
               alert(e.message || "Не удалось опубликовать уведомление.");
             } finally {
@@ -2510,7 +2557,7 @@
                 eventRoot.hidden = true;
                 openEvent.hidden = false;
               }
-              await loadEvents();
+              await loadEvents(true);
             } catch (e) {
               alert(e.message || "Не удалось создать сбор.");
             } finally {
@@ -2522,21 +2569,14 @@
           };
         }
       },
-      load: async function () {
-        await loadNotifications();
-        if (user.role === "management") {
-          await loadPushStatusAll();
-          await loadEvents();
-        }
-      }
+      load: async function () { await refreshAll(false); }
     };
 
-    async function loadPushStatusAll() {
+    async function loadPushStatusAll(force) {
       var root = document.getElementById("pushStatusRoot");
       if (!root || user.role !== "management") return;
 
-      try {
-        var result = await window.BR_API.pushStatusAll(user.token);
+      function renderResult(result) {
         var list = Array.isArray(result.administrators)
           ? result.administrators
           : [];
@@ -2639,22 +2679,15 @@
             }
           };
         }
-      } catch (error) {
-        root.innerHTML =
-          '<div class="box">' +
-            '<div class="empty">Не удалось загрузить статус push-подписок: ' +
-              E(error.message || "Ошибка") +
-            '</div>' +
-          '</div>';
       }
+      return cachedLoad('pushStatusAll', function () { return window.BR_API.pushStatusAll(user.token); }, renderResult, {root:'pushStatusRoot',force:!!force});
     }
 
-    async function loadNotifications() {
+    async function loadNotifications(force) {
       var root = document.getElementById("notificationsRoot");
       if (!root) return;
 
-      try {
-        var result = await window.BR_API.notificationsList(user.token);
+      function renderResult(result) {
         var list = Array.isArray(result.notifications) ? result.notifications : [];
         var unread = list.filter(function (item) { return !item.is_read; }).length;
 
@@ -2696,7 +2729,7 @@
             button.disabled = true;
             try {
               await window.BR_API.notificationRead(user.token, Number(button.dataset.readNotification));
-              await loadNotifications();
+              await loadNotifications(true);
               window.dispatchEvent(new Event("br:notifications-updated"));
             } catch (e) {
               alert(e.message || "Не удалось отметить уведомление.");
@@ -2711,24 +2744,22 @@
             button.disabled = true;
             try {
               await window.BR_API.notificationDelete(user.token, Number(button.dataset.deleteNotification));
-              await loadNotifications();
+              await loadNotifications(true);
             } catch (e) {
               alert(e.message || "Не удалось удалить уведомление.");
               button.disabled = false;
             }
           };
         });
-      } catch (error) {
-        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить уведомления.") + '</div></div>';
       }
+      return cachedLoad('notificationsList', function () { return window.BR_API.notificationsList(user.token); }, renderResult, {root:'notificationsRoot',force:!!force});
     }
 
-    async function loadEvents() {
+    async function loadEvents(force) {
       var root = document.getElementById("eventsRoot");
       if (!root) return;
 
-      try {
-        var result = await window.BR_API.eventsList(user.token);
+      function renderResult(result) {
         var list = Array.isArray(result.events) ? result.events : [];
 
         if (!list.length) {
@@ -2766,18 +2797,16 @@
             button.disabled = true;
             try {
               await window.BR_API.eventDelete(user.token, Number(button.dataset.cancelEvent));
-              await loadEvents();
+              await loadEvents(true);
             } catch (e) {
               alert(e.message || "Не удалось отменить сбор.");
               button.disabled = false;
             }
           };
         });
-      } catch (error) {
-        root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить мероприятия.") + '</div></div>';
       }
+      return cachedLoad('eventsList', function () { return window.BR_API.eventsList(user.token); }, renderResult, {root:'eventsRoot',force:!!force});
     }
-  }
 
   function requests(user) {
     return {
