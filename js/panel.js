@@ -4484,8 +4484,8 @@
               '<td>' + E(roleLabel(item.role)) + '</td>' +
               '<td>' + E(item.position || "—") + '</td>' +
               '<td>' + statusLabel(item) + '</td>' +
-              '<td>' + E(item.last_login_ip || "—") + '</td>' +
-              '<td>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
+              '<td><details class="access-ip-details"><summary>IP</summary>' + E(item.last_login_ip || "—") + '</details></td>' +
+              '<td><span class="access-login-label">вход </span>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
               '<td class="access-actions-cell">' +
                 '<div class="admin-menu-wrap access-menu-wrap">' +
                   '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
@@ -4519,7 +4519,7 @@
                   '</select>' +
                 '</div>' +
               '</div>' +
-              '<div class="admins-source-row"><span>Текущие доступы</span><span>Главный администратор → Младший модератор</span></div>' +
+              '' +
               '<div class="access-batch-toolbar" id="accessBatchToolbar" hidden>' +
               '<select id="accessBatchPosition" class="form-select" aria-label="Новая должность"><option value="">Новая должность</option>' + POSITIONS.map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join("") + '</select>' +
               '<button id="accessBatchApply" class="button button-secondary" type="button" disabled>Изменить должность</button>' +
