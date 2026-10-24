@@ -3290,6 +3290,8 @@
     }
 
     function loadDaily(forceRefresh) {
+      // The app loader passes the session user as its first argument.
+      if (forceRefresh && typeof forceRefresh === "object") forceRefresh = false;
       var root = document.getElementById("normRoot");
       var dateInput = document.getElementById("controlDate");
       if (!root) return Promise.resolve(null);
