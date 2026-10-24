@@ -302,11 +302,11 @@
         var quickLinks = user.role === "management"
           ? '<a class="dashboard-action" href="../pages/statistics-all.html"><b>Статистика администрации</b><span>Сводные данные состава</span></a>' +
             '<a class="dashboard-action" href="../pages/access.html"><b>Выдать доступ</b><span>Управление доступом к панели</span></a>' +
-            '<a class="dashboard-action" href="../pages/notifications.html"><b>Уведомления</b><span>Новости и сообщения</span></a>' +
+            '<a class="dashboard-action" href="../pages/notifications.html"><b>Уведомления</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11h4v9M10 20V4h4v16M16 20v-7h4v7M3 20h18"/></svg><span>Новости и сообщения</span></a>' +
             '<a class="dashboard-action" href="../pages/requests-all.html"><b>Обращения</b><span>Контроль обращений</span></a>'
-          : '<a class="dashboard-action" href="../pages/profile.html"><b>Мой профиль</b><span>Данные аккаунта</span></a>' +
-            '<a class="dashboard-action" href="../pages/requests.html"><b>Мои обращения</b><span>Связь с руководством</span></a>' +
-            '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы</b><span>Подача и просмотр</span></a>' + '<a class="dashboard-action" href="../pages/notifications.html"><b>Уведомления</b><span>Новости и сообщения</span></a>';
+          : '<a class="dashboard-action" href="../pages/profile.html"><b>Мой профиль</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Данные аккаунта</span></a>' +
+            '<a class="dashboard-action" href="../pages/requests.html"><b>Мои обращения</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="m8 12 3 3 5-6"/></svg><span>Связь с руководством</span></a>' +
+            '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>Подача и просмотр</span></a>' + '<a class="dashboard-action" href="../pages/notifications.html"><b>Уведомления</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true">undefined</svg><span>Новости и сообщения</span></a>';
 
         var managementNotice = user.role === "management"
           ? '<details class="box dashboard-performance" style="margin-top:14px;padding:16px 18px;line-height:1.6">' +
