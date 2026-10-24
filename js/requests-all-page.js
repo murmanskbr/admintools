@@ -170,7 +170,7 @@
               : '<span class="muted">' + E(item.reviewed_at ? dateTime(item.reviewed_at) : "Рассмотрено") + '</span>';
 
             return '<tr>' +
-              '<td>' + E(item.nickname || "—") + '</td>' +
+              '<td><span class="request-card-title">' + E(item.nickname || "—") + '</span><span class="request-mobile-status">' + inactiveStatus(item.status) + '</span></td>' +
               '<td>' + E(typeLabel(item.inactive_type)) + '</td>' +
               '<td>' + E(inactivePeriod(item)) + '</td>' +
               '<td><b>' + E(inactiveDuration(item)) + '</b></td>' +
@@ -211,7 +211,7 @@
               : '<span class="muted">' + E(item.commented_at ? dateTime(item.commented_at) : "Отвечено") + '</span>';
 
             return '<tr>' +
-              '<td>' + E(item.nickname || "—") + '</td>' +
+              '<td><span class="request-card-title">' + E(item.nickname || "—") + '</span><span class="request-mobile-status">' + generalStatus(item.status) + '</span></td>' +
               '<td>' + E(typeLabel(item.request_type)) + '</td>' +
               '<td>' + E(item.message || "—") + '</td>' +
               '<td>' + generalStatus(item.status) + '</td>' +
