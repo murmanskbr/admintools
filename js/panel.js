@@ -2387,7 +2387,7 @@
         var refresh = document.getElementById("notificationsRefresh");
         if (refresh) refresh.onclick = async function () {
           refresh.disabled = true;
-          refresh.textContent = "⟳ Обновление…";
+          refresh.innerHTML = '<span class="notification-refresh-icon" aria-hidden="true">⟳</span> Обновление…';
           refresh.classList.add("is-loading");
           try { await refreshAll(true); } finally {
             refresh.disabled = false;
