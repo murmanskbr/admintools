@@ -2491,7 +2491,7 @@
                 root.hidden = true;
                 open.hidden = false;
               }
-              await loadNotifications(true);
+              await refreshAll(true);
             } catch (e) {
               alert(e.message || "Не удалось опубликовать уведомление.");
             } finally {
@@ -2557,7 +2557,7 @@
                 eventRoot.hidden = true;
                 openEvent.hidden = false;
               }
-              await loadEvents(true);
+              await refreshAll(true);
             } catch (e) {
               alert(e.message || "Не удалось создать сбор.");
             } finally {
@@ -2729,7 +2729,7 @@
             button.disabled = true;
             try {
               await window.BR_API.notificationRead(user.token, Number(button.dataset.readNotification));
-              await loadNotifications(true);
+              await refreshAll(true);
               window.dispatchEvent(new Event("br:notifications-updated"));
             } catch (e) {
               alert(e.message || "Не удалось отметить уведомление.");
@@ -2744,7 +2744,7 @@
             button.disabled = true;
             try {
               await window.BR_API.notificationDelete(user.token, Number(button.dataset.deleteNotification));
-              await loadNotifications(true);
+              await refreshAll(true);
             } catch (e) {
               alert(e.message || "Не удалось удалить уведомление.");
               button.disabled = false;
@@ -2797,7 +2797,7 @@
             button.disabled = true;
             try {
               await window.BR_API.eventDelete(user.token, Number(button.dataset.cancelEvent));
-              await loadEvents(true);
+              await refreshAll(true);
             } catch (e) {
               alert(e.message || "Не удалось отменить сбор.");
               button.disabled = false;
