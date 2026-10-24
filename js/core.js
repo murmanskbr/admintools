@@ -166,6 +166,7 @@
     }
 
     function finishLogout() {
+      try { Object.keys(sessionStorage).forEach(function (key) { if (key.indexOf('br_cache_v1:') === 0) sessionStorage.removeItem(key); }); } catch (_) {}
       goToLogin();
     }
 
