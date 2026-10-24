@@ -2673,7 +2673,7 @@
             refresh.disabled = true;
             refresh.textContent = "Обновление…";
             try {
-              await loadPushStatusAll();
+              await loadPushStatusAll(true);
             } finally {
               refresh.disabled = false;
             }
@@ -2807,6 +2807,7 @@
       }
       return cachedLoad('eventsList', function () { return window.BR_API.eventsList(user.token); }, renderResult, {root:'eventsRoot',force:!!force});
     }
+  }
 
   function requests(user) {
     return {
