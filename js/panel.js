@@ -4543,13 +4543,13 @@
 
           var rows = sortedAccounts.map(function (item) {
             return '<tr class="' + (item.blocked_at ? 'card-bad' : item.is_active ? 'card-ok' : '') + '">' +
-              '<td class="access-select-cell"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '></td>' +
-              '<td><b>' + E(item.nickname || "—") + '</b><small class="table-secondary">' + E(item.login || "") + '</small></td>' +
-              '<td>' + E(roleLabel(item.role)) + '</td>' +
-              '<td>' + E(item.position || "—") + '</td>' +
-              '<td>' + statusLabel(item) + '</td>' +
-              '<td><details class="access-ip-details"><summary>IP</summary>' + E(item.last_login_ip || "—") + '</details></td>' +
-              '<td><span class="access-login-label">вход </span>' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
+              '<td class="access-select-cell access-select-desktop"></td>' +
+              '<td class="access-account-main"><div class="access-account-top"><input type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '><b>' + E(item.nickname || "—") + '</b>' + statusLabel(item) + '<span class="access-account-menu-slot"></span></div><small class="access-account-sub">' + E([item.position, roleLabel(item.role), item.last_login_at ? formatDateTime(item.last_login_at) : "—"].filter(Boolean).join(" • ")) + '</small><small class="access-account-ip">IP: ' + E(item.last_login_ip || "—") + '</small></td>' +
+              '<td class="access-account-extra">' + E(roleLabel(item.role)) + '</td>' +
+              '<td class="access-account-extra">' + E(item.position || "—") + '</td>' +
+              '<td class="access-account-extra">' + statusLabel(item) + '</td>' +
+              '<td class="access-account-extra">IP: ' + E(item.last_login_ip || "—") + '</td>' +
+              '<td class="access-account-extra">' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
               '<td class="access-actions-cell">' +
                 '<div class="admin-menu-wrap access-menu-wrap">' +
                   '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
@@ -4573,14 +4573,14 @@
                 '<div class="access-registry-toolbar">' +
                   '<input id="accessRegistrySearch" class="form-input" type="search" placeholder="Поиск по никнейму или логину" aria-label="Поиск администратора" value="' + E(query) + '">' +
                   '<select id="accessRegistryPosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + positions.map(function (p) { return '<option value="' + E(p) + '"' + (p === positionFilter ? ' selected' : '') + '>' + E(p) + '</option>'; }).join('') + '</select>' +
-                  '<span class="muted">Сортировка</span>' +
+                  '<div class="access-sort-control"><span class="muted">Сортировка</span>' +
                   '<select id="accessRegistrySort" class="form-select access-registry-sort" aria-label="Сортировка реестра доступов">' +
                     '<option value="position"' + (mode === "position" ? " selected" : "") + '>Должность: старшие сначала</option>' +
                     '<option value="position_asc"' + (mode === "position_asc" ? " selected" : "") + '>Должность: младшие сначала</option>' +
                     '<option value="nickname"' + (mode === "nickname" ? " selected" : "") + '>Никнейм: А–Я</option>' +
                     '<option value="nickname_desc"' + (mode === "nickname_desc" ? " selected" : "") + '>Никнейм: Я–А</option>' +
                     '<option value="last_login"' + (mode === "last_login" ? " selected" : "") + '>Последний вход</option>' +
-                  '</select>' +
+                  '</select></div>' +
                 '</div>' +
               '</div>' +
               '' +
