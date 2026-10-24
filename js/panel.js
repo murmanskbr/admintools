@@ -509,10 +509,8 @@
       title: "Мой профиль",
       subtitle: "Полные данные из реестра администрации",
       render: function () {
-        return '<div class="page-toolbar profile-cache-toolbar">' +
-          '<div><small>ДАННЫЕ АККАУНТА</small><b>Профиль из реестра администрации</b></div>' +
-          '<div class="cache-page-tools"><small id="profileUpdated" class="cache-updated-at muted">Обновлено —</small><button class="button button-secondary" id="profileRefresh" type="button">↻ Обновить</button></div>' +
-        '</div><div id="profileRoot">' + cacheSkeleton(6) + '</div>';
+        return '<div class="profile-cache-toolbar"><div class="cache-page-tools"><small id="profileUpdated" class="cache-updated-at muted">Обновлено —</small><button class="button button-secondary" id="profileRefresh" type="button">↻ Обновить</button></div></div>' +
+          '<div id="profileRoot">' + cacheSkeleton(6) + '</div>';
       },
       bind: function () {
         var refresh = document.getElementById("profileRefresh");
@@ -1783,8 +1781,8 @@
       var root = document.getElementById("allStatsRoot");
       var dateInput = document.getElementById("allStatsDate");
       if (!root) return Promise.resolve(null);
-      if (dateInput && /^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateInput.value || ""))) selectedDate = String(dateInput.value);
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(selectedDate || ""))) {
+      if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(String(dateInput.value || ""))) selectedDate = String(dateInput.value);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(selectedDate || ""))) {
         selectedDate = dateIso(0);
         if (dateInput) dateInput.value = selectedDate;
       }
