@@ -4935,3 +4935,18 @@ body[data-page="statistics-all"] .settings-hint{font-size:11px;color:var(--muted
 @media(min-width:801px){#allStatsTable th.stats-nickname-sticky,#allStatsTable td.stats-nickname-sticky{position:sticky!important;left:0!important;z-index:7;background:var(--surface)!important;box-shadow:3px 0 7px -4px rgba(0,0,0,.65)!important}#allStatsTable thead th.stats-nickname-sticky{z-index:15;background:var(--surface2)!important}#allStatsTable tbody tr:nth-child(even) td.stats-nickname-sticky{background:var(--surface2)!important}#allStatsTable tbody tr.stats-row-selected td.stats-nickname-sticky{background:var(--surface3)!important}}
 #allStatsRoot .admins-source-row{display:none!important}#allStatsRoot .stats-table-head{margin-bottom:0!important}#allStatsRoot .stats-norm-actions{display:none!important}
 @media(max-width:800px){#allStatsRoot,#allStatsRoot .table-box{width:100%;max-width:100%;min-width:0;overflow:visible!important}#allStatsRoot #allStatsTable{display:none!important}#allStatsRoot .stats-mobile-list{display:grid!important;grid-template-columns:minmax(0,1fr);gap:10px;width:100%;min-width:0}#allStatsRoot .stats-mobile-card{min-width:0;width:100%;overflow:hidden}#allStatsRoot .stats-mobile-card-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#allStatsRoot .stats-mobile-card-field{min-width:0;overflow-wrap:normal;word-break:normal}#allStatsRoot .stats-mobile-card-field.is-full{grid-column:1/-1}#allStatsRoot .stats-mobile-card-label{white-space:normal;word-break:normal;overflow-wrap:normal}#allStatsRoot .stats-mobile-card-value{min-width:0;overflow-wrap:anywhere}#allStatsRoot .stats-mobile-card-field[hidden]{display:none!important}}
+
+/* Strong, theme-aware status indicators. */
+.badge-green,.badge-yellow,.badge-red,.badge-blue{font-weight:700;border:1px solid transparent}
+.badge-green{background:rgba(54,212,125,.18);border-color:rgba(54,212,125,.5);color:#36d47d}
+.badge-yellow{background:rgba(241,189,75,.18);border-color:rgba(241,189,75,.5);color:#f1bd4b}
+.badge-red{background:rgba(255,100,116,.18);border-color:rgba(255,100,116,.5);color:#ff6474}
+.badge-blue{background:rgba(101,156,255,.18);border-color:rgba(101,156,255,.5);color:#659cff}
+.theme-light .badge-green{background:rgba(54,212,125,.18);border-color:rgba(54,212,125,.5);color:#16824a}
+.theme-light .badge-yellow{background:rgba(241,189,75,.18);border-color:rgba(241,189,75,.5);color:#805600}
+.theme-light .badge-red{background:rgba(255,100,116,.18);border-color:rgba(255,100,116,.5);color:#b92c42}
+.theme-light .badge-blue{background:rgba(101,156,255,.18);border-color:rgba(101,156,255,.5);color:#315fae}
+.stats-mobile-card.card-ok,.dashboard-account.card-ok{border-left:4px solid #36d47d!important}
+.stats-mobile-card.card-wait{border-left:4px solid #f1bd4b!important}
+.stats-mobile-card.card-bad{border-left:4px solid #ff6474!important}
+@media(max-width:800px){#accessRegistryTable tbody tr.card-ok{border-left:4px solid #36d47d!important}#accessRegistryTable tbody tr.card-wait{border-left:4px solid #f1bd4b!important}#accessRegistryTable tbody tr.card-bad{border-left:4px solid #ff6474!important}body[data-page="requests-all"] tbody tr.card-ok{border-left:4px solid #36d47d!important}body[data-page="requests-all"] tbody tr.card-wait{border-left:4px solid #f1bd4b!important}body[data-page="requests-all"] tbody tr.card-bad{border-left:4px solid #ff6474!important}}
