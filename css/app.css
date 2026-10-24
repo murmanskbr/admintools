@@ -5006,3 +5006,5 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 .profile-cache-toolbar .cache-page-tools{max-width:100%}
 @media(max-width:800px){.cache-page-tools{justify-content:flex-start}.cache-updated-at{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.cache-skeleton-line{animation:none}}
+
+.profile-cache-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}
