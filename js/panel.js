@@ -1774,8 +1774,8 @@
             '<button class="small-button" id="statsDatePrev" type="button">←</button>' +
             '<input id="allStatsDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
             '<button class="small-button" id="statsDateNext" type="button">→</button>' +
-            '<button class="button button-secondary" id="statsDateToday" type="button">Сегодня</button>' +
-            '<button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button>' +
+            '<div class="stats-date-actions"><button class="button button-secondary" id="statsDateToday" type="button">Сегодня</button>' +
+            '<button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button></div>' +
           '</div>' +
         '</div>' +
         '<div id="allStatsRoot"><div class="box"><div class="empty">Загрузка статистики администрации...</div></div></div>';
