@@ -737,6 +737,35 @@
     );
   });
 
+
+  // Shared floating page navigation (all pages).
+  function initPageScrollControls() {
+    if (document.getElementById("pageScrollControls")) return;
+    var controls = document.createElement("nav");
+    controls.id = "pageScrollControls";
+    controls.className = "page-scroll-controls";
+    controls.setAttribute("aria-label", "Прокрутка страницы");
+    controls.innerHTML = '<button type="button" class="page-scroll-button" data-scroll-edge="top" aria-label="Наверх" title="Наверх">↑</button><button type="button" class="page-scroll-button" data-scroll-edge="bottom" aria-label="Вниз" title="Вниз">↓</button>';
+    document.body.appendChild(controls);
+    controls.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-scroll-edge]");
+      if (!button) return;
+      window.scrollTo({ top: button.getAttribute("data-scroll-edge") === "top" ? 0 : Math.max(document.documentElement.scrollHeight, document.body.scrollHeight), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    });
+    function update() {
+      var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      controls.hidden = max < 100;
+      controls.querySelector('[data-scroll-edge="top"]').disabled = window.scrollY < 10;
+      controls.querySelector('[data-scroll-edge="bottom"]').disabled = window.scrollY >= max - 10;
+    }
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    new MutationObserver(update).observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
+    update();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initPageScrollControls);
+  else initPageScrollControls();
+
   window.BRApp = {
     esc: esc,
     getSession: getSession,
