@@ -5066,3 +5066,9 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 .page-scroll-button:disabled{opacity:.3;cursor:default}
 .page-scroll-button:not(:disabled):active{transform:scale(.94)}
 @media(max-width:800px){.page-scroll-controls{right:12px;bottom:calc(84px + env(safe-area-inset-bottom))}}
+
+/* Unified page arrows: suppress previous standalone floating top control. */
+.back-to-top,.back-to-top-button,.scroll-to-top,.scroll-top,#backToTop,#scrollToTop,[data-action="back-to-top"]{display:none!important}
+.page-scroll-controls{right:10px!important;bottom:18px!important;gap:6px!important;z-index:90!important}
+.page-scroll-controls .page-scroll-button{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;border-radius:9px!important;font-size:18px!important;padding:0!important;opacity:.85}
+@media(max-width:800px){.page-scroll-controls{right:8px!important;bottom:calc(88px + env(safe-area-inset-bottom))!important}body[data-page="access"] #accessRegistryTable tbody .access-check-hit{top:1px!important;right:1px!important;padding:11px!important}body[data-page="access"] #accessRegistryTable tbody .access-check-hit .access-card-check{position:static!important;display:block!important;box-sizing:border-box!important;padding:0!important;margin:0!important;width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;accent-color:var(--accent)!important}}
