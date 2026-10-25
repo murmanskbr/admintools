@@ -5076,7 +5076,7 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 /* Final mobile access layout: checkbox belongs to nickname row, never floats. */
 @media(max-width:800px){
  body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main{padding-right:0!important;min-height:37px!important}
- body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main .access-account-top{position:static!important;display:flex!important;flex-direction:row-reverse!important;justify-content:flex-start!important;align-items:center!important;gap:9px!important;width:auto!important;max-width:65%!important;padding:0!important;margin:0!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main .access-account-top{position:static!important;display:flex!important;flex-direction:row!important;justify-content:flex-end!important;align-items:center!important;gap:9px!important;width:auto!important;max-width:65%!important;padding:0!important;margin:0!important}
  body[data-page="access"] #accessRegistryTable tbody .access-card-check{position:static!important;display:block!important;flex:0 0 20px!important;width:20px!important;height:20px!important;min-width:20px!important;min-height:20px!important;box-sizing:border-box!important;padding:0!important;margin:0!important;accent-color:var(--accent)!important;cursor:pointer}
  body[data-page="access"] #accessRegistryTable tbody .access-card-nick{min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
  body[data-page="access"] #accessRegistryTable tbody tr.is-selected{border:1px solid var(--accent)!important;background:rgba(255,51,72,.06)!important}
