@@ -5061,3 +5061,28 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 }
 
 @media(max-width:800px){body[data-page="access"] #accessRegistryTable tbody .access-card-more[open] .access-card-more-content{width:calc(100vw - 60px)!important;max-width:calc(100vw - 60px)!important;position:relative!important;right:0!important;left:auto!important;transform:translateX(calc(-100% + 40px));z-index:2}body[data-page="access"] #accessRegistryTable tbody .access-card-more:not([open]) .access-card-more-content{display:none!important}}
+
+/* Access mobile action sheet: card height stays unchanged. */
+@media(max-width:800px){
+ body[data-page="access"] #accessRegistryTable tbody td.access-actions-cell,
+ body[data-page="access"] #accessRegistryTable tbody td.access-select-desktop,
+ body[data-page="access"] #accessRegistryTable tbody td.access-account-extra{display:none!important;padding:0!important;margin:0!important;border:0!important;height:0!important;min-height:0!important}
+ body[data-page="access"] #accessRegistryTable tbody td::before,
+ body[data-page="access"] #accessRegistryTable tbody td::after{content:none!important;display:none!important}
+ body[data-page="access"] #accessRegistryTable tbody tr{padding-top:12px!important}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-more-content{display:none!important}
+ body.access-sheet-open{overflow:hidden}
+ .access-sheet-overlay{position:fixed;inset:0;z-index:50}
+ .access-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.62)}
+ .access-sheet{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:51;max-height:calc(100dvh - 100px);overflow-y:auto;box-sizing:border-box;border-radius:18px 18px 0 0;background:var(--surface);padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -12px 35px rgba(0,0,0,.25)}
+ .access-sheet-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:0 0 14px;border-bottom:1px solid var(--line)}
+ .access-sheet-heading>div{display:flex;flex-direction:column;gap:7px;min-width:0}
+ .access-sheet-heading b{font-size:16px;overflow-wrap:anywhere}
+ .access-sheet-heading small{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+ .access-sheet-close{flex:none;border:0;background:var(--surface2);color:var(--text);width:32px;height:32px;border-radius:9px;font-size:23px;cursor:pointer}
+ .access-sheet-actions{display:flex;flex-direction:column}
+ .access-sheet-action{display:flex;align-items:center;text-align:left;width:100%;min-height:48px;padding:10px 2px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:14px;cursor:pointer}
+ .access-sheet-action:last-child{border-bottom:0}
+ .access-sheet-action.is-block{color:#f1a343;font-weight:700}
+ .access-sheet-action.is-remove{color:#ff6474;font-weight:700}
+}
