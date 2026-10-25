@@ -4590,7 +4590,7 @@
           var rows = sortedAccounts.map(function (item) {
             return '<tr class="' + (item.blocked_at ? 'card-bad' : item.is_active ? 'card-ok' : '') + (selected.has(Number(item.id)) ? ' is-selected' : '') + '">' +
               '<td class="access-select-cell access-select-desktop"></td>' +
-              '<td class="access-account-main" data-label="Никнейм"><div class="access-account-top"><input class="access-card-check" type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || "аккаунт") + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '><b class="access-card-nick" title="' + E(item.nickname || "—") + '">' + E(item.nickname || "—") + '</b></div></td>' +
+              '<td class="access-account-main" data-label="Никнейм"><div class="access-account-top"><input class="access-card-check" type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || "аккаунт") + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '></label><b class="access-card-nick" title="' + E(item.nickname || "—") + '">' + E(item.nickname || "—") + '</b></div></td>' +
               '<td class="access-account-extra" data-label="Роль">' + E(roleLabel(item.role)) + '</td>' +
               '<td class="access-account-extra" data-label="Должность">' + E(item.position || "—") + '</td>' +
               '<td class="access-account-extra access-status-cell" data-label="Статус">' + statusLabel(item) + '</td>' +
