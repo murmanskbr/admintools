@@ -5037,3 +5037,5 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
  body[data-page="access"] #accessRegistryTable tbody .access-card-more-content button:hover{background:var(--surface3)}
  body[data-page="access"] #accessRegistryTable tbody td.access-select-desktop,body[data-page="access"] #accessRegistryTable tbody td.access-account-extra,body[data-page="access"] #accessRegistryTable tbody td.access-actions-cell{display:none!important}
 }
+
+@media(max-width:800px){body[data-page="access"] #accessRegistryTable .access-card-more:not([open]) .access-card-more-content{display:none!important}}
