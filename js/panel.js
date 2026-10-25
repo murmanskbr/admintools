@@ -4589,35 +4589,20 @@
           var rows = sortedAccounts.map(function (item) {
             return '<tr class="' + (item.blocked_at ? 'card-bad' : item.is_active ? 'card-ok' : '') + '">' +
               '<td class="access-select-cell access-select-desktop"></td>' +
-              '<td class="access-account-main"><div class="access-account-top">' +
-              '<input class="access-card-check" type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || "аккаунт") + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '>' +
-              '<b class="access-card-nick" title="' + E(item.nickname || "—") + '">' + E(item.nickname || "—") + '</b>' +
-              '<span class="access-card-status">' + statusLabel(item) + '</span>' +
-              '<details class="access-card-more"><summary aria-label="Действия с аккаунтом ' + E(item.nickname || "—") + '">⋮</summary><div class="access-card-more-content"><small>IP: ' + E(item.last_login_ip || "—") + '</small>' +
-              '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button><button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
+              '<td class="access-account-main" data-label="Никнейм"><div class="access-account-top"><input class="access-card-check" type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || "аккаунт") + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '><b class="access-card-nick" title="' + E(item.nickname || "—") + '">' + E(item.nickname || "—") + '</b></div></td>' +
+              '<td class="access-account-extra" data-label="Роль">' + E(roleLabel(item.role)) + '</td>' +
+              '<td class="access-account-extra" data-label="Должность">' + E(item.position || "—") + '</td>' +
+              '<td class="access-account-extra access-status-cell" data-label="Статус">' + statusLabel(item) + '</td>' +
+              '<td class="access-account-extra" data-label="IP">' + E(item.last_login_ip || "—") + '</td>' +
+              '<td class="access-account-extra" data-label="Последний вход">' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
+              '<td class="access-actions-cell" data-label="Действия"><div class="admin-menu-wrap access-menu-wrap">' +
+              '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
+              '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
+              '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
+              '<button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
               (item.blocked_at ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>' : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
-              '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button></div></details></div>' +
-              '<small class="access-account-sub">' + E([item.position || "—", roleLabel(item.role)].join(" • ")) + '</small>' +
-              '<small class="access-account-login">Последний вход: ' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</small></td>' +
-              '<td class="access-account-extra">' + E(roleLabel(item.role)) + '</td>' +
-              '<td class="access-account-extra">' + E(item.position || "—") + '</td>' +
-              '<td class="access-account-extra">' + statusLabel(item) + '</td>' +
-              '<td class="access-account-extra">IP: ' + E(item.last_login_ip || "—") + '</td>' +
-              '<td class="access-account-extra">' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</td>' +
-              '<td class="access-actions-cell">' +
-                '<div class="admin-menu-wrap access-menu-wrap">' +
-                  '<button class="admin-menu-trigger" type="button" data-access-menu="' + E(item.id) + '" title="Действия" aria-label="Действия">⋮</button>' +
-                  '<div class="admin-row-menu access-row-menu" data-access-row-menu="' + E(item.id) + '">' +
-                    '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button>' +
-                  '<button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
-                    (item.blocked_at
-                      ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>'
-                      : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
-                    '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button>' +
-                  '</div>' +
-                '</div>' +
-              '</td>' +
-            '</tr>';
+              '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button>' +
+              '</div></div></td></tr>';
           }).join("");
 
           root.innerHTML =
@@ -4704,41 +4689,6 @@
       });
     }
 
-    function closeAccessSheet() {
-      var sheet = document.getElementById("accessMobileSheet");
-      if (sheet) sheet.remove();
-      document.body.classList.remove("access-sheet-open");
-    }
-
-    function openAccessSheet(item, details) {
-      closeAccessSheet();
-      var actions = details.querySelectorAll("[data-access-action]");
-      var backdrop = document.createElement("div");
-      backdrop.id = "accessMobileSheet";
-      backdrop.className = "access-sheet-overlay";
-      backdrop.innerHTML = '<div class="access-sheet-backdrop" aria-label="Закрыть меню"></div>' +
-        '<section class="access-sheet" role="dialog" aria-modal="true" aria-label="Действия с аккаунтом">' +
-          '<div class="access-sheet-heading"><div><b>' + E(item.nickname || "—") + '</b><small>IP: ' + E(item.last_login_ip || "—") + '</small></div><button type="button" class="access-sheet-close" aria-label="Закрыть">×</button></div>' +
-          '<div class="access-sheet-actions"></div></section>';
-      document.body.appendChild(backdrop);
-      document.body.classList.add("access-sheet-open");
-      var area = backdrop.querySelector(".access-sheet-actions");
-      actions.forEach(function (original) {
-        var action = original.dataset.accessAction;
-        var button = document.createElement("button");
-        button.type = "button";
-        button.textContent = original.textContent;
-        button.className = "access-sheet-action" + (action === "block" ? " is-block" : "") + (action === "remove" ? " is-remove" : "");
-        button.onclick = function () {
-          closeAccessSheet();
-          original.click();
-        };
-        area.appendChild(button);
-      });
-      backdrop.querySelector(".access-sheet-backdrop").onclick = closeAccessSheet;
-      backdrop.querySelector(".access-sheet-close").onclick = closeAccessSheet;
-    }
-
     function bindAccessMenus() {
       document.querySelectorAll("[data-access-menu]").forEach(function (button) {
         button.onclick = function (event) {
@@ -4759,20 +4709,6 @@
             menu.classList.add("open");
             positionMenu(button, menu);
           }
-        };
-      });
-
-      document.querySelectorAll(".access-card-more summary").forEach(function (summary) {
-        summary.onclick = function (event) {
-          if (window.innerWidth > 800) return;
-          event.preventDefault();
-          event.stopPropagation();
-          var details = summary.closest(".access-card-more");
-          var row = summary.closest("tr");
-          var check = row && row.querySelector("[data-access-select]");
-          var id = check ? Number(check.dataset.accessSelect) : 0;
-          var item = state.accounts.find(function (entry) { return Number(entry.id) === id; });
-          if (item && details) openAccessSheet(item, details);
         };
       });
 
