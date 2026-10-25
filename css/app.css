@@ -5086,3 +5086,18 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
  .access-sheet-action.is-block{color:#f1a343;font-weight:700}
  .access-sheet-action.is-remove{color:#ff6474;font-weight:700}
 }
+
+/* Final mobile access overrides: eliminate legacy first-cell "Выбрать" spacer. */
+@media(max-width:800px){
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-select-cell.access-select-desktop:first-child,
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-actions-cell:last-child,
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-extra{display:none!important;visibility:hidden!important;position:static!important;width:0!important;min-width:0!important;max-width:0!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;overflow:hidden!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-select-cell.access-select-desktop:first-child::before,
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-select-cell.access-select-desktop:first-child::after{content:none!important;display:none!important;margin:0!important;padding:0!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main{display:block!important;margin:0!important;padding:0!important;border-top:0!important}
+ body[data-page="access"] #accessRegistryTable tbody tr{border-top:1px solid var(--line)!important;padding:12px 14px!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main::before{display:none!important;content:none!important}
+ body[data-page="access"] .access-sheet-overlay{z-index:50}
+ body[data-page="access"] .access-sheet-backdrop{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+ body[data-page="access"] .access-sheet{z-index:51;bottom:calc(64px + env(safe-area-inset-bottom,0px));padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));}
+}
