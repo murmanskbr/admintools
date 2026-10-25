@@ -4678,8 +4678,8 @@
 
       if (top < margin) top = margin;
 
-      menu.style.left = Math.round(left) + "px";
-      menu.style.top = Math.round(top) + "px";
+      menu.style.setProperty("left", Math.round(left) + "px", "important");
+      menu.style.setProperty("top", Math.round(top) + "px", "important");
     }
 
     function closeMenus() {
