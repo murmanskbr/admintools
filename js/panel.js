@@ -4589,10 +4589,16 @@
           var rows = sortedAccounts.map(function (item) {
             return '<tr class="' + (item.blocked_at ? 'card-bad' : item.is_active ? 'card-ok' : '') + '">' +
               '<td class="access-select-cell access-select-desktop"></td>' +
-              '<td class="access-account-main"><div class="access-account-top"><input class="access-card-check" type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || 'аккаунт') + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '><b class="access-card-nick" title="' + E(item.nickname || "—") + '">' + E(item.nickname || "—") + '</b><span class="access-card-status">' + statusLabel(item) + '</span></div><small class="access-account-sub" title="' + E([item.position, roleLabel(item.role), item.last_login_at ? formatDateTime(item.last_login_at) : "—"].filter(Boolean).join(" • ")) + '">' + E([item.position, roleLabel(item.role), item.last_login_at ? formatDateTime(item.last_login_at) : "—"].filter(Boolean).join(" • ")) + '</small>' +
-              '<details class="access-card-more"><summary aria-label="Подробнее об аккаунте ' + E(item.nickname || "—") + '">⋮</summary><div class="access-card-more-content"><small>IP: ' + E(item.last_login_ip || "—") + '</small><button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button><button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
+              '<td class="access-account-main"><div class="access-account-top">' +
+              '<input class="access-card-check" type="checkbox" data-access-select="' + E(item.id) + '" aria-label="Выбрать ' + E(item.nickname || "аккаунт") + '"' + (selected.has(Number(item.id)) ? ' checked' : '') + '>' +
+              '<b class="access-card-nick" title="' + E(item.nickname || "—") + '">' + E(item.nickname || "—") + '</b>' +
+              '<span class="access-card-status">' + statusLabel(item) + '</span>' +
+              '<details class="access-card-more"><summary aria-label="Действия с аккаунтом ' + E(item.nickname || "—") + '">⋮</summary><div class="access-card-more-content"><small>IP: ' + E(item.last_login_ip || "—") + '</small>' +
+              '<button type="button" data-access-action="details" data-admin-id="' + E(item.id) + '">Подробнее / изменить</button><button type="button" data-access-action="reset_sessions" data-admin-id="' + E(item.id) + '">Сбросить все сессии</button>' +
               (item.blocked_at ? '<button type="button" data-access-action="unblock" data-admin-id="' + E(item.id) + '">Разблокировать</button>' : '<button type="button" data-access-action="block" data-admin-id="' + E(item.id) + '">Заблокировать</button>') +
-              '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button></div></details></td>' +
+              '<button type="button" data-access-action="remove" data-admin-id="' + E(item.id) + '" class="menu-danger">Удалить доступ</button></div></details></div>' +
+              '<small class="access-account-sub">' + E([item.position || "—", roleLabel(item.role)].join(" • ")) + '</small>' +
+              '<small class="access-account-login">Последний вход: ' + E(item.last_login_at ? formatDateTime(item.last_login_at) : "—") + '</small></td>' +
               '<td class="access-account-extra">' + E(roleLabel(item.role)) + '</td>' +
               '<td class="access-account-extra">' + E(item.position || "—") + '</td>' +
               '<td class="access-account-extra">' + statusLabel(item) + '</td>' +
