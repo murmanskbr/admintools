@@ -4704,6 +4704,41 @@
       });
     }
 
+    function closeAccessSheet() {
+      var sheet = document.getElementById("accessMobileSheet");
+      if (sheet) sheet.remove();
+      document.body.classList.remove("access-sheet-open");
+    }
+
+    function openAccessSheet(item, details) {
+      closeAccessSheet();
+      var actions = details.querySelectorAll("[data-access-action]");
+      var backdrop = document.createElement("div");
+      backdrop.id = "accessMobileSheet";
+      backdrop.className = "access-sheet-overlay";
+      backdrop.innerHTML = '<div class="access-sheet-backdrop" aria-label="Закрыть меню"></div>' +
+        '<section class="access-sheet" role="dialog" aria-modal="true" aria-label="Действия с аккаунтом">' +
+          '<div class="access-sheet-heading"><div><b>' + E(item.nickname || "—") + '</b><small>IP: ' + E(item.last_login_ip || "—") + '</small></div><button type="button" class="access-sheet-close" aria-label="Закрыть">×</button></div>' +
+          '<div class="access-sheet-actions"></div></section>';
+      document.body.appendChild(backdrop);
+      document.body.classList.add("access-sheet-open");
+      var area = backdrop.querySelector(".access-sheet-actions");
+      actions.forEach(function (original) {
+        var action = original.dataset.accessAction;
+        var button = document.createElement("button");
+        button.type = "button";
+        button.textContent = original.textContent;
+        button.className = "access-sheet-action" + (action === "block" ? " is-block" : "") + (action === "remove" ? " is-remove" : "");
+        button.onclick = function () {
+          closeAccessSheet();
+          original.click();
+        };
+        area.appendChild(button);
+      });
+      backdrop.querySelector(".access-sheet-backdrop").onclick = closeAccessSheet;
+      backdrop.querySelector(".access-sheet-close").onclick = closeAccessSheet;
+    }
+
     function bindAccessMenus() {
       document.querySelectorAll("[data-access-menu]").forEach(function (button) {
         button.onclick = function (event) {
@@ -4724,6 +4759,20 @@
             menu.classList.add("open");
             positionMenu(button, menu);
           }
+        };
+      });
+
+      document.querySelectorAll(".access-card-more summary").forEach(function (summary) {
+        summary.onclick = function (event) {
+          if (window.innerWidth > 800) return;
+          event.preventDefault();
+          event.stopPropagation();
+          var details = summary.closest(".access-card-more");
+          var row = summary.closest("tr");
+          var check = row && row.querySelector("[data-access-select]");
+          var id = check ? Number(check.dataset.accessSelect) : 0;
+          var item = state.accounts.find(function (entry) { return Number(entry.id) === id; });
+          if (item && details) openAccessSheet(item, details);
         };
       });
 
