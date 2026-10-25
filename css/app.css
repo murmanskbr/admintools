@@ -5072,3 +5072,14 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 .page-scroll-controls{right:10px!important;bottom:18px!important;gap:6px!important;z-index:90!important}
 .page-scroll-controls .page-scroll-button{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;border-radius:9px!important;font-size:18px!important;padding:0!important;opacity:.85}
 @media(max-width:800px){.page-scroll-controls{right:8px!important;bottom:calc(88px + env(safe-area-inset-bottom))!important}body[data-page="access"] #accessRegistryTable tbody .access-check-hit{top:1px!important;right:1px!important;padding:11px!important}body[data-page="access"] #accessRegistryTable tbody .access-check-hit .access-card-check{position:static!important;display:block!important;box-sizing:border-box!important;padding:0!important;margin:0!important;width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;accent-color:var(--accent)!important}}
+
+/* Final mobile access layout: checkbox belongs to nickname row, never floats. */
+@media(max-width:800px){
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main{padding-right:0!important;min-height:37px!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main .access-account-top{position:static!important;display:flex!important;flex-direction:row-reverse!important;justify-content:flex-start!important;align-items:center!important;gap:9px!important;width:auto!important;max-width:65%!important;padding:0!important;margin:0!important}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-check{position:static!important;display:block!important;flex:0 0 20px!important;width:20px!important;height:20px!important;min-width:20px!important;min-height:20px!important;box-sizing:border-box!important;padding:0!important;margin:0!important;accent-color:var(--accent)!important;cursor:pointer}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-nick{min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ body[data-page="access"] #accessRegistryTable tbody tr.is-selected{border:1px solid var(--accent)!important;background:rgba(255,51,72,.06)!important}
+}
+/* Remove every generation of floating page arrows. */
+.page-scroll-controls,.page-scroll-button,.back-to-top,.back-to-top-button,.scroll-to-top,.scroll-top,#backToTop,#scrollToTop,[data-action="back-to-top"]{display:none!important}
