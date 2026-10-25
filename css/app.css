@@ -5047,3 +5047,14 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 
 /* Access dropdown stays above cards and retains a vertical menu on phones. */
 @media(max-width:800px){body[data-page="access"] .access-row-menu.open{display:flex!important;flex-direction:column!important;right:auto!important;bottom:auto!important;max-height:calc(100dvh - 20px)!important;overflow-y:auto!important}body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-extra{display:flex!important}body[data-page="access"] #accessRegistryTable tbody .access-actions-cell{position:static!important}}
+
+/* Access registry: selection control without an extra mobile row. */
+@media(max-width:800px){
+ body[data-page="access"] #accessRegistryTable tbody tr{position:relative!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-select-desktop{display:none!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main{padding-right:54px!important;min-height:37px!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main .access-account-top{max-width:100%!important;width:100%!important}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-check{position:absolute!important;top:12px!important;right:12px!important;width:22px!important;height:22px!important;box-sizing:content-box!important;padding:11px!important;margin:-11px!important;accent-color:var(--accent)!important;z-index:2;cursor:pointer}
+ body[data-page="access"] #accessRegistryTable tbody tr.is-selected{border:1px solid var(--accent)!important;background:rgba(255,51,72,.06)!important}
+ body[data-page="access"] .back-to-top,body[data-page="access"] .back-to-top-button,body[data-page="access"] .scroll-to-top,body[data-page="access"] .scroll-top,body[data-page="access"] #backToTop,body[data-page="access"] #scrollToTop,body[data-page="access"] [data-action="back-to-top"]{bottom:calc(84px + env(safe-area-inset-bottom))!important}
+}
