@@ -5044,3 +5044,6 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
  body[data-page="access"] #accessRegistryTable tbody .access-card-check{width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;accent-color:var(--accent);margin:0!important;cursor:pointer}
  body[data-page="access"] .back-to-top,body[data-page="access"] .back-to-top-button,body[data-page="access"] .scroll-to-top,body[data-page="access"] .scroll-top,body[data-page="access"] #backToTop,body[data-page="access"] #scrollToTop,body[data-page="access"] [data-action="back-to-top"]{bottom:calc(84px + env(safe-area-inset-bottom))!important}
 }
+
+/* Access dropdown stays above cards and retains a vertical menu on phones. */
+@media(max-width:800px){body[data-page="access"] .access-row-menu.open{display:flex!important;flex-direction:column!important;right:auto!important;bottom:auto!important;max-height:calc(100dvh - 20px)!important;overflow-y:auto!important}body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-extra{display:flex!important}body[data-page="access"] #accessRegistryTable tbody .access-actions-cell{position:static!important}}
