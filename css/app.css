@@ -5058,3 +5058,11 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
  body[data-page="access"] #accessRegistryTable tbody tr.is-selected{border:1px solid var(--accent)!important;background:rgba(255,51,72,.06)!important}
  body[data-page="access"] .back-to-top,body[data-page="access"] .back-to-top-button,body[data-page="access"] .scroll-to-top,body[data-page="access"] .scroll-top,body[data-page="access"] #backToTop,body[data-page="access"] #scrollToTop,body[data-page="access"] [data-action="back-to-top"]{bottom:calc(84px + env(safe-area-inset-bottom))!important}
 }
+
+/* Shared compact page scroll controls. */
+.page-scroll-controls{position:fixed;right:14px;bottom:22px;z-index:80;display:flex;flex-direction:column;gap:7px}
+.page-scroll-controls[hidden]{display:none!important}
+.page-scroll-button{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--accent);font-size:21px;font-weight:700;line-height:1;box-shadow:0 3px 12px rgba(0,0,0,.22);cursor:pointer;opacity:.9}
+.page-scroll-button:disabled{opacity:.3;cursor:default}
+.page-scroll-button:not(:disabled):active{transform:scale(.94)}
+@media(max-width:800px){.page-scroll-controls{right:12px;bottom:calc(84px + env(safe-area-inset-bottom))}}
