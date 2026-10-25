@@ -5008,3 +5008,32 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 @media(prefers-reduced-motion:reduce){.cache-skeleton-line{animation:none}}
 
 .profile-cache-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}
+
+/* Single, non-overlapping mobile access card. Old mobile table-cell layout is overridden here. */
+.access-card-more{display:none}
+@media(max-width:800px){
+ body[data-page="access"] #accessRegistryTable{display:block!important;width:100%!important;min-width:0!important;border:0!important}
+ body[data-page="access"] #accessRegistryTable thead{display:none!important}
+ body[data-page="access"] #accessRegistryTable tbody{display:grid!important;grid-template-columns:minmax(0,1fr);gap:10px;width:100%!important;min-width:0!important}
+ body[data-page="access"] #accessRegistryTable tbody tr{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;grid-template-areas:"check nick status" "meta meta meta" "more more more";gap:9px 8px;align-items:center;position:static!important;min-width:0!important;width:100%!important;box-sizing:border-box;padding:12px!important;margin:0!important;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+ body[data-page="access"] #accessRegistryTable tbody tr.card-ok{border-left:4px solid #36d47d!important}
+ body[data-page="access"] #accessRegistryTable tbody tr.card-wait{border-left:4px solid #f1bd4b!important}
+ body[data-page="access"] #accessRegistryTable tbody tr.card-bad{border-left:4px solid #ff6474!important}
+ body[data-page="access"] #accessRegistryTable tbody td{position:static!important;float:none!important;min-width:0!important;width:auto!important;padding:0!important;margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+ body[data-page="access"] #accessRegistryTable tbody td::before,body[data-page="access"] #accessRegistryTable tbody td::after{content:none!important;display:none!important}
+ body[data-page="access"] #accessRegistryTable tbody td.access-account-main{display:contents!important}
+ body[data-page="access"] #accessRegistryTable tbody .access-account-top{display:contents!important;padding:0!important}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-check{grid-area:check;display:block;flex:none;margin:0;align-self:center}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-nick{grid-area:nick;display:block!important;min-width:0!important;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-status{grid-area:status;display:block;min-width:0;justify-self:end}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-status .badge{display:inline-flex;white-space:nowrap;margin:0!important}
+ body[data-page="access"] #accessRegistryTable tbody .access-account-sub{grid-area:meta;display:block!important;min-width:0;width:100%;padding:0!important;margin:0!important;color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-more{grid-area:more;display:block!important;min-width:0;width:100%}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-more summary{display:flex;align-items:center;justify-content:center;width:34px;height:30px;cursor:pointer;list-style:none;border:1px solid var(--line);border-radius:8px;font-size:21px;line-height:1}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-more summary::-webkit-details-marker{display:none}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-more-content{display:grid;grid-template-columns:minmax(0,1fr);gap:5px;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);min-width:0}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-more-content small{color:var(--muted);overflow-wrap:anywhere;font-size:12px;padding:4px}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-more-content button{display:block;text-align:left;padding:8px 9px;border:0;border-radius:6px;background:transparent;color:var(--text);font:inherit;font-size:12px;cursor:pointer}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-more-content button:hover{background:var(--surface3)}
+ body[data-page="access"] #accessRegistryTable tbody td.access-select-desktop,body[data-page="access"] #accessRegistryTable tbody td.access-account-extra,body[data-page="access"] #accessRegistryTable tbody td.access-actions-cell{display:none!important}
+}
