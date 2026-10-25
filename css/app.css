@@ -5033,3 +5033,14 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
  body[data-page="access"] .access-row-menu.open{display:flex!important}
  body[data-page="access"] .access-registry{overflow:visible!important}
 }
+
+/* Access mobile selection: checkbox floats without adding a row. */
+@media(max-width:800px){
+ body[data-page="access"] #accessRegistryTable tbody tr.is-selected{border:1px solid var(--accent)!important;background:rgba(255,51,72,.06)!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-select-desktop{display:none!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-select-desktop::before{content:none!important;display:none!important}
+ body[data-page="access"] #accessRegistryTable tbody .access-account-top{padding-right:44px!important;max-width:65%!important}
+ body[data-page="access"] #accessRegistryTable tbody .access-check-hit{position:absolute!important;top:1px;right:1px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;padding:11px;box-sizing:border-box;cursor:pointer;z-index:2}
+ body[data-page="access"] #accessRegistryTable tbody .access-card-check{width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;accent-color:var(--accent);margin:0!important;cursor:pointer}
+ body[data-page="access"] .back-to-top,body[data-page="access"] .back-to-top-button,body[data-page="access"] .scroll-to-top,body[data-page="access"] .scroll-top,body[data-page="access"] #backToTop,body[data-page="access"] #scrollToTop,body[data-page="access"] [data-action="back-to-top"]{bottom:calc(84px + env(safe-area-inset-bottom))!important}
+}
