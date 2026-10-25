@@ -5083,3 +5083,12 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 }
 /* Remove every generation of floating page arrows. */
 .page-scroll-controls,.page-scroll-button,.back-to-top,.back-to-top-button,.scroll-to-top,.scroll-top,#backToTop,#scrollToTop,[data-action="back-to-top"]{display:none!important}
+
+/* Definitive access nickname checkbox layout (overrides legacy absolute positioning). */
+@media(max-width:800px){
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main{padding:7px 0!important;min-height:37px!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main .access-account-top{position:static!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;width:auto!important;max-width:68%!important;padding:0!important;margin:0!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main .access-inline-check{position:static!important;display:flex!important;flex:0 0 22px!important;align-items:center!important;justify-content:center!important;width:22px!important;height:22px!important;margin:0!important;padding:0!important;cursor:pointer}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main .access-inline-check input.access-card-check{appearance:auto!important;position:static!important;inset:auto!important;display:block!important;flex:0 0 18px!important;width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;max-width:18px!important;max-height:18px!important;box-sizing:border-box!important;margin:0!important;padding:0!important;transform:none!important;accent-color:var(--accent)!important}
+ body[data-page="access"] #accessRegistryTable tbody tr>td.access-account-main .access-card-nick{flex:0 1 auto!important;min-width:0!important;max-width:100%!important}
+}
