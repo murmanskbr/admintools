@@ -757,7 +757,8 @@
         files,
         date,
         position,
-        comment
+        comment,
+        submissionId
     ) {
         var formData = new FormData();
 
@@ -765,6 +766,7 @@
         formData.append("date", date);
         formData.append("position", position || "");
         formData.append("comment", comment || "");
+        if (Number(submissionId) > 0) formData.append("submission_id", String(Number(submissionId)));
 
         var list = Array.from(files || []).filter(function (file) {
             return file instanceof File;
