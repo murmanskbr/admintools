@@ -34,7 +34,8 @@
 
   function typeLabel(value) {
     var v = String(value || "").toLowerCase();
-    if (v === "group") return "Групповой";
+    if (v === "group") return "Период";
+    if (v === "single") return "Один день";
     if (v === "complaint") return "Жалоба";
     if (v === "suggestion") return "Предложение";
     return v === "question" ? "Вопрос" : "Одиночный";
@@ -152,9 +153,11 @@
 
         function renderInactive() {
           var root = document.getElementById("inactiveRoot");
+          updateCounters();
           var filtered = inactiveFilter
             ? inactiveList.filter(function (x) { return x.status === inactiveFilter; })
             : inactiveList.slice();
+          filtered.sort(pendingFirst);
 
           if (!filtered.length) {
             root.innerHTML = '<div class="box"><div class="empty">Заявок по выбранному фильтру нет.</div></div>';
@@ -167,7 +170,7 @@
                   '<button class="small-button" type="button" data-inactive-approve="' + E(item.id) + '">Одобрить</button>' +
                   '<button class="small-button" type="button" data-inactive-reject="' + E(item.id) + '">Отклонить</button>' +
                 '</div>'
-              : '<span class="muted">' + E(item.reviewed_at ? dateTime(item.reviewed_at) : "Рассмотрено") + '</span>';
+              : '<span class="muted">' + E("Рассмотрено" + (item.reviewed_at ? " · " + dateTime(item.reviewed_at) : "")) + '</span>';
 
             return '<tr class="' + ({approved:'card-ok',pending:'card-wait',rejected:'card-bad'}[String(item.status || '')] || '') + '">' +
               '<td><span class="request-card-title">' + E(item.nickname || "—") + '</span><span class="request-mobile-status">' + inactiveStatus(item.status) + '</span></td>' +
@@ -196,9 +199,11 @@
 
         function renderGeneral() {
           var root = document.getElementById("generalRoot");
+          updateCounters();
           var filtered = generalFilter
             ? generalList.filter(function (x) { return x.status === generalFilter; })
             : generalList.slice();
+          filtered.sort(pendingFirst);
 
           if (!filtered.length) {
             root.innerHTML = '<div class="box"><div class="empty">Обращений по выбранному фильтру нет.</div></div>';
@@ -208,7 +213,7 @@
           var rows = filtered.map(function (item) {
             var action = item.status === "pending"
               ? '<button class="small-button" type="button" data-general-reply="' + E(item.id) + '">Ответить</button>'
-              : '<span class="muted">' + E(item.commented_at ? dateTime(item.commented_at) : "Отвечено") + '</span>';
+              : '<span class="muted">' + E("Рассмотрено" + (item.commented_at ? " · " + dateTime(item.commented_at) : "")) + '</span>';
 
             return '<tr class="' + (String(item.status || '') === 'answered' ? 'card-ok' : 'card-wait') + '">' +
               '<td><span class="request-card-title">' + E(item.nickname || "—") + '</span><span class="request-mobile-status">' + generalStatus(item.status) + '</span></td>' +
@@ -229,68 +234,87 @@
           });
         }
 
-        async function loadInactive() {
-          var root = document.getElementById("inactiveRoot");
-          root.innerHTML = '<div class="box"><div class="empty">Загрузка заявок...</div></div>';
-
-          try {
-            var result = await window.BR_API.inactiveRequestsAll(sessionToken(), inactiveFilter);
-            inactiveList = Array.isArray(result && result.requests) ? result.requests : [];
-            renderInactive();
-          } catch (error) {
-            root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить заявки.") + '</div></div>';
-          }
+        function pendingFirst(a, b) { return Number(b.status === "pending") - Number(a.status === "pending"); }
+        function updateCounters() {
+          var ip = inactiveList.filter(function(x){return x.status === "pending";}).length;
+          var gp = generalList.filter(function(x){return x.status === "pending";}).length;
+          inactiveTab.textContent = "Неактивы" + (ip ? " " + ip : "");
+          generalTab.textContent = "Обращения" + (gp ? " " + gp : "");
+          document.getElementById("inactivePending").textContent = "На рассмотрении " + ip;
+          document.getElementById("generalPending").textContent = "На рассмотрении " + gp;
         }
-
-        async function loadGeneral() {
-          var root = document.getElementById("generalRoot");
-          root.innerHTML = '<div class="box"><div class="empty">Загрузка обращений...</div></div>';
-
-          try {
-            var result = await window.BR_API.generalRequestsAll(sessionToken(), generalFilter);
-            generalList = Array.isArray(result && result.requests) ? result.requests : [];
-            renderGeneral();
-          } catch (error) {
-            root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить обращения.") + '</div></div>';
+        function cachedLoad(key, fetcher, apply, force) {
+          var current = window.BRApp.getSession();
+          var cacheKey = "br_cache_v1:" + current.user.id + ":" + key;
+          var saved = null;
+          try { saved = JSON.parse(sessionStorage.getItem(cacheKey) || "null"); } catch (_) {}
+          if (!force && saved && Array.isArray(saved.data)) {
+            apply(saved.data);
+            if (Date.now() - saved.time < 300000) return Promise.resolve();
           }
+          return Promise.resolve().then(fetcher).then(function(result) {
+            var list = Array.isArray(result && result.requests) ? result.requests : [];
+            try { sessionStorage.setItem(cacheKey, JSON.stringify({time:Date.now(),data:list})); } catch (_) {}
+            apply(list);
+          });
         }
-
+        function loadInactive(force) {
+          return cachedLoad("requestsAllInactive", function() {
+            return window.BR_API.inactiveRequestsAll(sessionToken(), "");
+          }, function(list) { inactiveList = list; renderInactive(); }, !!force).catch(function(error) {
+            document.getElementById("inactiveRoot").innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить заявки.") + '</div></div>';
+          });
+        }
+        function loadGeneral(force) {
+          return cachedLoad("requestsAllGeneral", function() {
+            return window.BR_API.generalRequestsAll(sessionToken(), "");
+          }, function(list) { generalList = list; renderGeneral(); }, !!force).catch(function(error) {
+            document.getElementById("generalRoot").innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить обращения.") + '</div></div>';
+          });
+        }
+        function siteDialog(options) {
+          return new Promise(function(resolve) {
+            var backdrop = document.createElement("div");
+            backdrop.className = "modal-backdrop";
+            backdrop.innerHTML = '<div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="requestDialogTitle" style="width:min(440px,100%)">' +
+              '<div class="modal-head"><h2 id="requestDialogTitle">' + E(options.title) + '</h2><button type="button" class="modal-close" data-cancel aria-label="Закрыть">×</button></div>' +
+              '<p class="muted">' + E(options.description || "") + '</p>' +
+              (options.comment ? '<label for="requestDialogComment">Комментарий руководства</label><textarea id="requestDialogComment" maxlength="1000" rows="4" style="width:100%;box-sizing:border-box;resize:vertical" placeholder="До 1000 символов"></textarea><small class="muted" id="requestDialogCount">0 / 1000</small>' : '') +
+              '<p id="requestDialogError" class="muted" role="alert"></p><div class="form-actions" style="justify-content:flex-end;margin-top:16px"><button type="button" class="button button-secondary" data-cancel>Отмена</button><button type="button" class="button" data-confirm>Подтвердить</button></div></div>';
+            document.body.appendChild(backdrop);
+            var field = backdrop.querySelector("textarea"), error = backdrop.querySelector("#requestDialogError");
+            var previous = document.activeElement;
+            function close(value) { document.removeEventListener("keydown", onKey); backdrop.remove(); if(previous && previous.focus) previous.focus(); resolve(value); }
+            function onKey(e) { if(e.key === "Escape") close(null); }
+            document.addEventListener("keydown", onKey);
+            backdrop.querySelectorAll("[data-cancel]").forEach(function(button){button.onclick=function(){close(null);};});
+            backdrop.onclick = function(e){if(e.target===backdrop) close(null);};
+            if(field) { field.oninput=function(){backdrop.querySelector("#requestDialogCount").textContent=field.value.length+" / 1000";}; field.focus(); }
+            else backdrop.querySelector("[data-confirm]").focus();
+            backdrop.querySelector("[data-confirm]").onclick=function(){
+              var value=field ? field.value.trim() : "";
+              if(options.required && !value){error.textContent="Введите комментарий руководства.";field.focus();return;}
+              close(value);
+            };
+          });
+        }
         async function reviewInactive(id, status) {
-          var comment = "";
-
-          if (status === "approved") {
-            if (!window.confirm("Одобрить этот неактив? Период будет сохранён и автоматически учтён системой.")) return;
-            comment = window.prompt("Комментарий руководства при одобрении (необязательно):", "") || "";
-          } else {
-            comment = window.prompt("Комментарий руководства при отказе (необязательно):", "") || "";
-          }
-
+          var comment = await siteDialog({title:status==="approved"?"Одобрить неактив?":"Отклонить неактив?",description:status==="approved"?"Период будет сохранён и автоматически учтён системой.":"Подтвердите отклонение заявки.",comment:true});
+          if(comment===null) return;
           try {
-            await window.BR_API.inactiveRequestReview(sessionToken(), id, status, comment);
-            alert(status === "approved" ? "Неактив одобрен." : "Заявка отклонена.");
-            loadInactive();
-          } catch (error) {
-            alert(error.message || "Не удалось обработать заявку.");
-          }
+            await window.BR_API.inactiveRequestReview(sessionToken(),id,status,comment);
+            await siteDialog({title:status==="approved"?"Неактив одобрен":"Заявка отклонена",description:"Действие выполнено."});
+            loadInactive(true);
+          } catch(error) { await siteDialog({title:"Ошибка",description:error.message||"Не удалось обработать заявку."}); }
         }
-
         async function replyGeneral(id) {
-          var comment = window.prompt("Комментарий руководства:", "");
-          if (comment === null) return;
-
-          comment = comment.trim();
-          if (!comment) {
-            alert("Введите комментарий руководства.");
-            return;
-          }
-
+          var comment = await siteDialog({title:"Ответить на обращение",description:"Повторно изменить комментарий нельзя.",comment:true,required:true});
+          if(comment===null) return;
           try {
-            await window.BR_API.generalRequestReply(sessionToken(), id, comment);
-            alert("Комментарий отправлен. Повторно изменить его нельзя.");
-            loadGeneral();
-          } catch (error) {
-            alert(error.message || "Не удалось отправить комментарий.");
-          }
+            await window.BR_API.generalRequestReply(sessionToken(),id,comment);
+            await siteDialog({title:"Комментарий отправлен",description:"Повторно изменить его нельзя."});
+            loadGeneral(true);
+          } catch(error) { await siteDialog({title:"Ошибка",description:error.message||"Не удалось отправить комментарий."}); }
         }
 
         inactiveTab.onclick = function () { setSection("inactive"); };
@@ -308,7 +332,7 @@
           if (button) button.onclick = function () {
             inactiveFilter = inactiveValues[index];
             setButtons(inactiveButtons, button);
-            loadInactive();
+            renderInactive();
           };
         });
 
@@ -323,7 +347,7 @@
           if (button) button.onclick = function () {
             generalFilter = generalValues[index];
             setButtons(generalButtons, button);
-            loadGeneral();
+            renderGeneral();
           };
         });
 
@@ -343,8 +367,8 @@
             return;
           }
 
-          loadInactive();
-          loadGeneral();
+          loadInactive(true);
+          loadGeneral(true);
         });
 
         window.addEventListener("br:refresh-visible-data", function () {
