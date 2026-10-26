@@ -2993,14 +2993,23 @@
     return '<span class="badge ' + value[1] + '">' + E(value[0]) + '</span>';
   }
 
+  function inactivePaneMarkup() {
+    return '<section id="inactivePane" hidden><div class="box"><form id="inactiveForm"><div class="form-grid">'+
+      '<div class="form-field"><label>Тип</label><select id="inactiveType" class="form-select"><option value="single">Один день</option><option value="group">Период</option></select></div>'+
+      '<div class="form-field"><label>Дата начала</label><input id="inactiveStart" class="form-input" type="date" required></div>'+
+      '<div class="form-field" id="inactiveEndField" hidden><label>Дата конца</label><input id="inactiveEnd" class="form-input" type="date"></div>'+
+      '<div class="form-field form-full"><label>Причина</label><textarea id="inactiveReason" class="form-textarea" maxlength="500"></textarea></div></div>'+
+      '<button class="button button-primary" type="submit">Отправить руководству</button></form></div>'+
+      '<div class="box spaced-box"><h2>Мои неактивы</h2><div id="inactiveMineRoot">Загрузка...</div></div></section>';
+  }
   function normatives(user, all) {
     if (!all) {
       return {
-        title: "Нормативы",
-        subtitle: "Отправка норматива и история по датам",
+        title: "Нормативы и неактив",
+        subtitle: "Нормативы и заявки на неактив",
         render: function () {
-          return '<div class="box">' +
-            '<form id="normForm">' +
+          return '<div class="box stats-toolbar-actions"><button class="button button-secondary is-active" id="normTab" type="button">Норматив</button><button class="button button-secondary" id="inactiveTab" type="button">Неактив</button></div><section id="normPane">' +
+            '<div class="box"><form id="normForm">' +
               '<div class="form-grid">' +
                 '<div class="form-field form-full"><label>Файлы норматива</label>' +
                   '<input id="normFile" class="form-input" type="file" accept="image/gif,image/png,image/jpeg,.gif,.png,.jpg,.jpeg" multiple required>' +
@@ -3017,12 +3026,32 @@
             '</form>' +
           '</div>' +
           '<div id="normRoot" class="spaced-box"><div class="box"><div class="empty">Загрузка истории...</div></div></div>' +
-          '<div id="normativeModal"></div>';
+          '<div id="normativeModal"></div></section>' + inactivePaneMarkup();
         },
         bind: function () {
           var form = document.getElementById("normForm");
           var fileInput = document.getElementById("normFile");
           var preview = document.getElementById("normPreview");
+          var normTab=document.getElementById("normTab"),inactiveTab=document.getElementById("inactiveTab");
+          function showInactive(active){document.getElementById("normPane").hidden=active;document.getElementById("inactivePane").hidden=!active;normTab.classList.toggle("is-active",!active);inactiveTab.classList.toggle("is-active",active);}
+          normTab.onclick=function(){showInactive(false);};inactiveTab.onclick=function(){showInactive(true);};
+          var inactiveForm=document.getElementById("inactiveForm"),type=document.getElementById("inactiveType"),start=document.getElementById("inactiveStart"),end=document.getElementById("inactiveEnd");
+          start.min=dateIso(0);end.min=dateIso(0);
+          type.onchange=function(){var group=type.value==="group";document.getElementById("inactiveEndField").hidden=!group;end.required=group;};
+          function loadInactiveRequests(force){return ownCachedLoad(user,"inactiveRequestsMine",function(){return window.BR_API.inactiveRequestsMine(user.token);},function(result){
+            var list=Array.isArray(result&&result.requests)?result.requests:[];
+            document.getElementById("inactiveMineRoot").innerHTML=list.length?list.map(function(x){
+              var a=String(x.start_date||""),b=String(x.end_date||a),days=Math.round((Date.parse(b+"T00:00:00Z")-Date.parse(a+"T00:00:00Z"))/86400000)+1;
+              return '<article class="box spaced-box"><b>'+E(formatDateNumeric(a))+(b!==a?' — '+E(formatDateNumeric(b)):'')+'</b> · '+E(days)+' дн. '+ownRequestStatus(x.status)+'<p><b>Причина:</b> '+E(x.reason||"—")+'</p><p><b>Комментарий руководства:</b> '+E(x.review_comment||"—")+'</p></article>';
+            }).join(""):'<div class="empty">Заявок на неактив пока нет.</div>';
+          },force).catch(function(e){requestModal("Ошибка",e.message||"Не удалось загрузить заявки.");});}
+          inactiveForm.onsubmit=async function(event){event.preventDefault();var button=inactiveForm.querySelector('[type="submit"]'),a=start.value,b=type.value==="single"?a:end.value,reason=document.getElementById("inactiveReason").value.trim();
+            if(!a||!b||b<a){await requestModal("Проверьте даты","Укажите корректный период.");return;}button.disabled=true;
+            try{var overlap=await window.BR_API.inactiveRequestOverlapCheck(user.token,a,b);if(overlap&&overlap.has_overlap){await requestModal("Пересечение дат","На выбранный период уже есть одобренный неактив.");return;}
+              await window.BR_API.inactiveRequestCreate(user.token,type.value,a,b,reason);inactiveForm.reset();type.onchange();await loadInactiveRequests(true);await requestModal("Готово","Заявка отправлена руководству.");
+            }catch(e){await requestModal("Ошибка",e.message||"Не удалось отправить заявку.");}finally{button.disabled=false;}
+          };
+          loadInactiveRequests(false);
           if (!form || !fileInput) return;
 
           fileInput.onchange = function () {
