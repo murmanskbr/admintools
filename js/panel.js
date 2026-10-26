@@ -1697,10 +1697,20 @@
         var title = rawCellValue(header);
         if (!title.trim()) return "";
 
-        return '<div class="form-field">' +
-          '<label>' + E(title) + '</label>' +
-          '<input class="form-input" data-google-field-index="' + index + '" value="' +
-            E(rawCellValue(raw[index])) + '">' +
+        var normalizedTitle = normalizeHeader(title);
+        var isNormativeField = normalizedTitle.indexOf("норм") >= 0 ||
+          normalizedTitle.indexOf("normative") >= 0 ||
+          normalizedTitle === "norm" ||
+          normalizedTitle === "status norm";
+        var input = isNormativeField
+          ? '<input class="form-input" value="' + E(rawCellValue(raw[index])) + '" readonly aria-readonly="true">' +
+            '<small class="muted">Статус нормы выставляется в разделе проверки нормативов.</small>'
+          : '<input class="form-input" data-google-field-index="' + index + '" value="' +
+            E(rawCellValue(raw[index])) + '">';
+
+        return '<div class="form-field' + (isNormativeField ? ' admin-edit-normative-locked' : '') + '">' +
+          '<label>' + E(title) + (isNormativeField ? ' <span class="muted">· только просмотр</span>' : '') + '</label>' +
+          input +
         '</div>';
       }).join("");
 
