@@ -3612,8 +3612,7 @@
       title: "Нормативы администрации",
       subtitle: "Контроль нормативов по датам",
       render: function () {
-        return '<section class="box spaced-box"><div class="page-toolbar"><div><small>ЗАЯВКИ СОТРУДНИКОВ</small><b>Заявки на неактив</b></div><button class="button button-secondary" id="inactiveManagementRefresh" type="button">↻ Обновить</button></div><div id="inactiveManagementRoot"><div class="empty">Загрузка заявок…</div></div></section>' +
-        '<div class="page-toolbar normative-toolbar">' +
+        return '<div class="page-toolbar normative-toolbar">' +
           '<div><small>ВЫСТАВЛЕНИЕ И ПРОВЕРКА</small><b>Контроль норматива за выбранную дату</b></div>' +
           '<div class="date-controls">' +
             '<div class="date-picker-nav">' +
@@ -3628,6 +3627,7 @@
           '</div>' +
         '</div>' +
         '<div id="normRoot">' + cacheSkeleton(6) + '</div>' +
+        '<section class="box spaced-box"><div class="page-toolbar"><div><small>ОТДЕЛЬНЫЙ РАЗДЕЛ</small><b>Заявки на неактив</b><p class="muted">Проверка заявок сотрудников на отсутствие в игре</p></div><button class="button button-secondary" id="inactiveManagementRefresh" type="button">↻ Обновить</button></div><div id="inactiveManagementRoot"><div class="empty">Загрузка заявок…</div></div></section>' +
         '<div id="normativeModal"></div>';
       },
       bind: function () {
