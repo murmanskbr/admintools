@@ -303,7 +303,7 @@
       badge =
         '<span class="notification-menu-badge" id="notificationMenuBadge" aria-hidden="true"></span>';
     } else if (page === "normatives-all" || page === "requests-all") {
-      badge = '<span class="notification-menu-badge management-queue-badge" id="' + (page === "normatives-all" ? "pendingNormativesBadge" : "pendingRequestsBadge") + '" aria-hidden="true"></span>';
+      badge = page === "normatives-all" ? '<span class="notification-menu-badge management-queue-badge" id="pendingInactiveBadge" title="Заявки на неактив" aria-hidden="true"></span><span class="notification-menu-badge management-queue-badge" id="pendingNormativesBadge" title="Нормативы на проверке" aria-hidden="true"></span>' : '<span class="notification-menu-badge management-queue-badge" id="pendingRequestsBadge" title="Обращения без ответа" aria-hidden="true"></span>';
     }
 
     return '<a class="side-link' + active + '" href="../' + target + '">' +
@@ -341,8 +341,8 @@
     var key="br_management_queue_counts_v1",saved=null;
     try{saved=JSON.parse(sessionStorage.getItem(key)||"null");}catch(_){}
     function paint(data){
-      var values={pendingNormatives:Number(data.pendingInactive||0)+Number(data.pendingNormatives||0),pendingRequests:Number(data.pendingGeneral||0)};
-      Object.keys(values).forEach(function(k){var el=document.getElementById(k==="pendingNormatives"?"pendingNormativesBadge":"pendingRequestsBadge");if(el){el.textContent=values[k]>9?"9+":String(values[k]||"");el.classList.toggle("is-visible",values[k]>0);}});
+      var values={pendingInactive:Number(data.pendingInactive||0),pendingNormatives:Number(data.pendingNormatives||0),pendingRequests:Number(data.pendingGeneral||0)};
+      Object.keys(values).forEach(function(k){var id=k==="pendingInactive"?"pendingInactiveBadge":k==="pendingNormatives"?"pendingNormativesBadge":"pendingRequestsBadge";var el=document.getElementById(id);if(el){el.textContent=values[k]>9?"9+":String(values[k]||"");el.classList.toggle("is-visible",values[k]>0);}});
     }
     if(saved&&saved.data)paint(saved.data);
     if(!force&&saved&&Date.now()-saved.t<60000)return Promise.resolve(saved.data);
