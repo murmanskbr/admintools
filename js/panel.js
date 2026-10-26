@@ -2738,7 +2738,7 @@
           '<div class="page-toolbar push-status-head">' +
             '<div><small>СОСТОЯНИЕ PUSH</small><b>Подписки администрации</b><span class="muted">Подписка хранится отдельно для каждого устройства.</span></div>' +
             '<div class="push-status-head-actions">' +
-              '<span class="badge badge-blue">' + E(String(enabled)) + ' из ' + E(String(list.length)) + ' подключили</span>' +
+              '<span class="badge badge-blue">Включено ' + E(String(enabled)) + ' из ' + E(String(list.length)) + '</span>' +
               '<button class="button button-secondary" id="refreshPushStatus" type="button">Обновить</button>' +
             '</div>' +
           '</div>' +
