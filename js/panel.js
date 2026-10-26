@@ -3476,6 +3476,7 @@
               '<div class="review-current"><span>Текущий статус</span>' + normativeStatus(currentStatus) + '</div>' +
               '<label class="normative-review-label" for="reviewStatusSelect">Выставить статус нормы</label>' +
               '<select id="reviewStatusSelect" class="form-select">' +
+                (["norm", "no_norm", "rework", "inactive"].indexOf(currentStatus) === -1 ? '<option value="" selected>Выберите статус…</option>' : '') +
                 '<option value="norm"' + (currentStatus === "norm" ? ' selected' : '') + '>✓ Норма</option>' +
                 '<option value="no_norm"' + (currentStatus === "no_norm" ? ' selected' : '') + '>✕ Нет нормы</option>' +
                 '<option value="rework"' + (currentStatus === "rework" ? ' selected' : '') + '>Перенорма</option>' +
