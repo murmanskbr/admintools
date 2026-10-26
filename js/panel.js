@@ -2955,16 +2955,45 @@
     return {
       managementOnly: true,
       title: "Обращения администрации",
-      subtitle: "Обзор обращений сотрудников",
+      subtitle: "Обращения сотрудников с сервера",
       render: function () {
-        var list = localList("br_requests");
-        var rows = list.length ? list.map(function (item) {
-          return '<tr><td>' + E(item.nickname) + '</td><td>' + E(item.type) + '</td><td>' +
-            E(item.date) + '</td><td>' + E(item.status) + '</td><td>' + E(item.text) + '</td></tr>';
-        }).join("") : '<tr><td colspan="5">Обращений нет.</td></tr>';
-
-        return '<div class="box table-box"><table><thead><tr><th>Никнейм</th><th>Тип</th><th>Дата</th><th>Статус</th><th>Текст</th></tr></thead><tbody>' +
-          rows + '</tbody></table></div>';
+        return '<div class="page-toolbar"><div><small>ОБРАТНАЯ СВЯЗЬ</small><b>Обращения администраторов</b></div><button class="button button-secondary" id="generalRequestsRefresh" type="button">↻ Обновить</button></div><div id="generalRequestsAllRoot"><div class="box"><div class="empty">Загрузка обращений…</div></div></div>';
+      },
+      bind: function () {
+        var root = document.getElementById("generalRequestsAllRoot");
+        var refresh = document.getElementById("generalRequestsRefresh");
+        async function load(force) {
+          if (!root) return;
+          if (refresh) { refresh.disabled = true; refresh.textContent = "Загрузка…"; }
+          try {
+            var result = await window.BR_API.generalRequestsAll(window.BR_AUTH && window.BR_AUTH.token || (window.BR_SESSION && window.BR_SESSION.token) || (function(){try{return JSON.parse(sessionStorage.getItem("br_user")||"{}").token;}catch(_){return "";}})(), "");
+            var list = Array.isArray(result && result.requests) ? result.requests : [];
+            root.innerHTML = list.length ? list.map(function (item) {
+              var status = ownRequestStatus(item.status);
+              var id = Number(item.id || item.request_id || 0);
+              return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><div><b class="own-request-type">' + E(item.nickname || item.admin_nickname || "Администратор") + '</b><div class="muted">' + E(({question:"Вопрос",complaint:"Жалоба",suggestion:"Предложение"})[item.request_type] || item.request_type || "Обращение") + ' · ' + E(formatDateTime(item.created_at)) + '</div></div>' + status + '</div><p class="own-request-message">' + E(item.message || "—") + '</p><div class="own-request-answer"><b>Ответ руководства</b><p>' + E(item.management_comment || "Ответ пока не дан.") + '</p></div>' + (String(item.status || "pending") === "pending" || String(item.status || "") === "answered" ? '<div class="form-field"><label for="generalReply' + E(id) + '">Ответ</label><textarea class="form-textarea" id="generalReply' + E(id) + '" placeholder="Напишите ответ администратору">' + E(item.management_comment || "") + '</textarea></div><button class="button button-primary" type="button" data-general-reply="' + E(id) + '">Отправить ответ</button>' : '') + '</article>';
+            }).join("") : '<div class="box"><div class="empty">Обращений на сервере пока нет.</div></div>';
+            root.querySelectorAll("[data-general-reply]").forEach(function (button) {
+              button.onclick = async function () {
+                var id = Number(button.dataset.generalReply), field = document.getElementById("generalReply" + id), comment = field ? field.value.trim() : "";
+                if (!comment) { alert("Введите ответ перед отправкой."); return; }
+                button.disabled = true; button.textContent = "Отправка…";
+                try { await window.BR_API.generalRequestReply(load.token, id, comment); await load(true); }
+                catch (error) { alert(error.message || "Не удалось отправить ответ."); button.disabled = false; button.textContent = "Отправить ответ"; }
+              };
+            });
+          } catch (error) {
+            root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить обращения с сервера.") + '</div></div>';
+          } finally { if (refresh) { refresh.disabled = false; refresh.textContent = "↻ Обновить"; } }
+        }
+        var currentUser = null;
+        try { currentUser = JSON.parse(sessionStorage.getItem("br_user") || "null"); } catch (_) {}
+        if (!currentUser || !currentUser.token) {
+          try { currentUser = JSON.parse(localStorage.getItem("br_user") || "null"); } catch (_) {}
+        }
+        load.token = currentUser && currentUser.token || "";
+        if (refresh) refresh.onclick = function () { load(true); };
+        load(false);
       }
     };
   }
