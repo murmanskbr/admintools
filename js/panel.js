@@ -2,6 +2,39 @@
   "use strict";
 
   var E = window.BRApp.esc;
+  var normativeToastTimer = null;
+
+  // Общий результат операций: используется статистикой, нормативами и проверкой заявок.
+  function showNormativeResult(message, type) {
+    var old = document.getElementById("brNormativeToast");
+    if (old) old.remove();
+
+    var toast = document.createElement("div");
+    toast.id = "brNormativeToast";
+    toast.className = "br-normative-toast " + (
+      type === "success" ? "is-success" : "is-error"
+    );
+    toast.innerHTML =
+      '<span class="br-normative-toast-icon">' +
+      (type === "success" ? "✓" : "!") +
+      '</span>' +
+      '<span class="br-normative-toast-message">' +
+      E(String(message || "")) +
+      '</span>';
+
+    document.body.appendChild(toast);
+    window.clearTimeout(normativeToastTimer);
+    window.requestAnimationFrame(function () {
+      toast.classList.add("is-visible");
+    });
+    normativeToastTimer = window.setTimeout(function () {
+      toast.classList.remove("is-visible");
+      window.setTimeout(function () {
+        if (toast.parentNode) toast.remove();
+      }, 220);
+    }, type === "success" ? 4200 : 5200);
+  }
+
 
   function localList(key) {
     try {
@@ -722,41 +755,6 @@
       }
 
       return -1;
-    }
-
-    var normativeToastTimer = null;
-
-    function showNormativeResult(message, type) {
-      var old = document.getElementById("brNormativeToast");
-      if (old) old.remove();
-
-      var toast = document.createElement("div");
-      toast.id = "brNormativeToast";
-      toast.className = "br-normative-toast " + (
-        type === "success" ? "is-success" : "is-error"
-      );
-
-      toast.innerHTML =
-        '<span class="br-normative-toast-icon">' +
-        (type === "success" ? "✓" : "!") +
-        '</span>' +
-        '<span class="br-normative-toast-message">' +
-        E(String(message || "")) +
-        '</span>';
-
-      document.body.appendChild(toast);
-
-      window.clearTimeout(normativeToastTimer);
-      window.requestAnimationFrame(function () {
-        toast.classList.add("is-visible");
-      });
-
-      normativeToastTimer = window.setTimeout(function () {
-        toast.classList.remove("is-visible");
-        window.setTimeout(function () {
-          if (toast.parentNode) toast.remove();
-        }, 220);
-      }, type === "success" ? 4200 : 5200);
     }
 
     function normativeErrorMessage(error) {
@@ -2309,14 +2307,26 @@
       }
       if (valid && !opts.force) { render(old); stamp(saved.t); }
       if (!valid && root) root.innerHTML = '<div class="box"><div class="empty"><span aria-hidden="true">▰ ▰ ▰</span><span class="sr-only">Загрузка</span></div></div>';
-      if (valid && !opts.force && Date.now() - saved.t < 300000) return Promise.resolve(old);
+      if (valid && !opts.force && !opts.alwaysFetch && Date.now() - saved.t < 300000) return Promise.resolve(old);
       return Promise.resolve().then(fetcher).then(function (data) {
         if (!valid || JSON.stringify(data) !== JSON.stringify(old)) render(data);
         try { sessionStorage.setItem(storageKey, JSON.stringify({t:Date.now(),data:data})); } catch (_) {}
         stamp(Date.now());
         return data;
       }).catch(function (error) {
-        if (!valid && root) root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить данные.") + '</div></div>';
+        console.warn("[BR AdminTools] Не удалось синхронизировать " + key + " с сервером:", error);
+        if (!valid && root) {
+          root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить данные.") + '</div></div>';
+        } else if (valid && root && opts.alwaysFetch) {
+          var warning = root.querySelector(".cache-stale-warning");
+          if (!warning) {
+            warning = document.createElement("div");
+            warning.className = "cache-stale-warning field-hint";
+            warning.setAttribute("role", "status");
+            root.insertBefore(warning, root.firstChild);
+          }
+          warning.textContent = "Не удалось проверить актуальность данных. Показана последняя сохранённая копия; нажмите «Обновить» или повторите позже.";
+        }
         return null;
       });
     }
@@ -2669,7 +2679,7 @@
       var root=document.getElementById("managementQueueRoot");if(!root)return;
       return cachedLoad("managementQueueCounts",function(){return window.BR_API.managementPendingCounts(user.token);},function(data){
         root.innerHTML='<div class="box management-queue"><h2>Требует проверки</h2><a href="../pages/normatives-all.html"><span>Заявки на неактив</span><b>'+E(data.inactive_requests||0)+'</b></a><a href="../pages/requests-all.html"><span>Обращения без ответа</span><b>'+E(data.unanswered_requests||0)+'</b></a><a href="../pages/normatives-all.html"><span>Нормативы на проверке</span><b>'+E(data.normatives_pending||0)+'</b></a></div>';
-      },{root:"managementQueueRoot",force:!!force});
+      },{root:"managementQueueRoot",force:!!force,alwaysFetch:true});
     }
 
     async function loadPushStatusAll(force) {
@@ -2861,7 +2871,7 @@
         }
         draw();
       }
-      return cachedLoad("notificationsList",function(){return window.BR_API.notificationsList(user.token);},renderResult,{root:"notificationsRoot",force:!!force});
+      return cachedLoad("notificationsList",function(){return window.BR_API.notificationsList(user.token);},renderResult,{root:"notificationsRoot",force:!!force,alwaysFetch:true});
     }
 
     async function loadEvents(force) {
