@@ -280,7 +280,7 @@
     var active = current === item[0].replace("pages/", "") ? " active" : "";
     var target = item[0];
     if (page === "admin-management") {
-      target += "?v=20261010-2225";
+      target += "?v=20261026-notify-v3";
     }
 
     var icons = {
