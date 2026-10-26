@@ -347,15 +347,84 @@
     }).catch(function(error){console.warn("[BR AdminTools] Не удалось обновить очередь руководства:",error);});
   }
 
-  function startNotificationBadge(user) {
-    if(!user||!user.token)return;
-    var timer=null,running=false;
-    function update(force){if(document.visibilityState!=="visible"||running)return;running=true;Promise.all([refreshNotificationBadge(user.token,force),refreshManagementQueueBadge(user,force)]).finally(function(){running=false;});}
-    update(false);
-    function startTimer(){if(timer)clearInterval(timer);timer=setInterval(function(){update(true);},60000);}
-    document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"){update(false);startTimer();}else if(timer){clearInterval(timer);timer=null;}});
-    if(document.visibilityState==="visible")startTimer();
-    window.addEventListener("br:notifications-updated",function(){update(true);});
+  function startNotificationBadge(user, force) {
+    if (!user || !user.token) return;
+
+    var userId = String(user.id || user.admin_id || user.nickname || "current");
+    var existing = window.__brNotificationBadgeController;
+    if (existing && existing.userId === userId) {
+      existing.update(force === true);
+      return;
+    }
+    if (existing && typeof existing.stop === "function") existing.stop();
+
+    var timer = null;
+    var running = false;
+    var stopped = false;
+
+    function update(forceNow) {
+      if (stopped || document.visibilityState !== "visible" || running) return;
+      running = true;
+      Promise.all([
+        refreshNotificationBadge(user.token, forceNow === true),
+        refreshManagementQueueBadge(user, forceNow === true)
+      ]).finally(function () {
+        running = false;
+      });
+    }
+
+    function startTimer() {
+      if (timer) clearInterval(timer);
+      timer = setInterval(function () { update(true); }, 30000);
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        update(true);
+        startTimer();
+      } else if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    function onNotificationsUpdated() {
+      try { sessionStorage.removeItem("br_unread_count_v1"); } catch (_) {}
+      update(true);
+    }
+
+    function onApiMutation(event) {
+      var action = event && event.detail && event.detail.action;
+      if ([
+        "notification_create", "notification_delete", "notification_read",
+        "notifications_read_all", "normative_review", "inactive_request_review",
+        "general_request_reply"
+      ].indexOf(String(action || "")) >= 0) {
+        try { sessionStorage.removeItem("br_unread_count_v1"); } catch (_) {}
+        update(true);
+      }
+    }
+
+    var controller = {
+      userId: userId,
+      update: update,
+      stop: function () {
+        stopped = true;
+        if (timer) clearInterval(timer);
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+        window.removeEventListener("br:notifications-updated", onNotificationsUpdated);
+        window.removeEventListener("br:api-mutation-success", onApiMutation);
+      }
+    };
+
+    window.__brNotificationBadgeController = controller;
+    window.__brRefreshNotificationBadges = function () { update(true); };
+
+    update(force === true);
+    if (document.visibilityState === "visible") startTimer();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("br:notifications-updated", onNotificationsUpdated);
+    window.addEventListener("br:api-mutation-success", onApiMutation);
   }
 
   function bottomNavHtml(user) {
@@ -522,8 +591,9 @@
 
     disableServiceWorkers();
 
-    // Фоновые проверки отключены. Индикатор уведомлений обновляется только
-    // по нажатию кнопки «Обновить».
+    // Сразу загружаем количество непрочитанных уведомлений и затем
+    // обновляем индикаторы автоматически, в том числе на мобильных устройствах.
+    startNotificationBadge(session.user, false);
 
     var logoutButton = document.getElementById("logout");
     if (logoutButton) logoutButton.onclick = logout;
