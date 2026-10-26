@@ -5188,3 +5188,13 @@ body[data-page="requests"] .own-request-answer{background:rgba(127,140,160,.12);
 .theme-light body[data-page="requests"] .own-request-status.badge-red{background:#ffe0e4!important;border-color:#e34b60!important;color:#8e1427!important}
 .theme-light body[data-page="requests"] .own-request-answer{background:#f3f5f8;border-color:#dce1e8}
 @media(max-width:480px){body[data-page="requests"] .own-request-card-head{align-items:flex-start;flex-direction:column;gap:9px}}
+
+
+/* Mobile navigation: prevent labels from colliding on narrow screens. */
+@media(max-width:800px){
+ .mobile-bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:2px!important;padding-left:5px!important;padding-right:5px!important;}
+ .mobile-bottom-nav a,.mobile-bottom-nav button{min-width:0!important;width:100%;padding:5px 1px!important;gap:4px!important;overflow:hidden;}
+ .mobile-bottom-nav svg{width:20px!important;height:20px!important;flex:0 0 auto;}
+ .mobile-bottom-nav small{display:block;width:100%;min-width:0;font-size:clamp(8px,2.25vw,10px)!important;line-height:1.15!important;letter-spacing:-.025em;white-space:normal!important;overflow-wrap:anywhere;text-align:center;}
+}
+@media(max-width:380px){.mobile-bottom-nav small{font-size:8px!important;letter-spacing:-.04em}.mobile-bottom-nav{gap:0!important;padding-left:3px!important;padding-right:3px!important}}
