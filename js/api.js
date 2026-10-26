@@ -32,6 +32,7 @@
         notification_create: true,
         notification_delete: true,
         notification_read: true,
+        notifications_read_all: true,
         push_config_update: true,
         push_subscribe: true,
         push_unsubscribe: true,
