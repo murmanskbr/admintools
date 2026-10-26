@@ -2278,6 +2278,7 @@
 
 
   function notifications(user) {
+    var activeTab = "notifications";
     function cachedLoad(key, fetcher, render, opts) {
       opts = opts || {};
       var storageKey = "br_cache_v1:" + user.id + ":" + key;
@@ -2310,9 +2311,35 @@
       });
     }
     async function refreshAll(force) {
+      if (activeTab === "push") return loadPushStatusAll(force);
+      if (activeTab === "events" && user.role === "management") return loadEvents(force);
       var jobs = [loadNotifications(force)];
-      if (user.role === "management") jobs.push(loadPushStatusAll(force), loadEvents(force), loadManagementQueue(force));
-      await Promise.all(jobs);
+      if (user.role === "management") jobs.push(loadManagementQueue(force));
+      return Promise.all(jobs);
+    }
+    function setActiveTab(tab, force) {
+      var allowed = user.role === "management" ? ["notifications","events","push"] : ["notifications","push"];
+      if (allowed.indexOf(tab) < 0) tab = "notifications";
+      activeTab = tab;
+      try { sessionStorage.setItem("br_notifications_tab", tab); } catch (_) {}
+      if (location.hash !== "#" + tab) history.replaceState(null, "", location.pathname + location.search + "#" + tab);
+      document.querySelectorAll("[data-notification-tab]").forEach(function(button) {
+        var active = button.dataset.notificationTab === tab;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      function show(id, yes) { var el=document.getElementById(id); if(el) el.hidden=!yes; }
+      show("notificationCreateRoot", tab==="notifications" && !!document.getElementById("notificationCreateRoot")?.dataset.open);
+      show("eventCreateRoot", tab==="events" && !!document.getElementById("eventCreateRoot")?.dataset.open);
+      show("notificationsRoot", tab==="notifications");
+      show("managementQueueRoot", tab==="notifications" && user.role==="management");
+      show("eventsRoot", tab==="events");
+      show("pushStatusRoot", tab==="push");
+      var createN=document.getElementById("openNotificationForm"), createE=document.getElementById("openEventForm");
+      if(createN)createN.hidden=tab!=="notifications";
+      if(createE)createE.hidden=tab!=="events";
+      var refresh=document.getElementById("notificationsRefresh"); if(refresh)refresh.hidden=tab==="events"&&user.role==="management";
+      return refreshAll(!!force);
     }
     function targetLabel(value) {
       return {
@@ -2419,16 +2446,20 @@
             '</div>'
           : '';
 
-        return '<div class="page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + createControls +
-          (user.role === "management"
-            ? '<div id="managementQueueRoot" class="management-queue-root"><div class="box"><div class="empty">Загрузка очереди проверки...</div></div></div><div id="pushStatusRoot" class="push-status-root"><div class="box"><div class="empty">Загрузка статуса push-подписок...</div></div></div>'
-            : '') +
+        var initial = (location.hash || "").replace("#","") || (function(){try{return sessionStorage.getItem("br_notifications_tab")||"notifications";}catch(_){return "notifications";}})();
+        var tabs = '<div class="notification-segmented" role="tablist" aria-label="Раздел уведомлений"><button type="button" role="tab" data-notification-tab="notifications" aria-selected="true" class="is-active">Уведомления <span id="notificationTabCount"></span></button>' +
+          (user.role==="management" ? '<button type="button" role="tab" data-notification-tab="events" aria-selected="false">Сборы</button>' : '') +
+          '<button type="button" role="tab" data-notification-tab="push" aria-selected="false">Push</button></div>';
+        return '<div class="page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + tabs + createControls +
+          (user.role === "management" ? '<div id="managementQueueRoot" class="management-queue-root"><div class="box"><div class="empty">Загрузка очереди проверки...</div></div></div>' : '') +
           '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>' +
-          (user.role === "management"
-            ? '<div id="eventsRoot" class="events-root"><div class="box"><div class="empty">Загрузка мероприятий...</div></div></div>'
-            : '');
+          '<div id="eventsRoot" class="events-root" hidden><div class="box"><div class="empty">Загрузка мероприятий...</div></div></div>' +
+          '<div id="pushStatusRoot" class="push-status-root" hidden><div class="box"><div class="empty">Загрузка статуса push...</div></div></div>' +
+          '<input type="hidden" id="initialNotificationTab" value="' + E(initial) + '">';
       },
       bind: function () {
+        document.querySelectorAll("[data-notification-tab]").forEach(function(button){button.onclick=function(){setActiveTab(button.dataset.notificationTab,false);};});
+        window.addEventListener("hashchange",function(){setActiveTab((location.hash||"#notifications").slice(1),false);});
         var refresh = document.getElementById("notificationsRefresh");
         if (refresh) refresh.onclick = async function () {
           refresh.disabled = true;
@@ -2460,6 +2491,7 @@
           open.onclick = function () {
             if (eventRoot) eventRoot.hidden = true;
             root.hidden = false;
+            root.dataset.open = "1";
             open.hidden = true;
             if (openEvent) openEvent.hidden = false;
             var title = document.getElementById("nTitle");
@@ -2470,6 +2502,7 @@
         if (cancel && root && open) {
           cancel.onclick = function () {
             root.hidden = true;
+            delete root.dataset.open;
             open.hidden = false;
           };
         }
@@ -2479,6 +2512,7 @@
             if (root) root.hidden = true;
             if (open) open.hidden = false;
             eventRoot.hidden = false;
+            eventRoot.dataset.open = "1";
             openEvent.hidden = true;
             if (eventAt) {
               eventAt.min = moscowInputValue(30);
@@ -2492,6 +2526,7 @@
         if (cancelEvent && eventRoot && openEvent) {
           cancelEvent.onclick = function () {
             eventRoot.hidden = true;
+            delete eventRoot.dataset.open;
             openEvent.hidden = false;
           };
         }
@@ -2536,7 +2571,8 @@
                 root.hidden = true;
                 open.hidden = false;
               }
-              await refreshAll(true);
+              try { sessionStorage.removeItem("br_cache_v1:"+user.id+":notificationsList"); } catch (_) {}
+              await loadNotifications(true);
             } catch (e) {
               alert(e.message || "Не удалось опубликовать уведомление.");
             } finally {
@@ -2602,7 +2638,8 @@
                 eventRoot.hidden = true;
                 openEvent.hidden = false;
               }
-              await refreshAll(true);
+              try { sessionStorage.removeItem("br_cache_v1:"+user.id+":eventsList"); } catch (_) {}
+              await loadEvents(true);
             } catch (e) {
               alert(e.message || "Не удалось создать сбор.");
             } finally {
@@ -2614,7 +2651,7 @@
           };
         }
       },
-      load: async function () { await refreshAll(false); }
+      load: async function () { var initialTab=document.getElementById("initialNotificationTab"); await setActiveTab(initialTab?initialTab.value:"notifications",false); }
     };
 
     async function loadManagementQueue(force) {
@@ -2754,6 +2791,7 @@
       function renderResult(result){
         var all=Array.isArray(result.notifications)?result.notifications.slice():[];
         var unread=all.filter(function(x){return !x.is_read;}).length;
+        var tabCount=document.getElementById("notificationTabCount"); if(tabCount)tabCount.textContent=unread?"("+unread+")":"";
         var onlyUnread=true;
         function draw(){
           var list=all.filter(function(x){return !onlyUnread||!x.is_read;});
