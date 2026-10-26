@@ -3399,13 +3399,41 @@
 
         document.querySelectorAll("[data-open-admin-norm]").forEach(function (button) {
           button.onclick = function () {
+            var host;
+            var row = button.closest("tr");
+            var card = button.closest(".normative-admin-card");
+            if (row) {
+              var next = row.nextElementSibling;
+              if (!next || !next.classList.contains("normative-inline-detail-row")) {
+                next = document.createElement("tr");
+                next.className = "normative-inline-detail-row";
+                var cell = document.createElement("td");
+                cell.colSpan = 8;
+                host = document.createElement("div");
+                host.className = "normative-inline-review-host";
+                host.hidden = true;
+                cell.appendChild(host);
+                next.appendChild(cell);
+                row.parentNode.insertBefore(next, row.nextSibling);
+              } else host = next.querySelector(".normative-inline-review-host");
+            } else if (card) {
+              host = card.querySelector(".normative-inline-review-host");
+              if (!host) {
+                host = document.createElement("div");
+                host.className = "normative-inline-review-host";
+                host.hidden = true;
+                card.appendChild(host);
+              }
+            }
+            if (!host) return;
             openNormativeModal({
               token: user.token,
               submissionId: Number(button.dataset.openAdminNorm || 0),
               adminId: Number(button.dataset.adminId || 0),
               nickname: button.dataset.adminNickname || "",
               date: renderDate,
-              management: true
+              management: true,
+              detailRoot: host
             });
           };
         });
@@ -3444,18 +3472,36 @@
     }
 
     function openNormativeModal(options) {
-      var modalRoot = document.getElementById("normativeModal");
+      var inline = !!(options.management && options.detailRoot);
+      var modalRoot = inline ? options.detailRoot : document.getElementById("normativeModal");
       if (!modalRoot) return;
 
       var fallbackNickname = String(options.nickname || "").trim() || "Администратор";
-      modalRoot.innerHTML = '<div class="modal-backdrop normative-review-backdrop" id="normativeBackdrop">' +
-        '<div class="modal-card normative-review-modal" role="dialog" aria-modal="true" aria-labelledby="normativeReviewTitle">' +
-          '<div class="modal-head normative-review-head"><div><small>ПРОВЕРКА И ВЫСТАВЛЕНИЕ НОРМЫ</small><h2 id="normativeReviewTitle">' + E(fallbackNickname) + '</h2><p class="muted">Проверьте материалы и выберите итоговое решение в этом окне.</p></div>' +
-          '<button class="modal-close" id="normativeClose" type="button" aria-label="Закрыть окно">×</button></div>' +
-          '<div id="normativeDetailRoot"><div class="empty">Загрузка данных...</div></div>' +
-        '</div></div>';
+      if (inline) {
+        document.querySelectorAll(".normative-inline-review-host").forEach(function (host) {
+          if (host !== modalRoot) { host.hidden = true; host.innerHTML = ""; }
+        });
+        modalRoot.hidden = false;
+        modalRoot.classList.add("normative-inline-review-host");
+        modalRoot.innerHTML = '<div class="normative-inline-review">' +
+          '<div class="normative-inline-review-head"><div><small>ПРОВЕРКА И ВЫСТАВЛЕНИЕ НОРМЫ</small><h3>' + E(fallbackNickname) + '</h3><p class="muted">Материалы и решение отображаются в карточке.</p></div>' +
+          '<button class="small-button" id="normativeClose" type="button">Свернуть</button></div>' +
+          '<div id="normativeDetailRoot"><div class="empty">Загрузка данных...</div></div></div>';
+      } else {
+        modalRoot.innerHTML = '<div class="modal-backdrop normative-review-backdrop" id="normativeBackdrop">' +
+          '<div class="modal-card normative-review-modal" role="dialog" aria-modal="true" aria-labelledby="normativeReviewTitle">' +
+            '<div class="modal-head normative-review-head"><div><small>ПРОСМОТР НОРМАТИВА</small><h2 id="normativeReviewTitle">' + E(fallbackNickname) + '</h2><p class="muted">Отправленный норматив и результат проверки.</p></div>' +
+            '<button class="modal-close" id="normativeClose" type="button" aria-label="Закрыть окно">×</button></div>' +
+            '<div id="normativeDetailRoot"><div class="empty">Загрузка данных...</div></div>' +
+          '</div></div>';
+      }
 
-      document.getElementById("normativeClose").onclick = function () { modalRoot.innerHTML = ""; };
+      var detailRoot = modalRoot.querySelector("#normativeDetailRoot");
+      var closeButton = modalRoot.querySelector("#normativeClose");
+      if (closeButton) closeButton.onclick = function () {
+        if (inline) { modalRoot.hidden = true; modalRoot.innerHTML = ""; }
+        else modalRoot.innerHTML = "";
+      };
 
       window.BR_API.normativeDetail(
         options.token,
@@ -3470,7 +3516,7 @@
         var title = E(actualNickname || "Администратор");
         var meta = s ? "Дата норматива: " + E(s.submission_date) : "Дата норматива: " + E(options.date || "—");
 
-        var modalTitle = document.querySelector("#normativeBackdrop .modal-head h2");
+        var modalTitle = modalRoot.querySelector("#normativeReviewTitle, .normative-inline-review-head h3");
         if (modalTitle) {
           modalTitle.textContent = actualNickname || "Администратор";
         }
@@ -3501,7 +3547,7 @@
             '</div>'
           : '<div class="notice">Результат проверки: ' + normativeStatus(currentStatus) + (s && s.reviewed_at ? '<br><small>Проверено: ' + E(formatDateTime(s.reviewed_at)) + '</small>' : '') + '</div>';
 
-        document.getElementById("normativeDetailRoot").innerHTML =
+        detailRoot.innerHTML =
           '<div class="detail-grid">' +
             '<div><small>КТО</small><b>' + title + '</b></div>' +
             '<div><small>ДАТА</small><b>' + meta + '</b></div>' +
@@ -3514,7 +3560,7 @@
           controls;
 
         if (options.management) {
-          var saveDecisionButton = document.getElementById("saveNormativeDecision");
+          var saveDecisionButton = detailRoot.querySelector("#saveNormativeDecision");
           if (saveDecisionButton) {
             saveDecisionButton.onclick = async function (event) {
               if (event) {
@@ -3522,8 +3568,8 @@
                 event.stopPropagation();
               }
 
-              var statusInput = document.getElementById("reviewStatusSelect");
-              var commentInput = document.getElementById("reviewComment");
+              var statusInput = detailRoot.querySelector("#reviewStatusSelect");
+              var commentInput = detailRoot.querySelector("#reviewComment");
               var reviewStatus = statusInput ? statusInput.value : "";
               var comment = commentInput ? commentInput.value.trim() : "";
               var labels = {
@@ -3579,7 +3625,8 @@
                   targetRow.setAttribute("data-normative-status", savedStatus);
                 }
 
-                modalRoot.innerHTML = "";
+                if (inline) { modalRoot.hidden = true; modalRoot.innerHTML = ""; }
+                else modalRoot.innerHTML = "";
                 showNormativeResult(
                   (actualNickname || fallbackNickname) + ": установлен статус «" +
                     (labels[savedStatus] || labels[reviewStatus]) + "» за " +
@@ -3608,7 +3655,7 @@
           "[BR AdminTools] Ошибка открытия норматива:",
           error
         );
-        document.getElementById("normativeDetailRoot").innerHTML =
+        if (detailRoot) detailRoot.innerHTML =
           '<div class="empty">' + E(error.message || "Не удалось открыть норматив.") + '</div>';
       });
     }
