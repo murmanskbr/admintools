@@ -5137,3 +5137,21 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 .personal-push-settings>p{line-height:1.55;max-width:720px}
 .notification-segmented~#notificationCreateRoot,.notification-segmented~#eventCreateRoot{margin-bottom:16px}
 @media(max-width:640px){.notification-segmented{flex-wrap:nowrap;justify-content:flex-start;margin-bottom:14px}.notification-segmented [data-notification-tab]{padding:9px 13px;font-size:14px}.push-roster-filters{grid-template-columns:1fr!important}.push-status-chips{overflow-x:auto;flex-wrap:nowrap}.push-status-chips .notification-chip{flex:0 0 auto}}
+
+
+/* Более заметные статусы обращений обычного администратора в обеих темах. */
+body[data-page="requests"] .own-request-card{padding:18px!important;border:1px solid var(--border,#303542)!important;border-radius:18px!important;box-shadow:0 5px 18px rgba(0,0,0,.08)}
+body[data-page="requests"] .own-request-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+body[data-page="requests"] .own-request-type{font-size:17px;font-weight:800;letter-spacing:.01em}
+body[data-page="requests"] .own-request-status{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:6px 12px!important;border-width:1.5px!important;border-style:solid!important;border-radius:999px!important;font-size:14px!important;line-height:1.25;font-weight:800!important;white-space:normal;text-align:center;box-shadow:0 2px 7px rgba(0,0,0,.08)}
+body[data-page="requests"] .own-request-message{margin:10px 0 12px;line-height:1.55;overflow-wrap:anywhere}
+body[data-page="requests"] .own-request-date{display:block;font-size:12px;opacity:.8;margin-bottom:13px}
+body[data-page="requests"] .own-request-answer{padding:11px 13px;border-radius:12px;border:1px solid var(--border,#303542);background:rgba(127,140,160,.08)}
+body[data-page="requests"] .own-request-answer>b{font-size:13px;letter-spacing:.01em}
+body[data-page="requests"] .own-request-answer p{margin:5px 0 0;line-height:1.5;overflow-wrap:anywhere}
+body[data-page="requests"] .own-request-status.badge-yellow{background:#fff0c2!important;border-color:#e0a82e!important;color:#674300!important}
+body[data-page="requests"] .own-request-status.badge-green{background:#d9fbe7!important;border-color:#20a45b!important;color:#075d30!important}
+body[data-page="requests"] .own-request-status.badge-red{background:#ffe0e4!important;border-color:#e34b60!important;color:#8e1427!important}
+body[data-page="requests"] .theme-light .own-request-card{border-color:#d5dbe5!important;box-shadow:0 5px 18px rgba(30,45,65,.07)}
+body[data-page="requests"] .theme-light .own-request-answer{background:#f3f5f8;border-color:#dce1e8}
+@media(max-width:480px){body[data-page="requests"] .own-request-card{padding:15px!important}body[data-page="requests"] .own-request-card-head{align-items:flex-start}body[data-page="requests"] .own-request-status{font-size:13px!important;min-height:32px;padding:6px 10px!important}}
