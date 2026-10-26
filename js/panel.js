@@ -3137,6 +3137,7 @@
            normativeEdit.fileInput = fileInput;
            normativeEdit.cancelButton = cancelEditButton;
           function resetNormativeEdit() {
+            normativeEdit.id = 0;
             normativeEdit.date = "";
             fileInput.required = true;
             form.reset();
