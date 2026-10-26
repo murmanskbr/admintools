@@ -352,7 +352,7 @@
     var timer=null,running=false;
     function update(force){if(document.visibilityState!=="visible"||running)return;running=true;Promise.all([refreshNotificationBadge(user.token,force),refreshManagementQueueBadge(user,force)]).finally(function(){running=false;});}
     update(false);
-    function startTimer(){if(timer)clearInterval(timer);timer=setInterval(function(){update(false);},60000);}
+    function startTimer(){if(timer)clearInterval(timer);timer=setInterval(function(){update(true);},60000);}
     document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"){update(false);startTimer();}else if(timer){clearInterval(timer);timer=null;}});
     if(document.visibilityState==="visible")startTimer();
     window.addEventListener("br:notifications-updated",function(){update(true);});
