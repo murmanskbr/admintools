@@ -2664,7 +2664,32 @@
 
     async function loadPushStatusAll(force) {
       var root = document.getElementById("pushStatusRoot");
-      if (!root || user.role !== "management") return;
+      if (!root) return;
+      if (user.role !== "management") {
+        var permission = ("Notification" in window) ? Notification.permission : "unsupported";
+        var registration = null, subscription = null;
+        try { if ("serviceWorker" in navigator) { registration = await navigator.serviceWorker.getRegistration("../sw.js") || await navigator.serviceWorker.ready; subscription = registration && registration.pushManager ? await registration.pushManager.getSubscription() : null; } } catch (_) {}
+        var enabled = !!subscription;
+        var status = permission === "denied" ? '<span class="badge badge-red">Нет разрешения</span>' : enabled ? '<span class="badge badge-green">✓ Включены</span>' : '<span class="badge badge-gray">Выключены</span>';
+        root.innerHTML = '<div class="box personal-push-settings"><div class="push-personal-head"><div><small>НА ЭТОМ УСТРОЙСТВЕ</small><h2>Push-уведомления</h2></div>'+status+'</div><p class="muted">'+(permission==="denied"?"Разрешение заблокировано в браузере. Откройте настройки сайта в браузере и разрешите уведомления.":permission==="unsupported"?"Этот браузер не поддерживает push-уведомления.":"Получайте важные уведомления администрации даже когда сайт закрыт.")+'</p><button class="button '+(enabled?'button-secondary':'button-primary')+'" id="togglePersonalPush" type="button" '+(permission==="denied"||permission==="unsupported"?'disabled':'')+'>'+(enabled?'Выключить':'Включить')+'</button><div id="personalPushMessage" class="field-hint"></div></div>';
+        var button=document.getElementById("togglePersonalPush"), message=document.getElementById("personalPushMessage");
+        if(button)button.onclick=async function(){
+          button.disabled=true;button.textContent="Обновление…";
+          try{
+            if(enabled){await window.BR_API.pushUnsubscribe(user.token,subscription.endpoint);try{await subscription.unsubscribe();}catch(_){}}
+            else{
+              if(!("serviceWorker" in navigator)||!("PushManager" in window))throw new Error("Этот браузер не поддерживает push.");
+              var permissionNow=permission==="granted"?"granted":await Notification.requestPermission();
+              if(permissionNow!=="granted")throw new Error(permissionNow==="denied"?"Разрешение заблокировано в настройках браузера.":"Разрешите уведомления в браузере.");
+              var reg=await navigator.serviceWorker.register("../sw.js",{updateViaCache:"none"});
+              var sub=await reg.pushManager.subscribe({userVisibleOnly:true});
+              await window.BR_API.pushSubscribe(user.token,sub.toJSON());
+            }
+            await loadPushStatusAll(true);
+          }catch(e){if(message)message.textContent=e.message||"Не удалось изменить настройку push.";button.disabled=false;button.textContent=enabled?"Выключить":"Включить";}
+        };
+        return;
+      }
 
       function renderResult(result) {
         var list = Array.isArray(result.administrators)
@@ -2694,15 +2719,17 @@
                   })
                 : [];
 
-              var status = item.enabled
-                ? '<span class="badge badge-green">Включены</span>'
-                : '<span class="badge badge-gray">Выключены</span>';
+              var status = (item.permission === "denied" || item.permission_granted === false)
+                ? '<span class="badge badge-red">Нет разрешения</span>'
+                : item.enabled
+                  ? '<span class="badge badge-green">✓ Включены</span>'
+                  : '<span class="badge badge-gray">Выключены</span>';
 
               return '<tr data-push-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-push-position="' + E(item.position || "") + '" data-push-enabled="' + (item.enabled ? 'yes' : 'no') + '">' +
                 '<td><b>' + E(item.nickname) + '</b></td>' +
                 '<td>' + E(item.position || "—") + '</td>' +
                 '<td>' + status + '</td>' +
-                '<td>' + E(devices.length ? devices.join(" • ") : "—") + '</td>' +
+                '<td>' + E(String(devices.length)) + '</td>' +
               '</tr>';
             }).join("")
           : '<tr><td colspan="4">Активных аккаунтов нет.</td></tr>';
@@ -2719,7 +2746,7 @@
             '<div class="push-roster-filters">' +
               '<input id="pushRosterSearch" class="form-input" type="search" placeholder="Поиск по никнейму" aria-label="Поиск по никнейму">' +
               '<select id="pushRosterPosition" class="form-select" aria-label="Должность"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).map(function (position) { return '<option value="' + E(position) + '">' + E(position) + '</option>'; }).join('') + '</select>' +
-              '<select id="pushRosterStatus" class="form-select" aria-label="Push-статус"><option value="">Любой Push-статус</option><option value="yes">Включены</option><option value="no">Выключены</option></select>' +
+              '<div class="push-status-chips" role="group" aria-label="Push-статус"><button type="button" class="notification-chip is-active" data-push-filter="">Все</button><button type="button" class="notification-chip" data-push-filter="yes">Включены</button><button type="button" class="notification-chip" data-push-filter="no">Выключены</button></div>' +
               '<select id="pushRosterSort" class="form-select" aria-label="Сортировка"><option value="position">Должность: старшие сначала</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option></select>' +
             '</div>' +
             '<table id="pushRosterTable">' +
@@ -2731,16 +2758,15 @@
         function applyPushRoster() {
           var query = document.getElementById("pushRosterSearch").value.trim().toLowerCase();
           var position = document.getElementById("pushRosterPosition").value;
-          var status = document.getElementById("pushRosterStatus").value;
+          var status = root.querySelector("[data-push-filter].is-active")?.dataset.pushFilter || "";
           document.querySelectorAll("#pushRosterTable tbody tr[data-push-nickname]").forEach(function (row) {
             row.style.display = (!query || row.dataset.pushNickname.indexOf(query) !== -1) &&
               (!position || row.dataset.pushPosition === position) &&
               (!status || row.dataset.pushEnabled === status) ? "" : "none";
           });
         }
-        ["pushRosterSearch", "pushRosterPosition", "pushRosterStatus"].forEach(function (id) {
-          document.getElementById(id).addEventListener(id === "pushRosterSearch" ? "input" : "change", applyPushRoster);
-        });
+        ["pushRosterSearch", "pushRosterPosition"].forEach(function (id) { document.getElementById(id).addEventListener(id === "pushRosterSearch" ? "input" : "change", applyPushRoster); });
+        root.querySelectorAll("[data-push-filter]").forEach(function(chip){chip.onclick=function(){root.querySelectorAll("[data-push-filter]").forEach(function(x){x.classList.toggle("is-active",x===chip);});applyPushRoster();};});
         document.getElementById("pushRosterSort").onchange = function () {
           var mode = this.value;
           var tbody = document.querySelector("#pushRosterTable tbody");
