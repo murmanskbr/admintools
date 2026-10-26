@@ -2628,7 +2628,7 @@
         ]).then(function(v){var a=v[0].requests||[],b=v[1].requests||[],c=v[2].normatives||v[2].submissions||[];return {
           inactive:a.filter(function(x){return x.status==="pending";}).length,
           general:b.filter(function(x){return x.status==="pending";}).length,
-          norms:c.filter(function(x){return !x.reviewed_at&&(x.status==="pending"||x.status==="not_submitted");}).length
+          norms:c.filter(function(x){return !x.reviewed_at&&x.status==="pending";}).length
         };});
       },function(data){
         root.innerHTML='<div class="box management-queue"><h2>Требует проверки</h2><a href="../pages/normatives-all.html"><span>Заявки на неактив</span><b>'+E(data.inactive)+'</b></a><a href="../pages/requests-all.html"><span>Обращения без ответа</span><b>'+E(data.general)+'</b></a><a href="../pages/normatives-all.html"><span>Нормативы на проверке</span><b>'+E(data.norms)+'</b></a></div>';
