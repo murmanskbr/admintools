@@ -2336,8 +2336,8 @@
       show("eventsRoot", tab==="events");
       show("pushStatusRoot", tab==="push");
       var createN=document.getElementById("openNotificationForm"), createE=document.getElementById("openEventForm");
-      if(createN)createN.hidden=tab!=="notifications";
-      if(createE)createE.hidden=tab!=="events";
+      if(createN)createN.hidden=tab!=="notifications" || !!document.getElementById("notificationCreateRoot")?.dataset.open;
+      if(createE)createE.hidden=tab!=="events" || !!document.getElementById("eventCreateRoot")?.dataset.open;
       var refresh=document.getElementById("notificationsRefresh"); if(refresh)refresh.hidden=false;
       return refreshAll(!!force);
     }
