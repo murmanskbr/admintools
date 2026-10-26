@@ -92,7 +92,7 @@
 
           var rows = filtered.map(function (item) {
             var id = Number(item.id || item.request_id || 0);
-            var action = item.status === "pending" || item.status === "answered"
+            var action = item.status === "pending"
               ? '<div class="form-field"><label for="generalReply' + E(id) + '">Ответ руководства</label><textarea class="form-textarea" id="generalReply' + E(id) + '" maxlength="1000" placeholder="Напишите ответ администратору">' + E(item.management_comment || "") + '</textarea></div><button class="button button-primary" type="button" data-general-reply="' + E(id) + '">Отправить ответ</button>'
               : '<span class="muted">' + E("Рассмотрено" + (item.commented_at ? " · " + dateTime(item.commented_at) : "")) + '</span>';
 
