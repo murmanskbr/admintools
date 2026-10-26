@@ -248,9 +248,9 @@
           var cacheKey = "br_cache_v1:" + current.user.id + ":" + key;
           var saved = null;
           try { saved = JSON.parse(sessionStorage.getItem(cacheKey) || "null"); } catch (_) {}
-          if (!force && saved && Array.isArray(saved.data)) {
+          if (saved && Array.isArray(saved.data)) {
             apply(saved.data);
-            if (Date.now() - saved.time < 300000) return Promise.resolve();
+            if (!force && Date.now() - saved.time < 300000) return Promise.resolve();
           }
           return Promise.resolve().then(fetcher).then(function(result) {
             var list = Array.isArray(result && result.requests) ? result.requests : [];
