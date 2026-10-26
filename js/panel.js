@@ -2930,7 +2930,7 @@
   }
   function ownRequestStatus(status) {
     var v=String(status||"pending");
-    return '<span class="badge '+(v==="approved"||v==="answered"?"badge-green":v==="rejected"||v==="cancelled"?"badge-red":"badge-yellow")+'">'+E(({approved:"✓ Одобрено",answered:"✓ Отвечено",rejected:"✕ Отклонено",cancelled:"✕ Отозвано",pending:"⏳ На рассмотрении"})[v]||v)+'</span>';
+    return '<span class="badge own-request-status '+(v==="approved"||v==="answered"?"badge-green":v==="rejected"||v==="cancelled"?"badge-red":"badge-yellow")+'">'+E(({approved:"✓ Одобрено",answered:"✓ Отвечено",rejected:"✕ Отклонено",cancelled:"✕ Отозвано",pending:"⏳ На рассмотрении"})[v]||v)+'</span>';
   }
   function requests(user) {
     return {
@@ -2940,7 +2940,7 @@
         var root=document.getElementById("generalMineRoot"),form=document.getElementById("generalForm");
         function load(force){return ownCachedLoad(user,"generalRequestsMine",function(){return window.BR_API.generalRequestsMine(user.token);},function(result){
           var list=Array.isArray(result&&result.requests)?result.requests:[];
-          root.innerHTML=list.length?list.map(function(x){return '<article class="box spaced-box"><b>'+E(({question:"Вопрос",complaint:"Жалоба",suggestion:"Предложение"})[x.request_type]||x.request_type)+'</b> '+ownRequestStatus(x.status)+'<p>'+E(x.message||"—")+'</p><small>'+E(formatDateTime(x.created_at))+'</small><p><b>Ответ руководства:</b> '+E(x.management_comment||"—")+'</p></article>';}).join(""):'<div class="empty">Обращений пока нет.</div>';
+          root.innerHTML=list.length?list.map(function(x){return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><b class="own-request-type">'+E(({question:"Вопрос",complaint:"Жалоба",suggestion:"Предложение"})[x.request_type]||x.request_type)+'</b>'+ownRequestStatus(x.status)+'</div><p class="own-request-message">'+E(x.message||"—")+'</p><small class="own-request-date">'+E(formatDateTime(x.created_at))+'</small><div class="own-request-answer"><b>Ответ руководства</b><p>'+E(x.management_comment||"Ответ пока не дан.")+'</p></div></article>';}).join(""):'<div class="empty">Обращений пока нет.</div>';
         },force).catch(function(e){requestModal("Ошибка",e.message||"Не удалось загрузить обращения.");});}
         form.onsubmit=async function(e){e.preventDefault();var button=form.querySelector('[type="submit"]'),message=document.getElementById("generalMessage").value.trim();if(!message){await requestModal("Комментарий","Введите текст обращения.");return;}button.disabled=true;
           try{await window.BR_API.generalRequestCreate(user.token,document.getElementById("generalType").value,message);form.reset();await load(true);await requestModal("Готово","Обращение отправлено руководству.");}
