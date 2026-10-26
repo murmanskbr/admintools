@@ -308,36 +308,40 @@
       "<span>" + menuIcon + "</span>" + label + badge + "</a>";
   }
 
-  function refreshNotificationBadge(token) {
-    var badge = document.getElementById("notificationMenuBadge");
-
-    if (!badge || !window.BR_API || typeof window.BR_API.notificationsList !== "function") {
-      return Promise.resolve();
-    }
-
-    badge.classList.remove("is-visible");
-    badge.setAttribute("aria-hidden", "true");
-
-    return window.BR_API.notificationsList(token)
-      .then(function (result) {
-        var list =
-          result && Array.isArray(result.notifications)
-            ? result.notifications
-            : [];
-
-        var hasUnread = list.some(function (item) {
-          return !item.is_read;
-        });
-
-        badge.classList.toggle("is-visible", hasUnread);
-        badge.setAttribute("aria-hidden", hasUnread ? "false" : "true");
-      })
-      .catch(function (error) {
-        console.warn(
-          "[BR AdminTools] Не удалось обновить индикатор уведомлений:",
-          error
-        );
+  function refreshNotificationBadge(token, force) {
+    var key="br_unread_count_v1", saved=null;
+    try { saved=JSON.parse(sessionStorage.getItem(key)||"null"); } catch (_) {}
+    function paint(count) {
+      count=Math.max(0,Number(count)||0);
+      [document.getElementById("notificationMenuBadge"),document.getElementById("notificationBottomBadge")].forEach(function(badge){
+        if(!badge)return;
+        badge.textContent=count>9?"9+":String(count);
+        badge.classList.toggle("is-visible",count>0);
+        badge.setAttribute("aria-hidden",count>0?"false":"true");
       });
+      var base=document.title.replace(/^\(\d+\+?\)\s*/,"");
+      document.title=(count?"("+ (count>9?"9+":count) +") ":"")+base;
+      window.__brUnreadCount=count;
+    }
+    if(saved&&typeof saved.count==="number"&&!force) paint(saved.count);
+    if(!force&&saved&&Date.now()-saved.t<60000)return Promise.resolve(saved.count);
+    if(!window.BR_API||typeof window.BR_API.notificationsList!=="function")return Promise.resolve();
+    return window.BR_API.notificationsList(token).then(function(result){
+      var list=result&&Array.isArray(result.notifications)?result.notifications:[];
+      var count=list.filter(function(item){return !item.is_read;}).length;
+      try{sessionStorage.setItem(key,JSON.stringify({t:Date.now(),count:count}));}catch(_){}
+      paint(count);return count;
+    }).catch(function(error){console.warn("[BR AdminTools] Не удалось обновить счётчик уведомлений:",error);});
+  }
+  function startNotificationBadge(user) {
+    if(!user||!user.token)return;
+    var timer=null,running=false;
+    function update(force){if(document.visibilityState!=="visible"||running)return;running=true;refreshNotificationBadge(user.token,force).finally(function(){running=false;});}
+    update(false);
+    function startTimer(){if(timer)clearInterval(timer);timer=setInterval(function(){update(false);},60000);}
+    document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"){update(false);startTimer();}else if(timer){clearInterval(timer);timer=null;}});
+    if(document.visibilityState==="visible")startTimer();
+    window.addEventListener("br:notifications-updated",function(){update(true);});
   }
 
   function bottomNavHtml(user) {
@@ -348,7 +352,7 @@
         '<a' + active('dashboard') + ' href="../pages/dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/></svg><small>Главная</small></a>' +
         '<a' + active('statistics') + ' href="../pages/' + (management(user) ? 'statistics-all' : 'profile') + '.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11h4v9M10 20V4h4v16M16 20v-7h4v7M3 20h18"/></svg><small>' + (management(user) ? "Статистика" : "Профиль") + '</small></a>' +
         '<a' + active('normatives') + ' href="../pages/' + (management(user) ? 'normatives-all' : 'normatives') + '.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="m8 12 3 3 5-6"/></svg><small>Нормативы и неактив</small></a>' +
-        '<a' + active('notifications') + ' href="../pages/notifications.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><small>Уведомления</small></a>' +
+        '<a' + active('notifications') + ' href="../pages/notifications.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><small>Уведомления</small><span class="notification-menu-badge" id="notificationBottomBadge" aria-hidden="true"></span></a>' +
         '<button' + active('menu') + ' type="button" id="mobileBottomMenu" aria-label="Открыть меню"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><small>Меню</small></button>' +
       '</nav>';
   }
@@ -671,7 +675,7 @@
       pageRefreshButton.addEventListener("click", function () {
         var current = getSession();
         if (current && current.user && current.user.token) {
-          refreshNotificationBadge(current.user.token);
+          startNotificationBadge(current.user);
         }
         if (pageDataInFlight) {
           pageDataRefreshQueued = true;
