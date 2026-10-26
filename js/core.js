@@ -352,7 +352,7 @@
       window.BR_API.normativesList(user.token,"all").catch(function(){return {normatives:[]};})
     ]).then(function(v){
       var a=v[0].requests||[],b=v[1].requests||[],c=v[2].normatives||v[2].submissions||[];
-      var data={pendingInactive:a.filter(function(x){return x.status==="pending";}).length,pendingGeneral:b.filter(function(x){return x.status==="pending";}).length,pendingNormatives:c.filter(function(x){return !x.reviewed_at&&(x.status==="pending"||x.status==="not_submitted");}).length};
+      var data={pendingInactive:a.filter(function(x){return x.status==="pending";}).length,pendingGeneral:b.filter(function(x){return x.status==="pending";}).length,pendingNormatives:c.filter(function(x){return !x.reviewed_at&&x.status==="pending";}).length};
       try{sessionStorage.setItem(key,JSON.stringify({t:Date.now(),data:data}));}catch(_){}
       paint(data);return data;
     }).catch(function(){});
