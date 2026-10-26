@@ -5364,3 +5364,14 @@ body[data-page="requests"] .own-request-answer{background:rgba(127,140,160,.12);
     transition-duration: .01ms !important;
   }
 }
+
+.admin-edit-normative-locked .form-input {
+  opacity: .78;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.admin-edit-normative-locked small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.45;
+}
