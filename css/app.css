@@ -5155,3 +5155,22 @@ body[data-page="requests"] .own-request-status.badge-red{background:#ffe0e4!impo
 body[data-page="requests"] .theme-light .own-request-card{border-color:#d5dbe5!important;box-shadow:0 5px 18px rgba(30,45,65,.07)}
 body[data-page="requests"] .theme-light .own-request-answer{background:#f3f5f8;border-color:#dce1e8}
 @media(max-width:480px){body[data-page="requests"] .own-request-card{padding:15px!important}body[data-page="requests"] .own-request-card-head{align-items:flex-start}body[data-page="requests"] .own-request-status{font-size:13px!important;min-height:32px;padding:6px 10px!important}}
+
+
+/* Watermark contrast tuning: intentionally subtle, but readable in both themes. */
+.watermark-mark{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.025)}
+.watermark-mark .watermark-logo{opacity:.17}
+.watermark-mark strong{color:rgba(255,255,255,.19);text-shadow:0 1px 2px rgba(0,0,0,.12),0 0 28px rgba(255,255,255,.07)}
+.watermark-mark span{color:rgba(255,255,255,.22);text-shadow:0 1px 2px rgba(0,0,0,.14),0 0 26px rgba(255,255,255,.06)}
+.watermark-mark small{color:rgba(255,255,255,.16)}
+.theme-light .watermark-mark{border-color:rgba(25,35,52,.12);background:rgba(25,35,52,.025);box-shadow:0 0 90px rgba(25,35,52,.035)}
+.theme-light .watermark-mark .watermark-logo{opacity:.14}
+.theme-light .watermark-mark strong{color:rgba(25,35,52,.14);text-shadow:0 1px 2px rgba(255,255,255,.2),0 0 24px rgba(25,35,52,.035)}
+.theme-light .watermark-mark span{color:rgba(25,35,52,.18);text-shadow:0 1px 2px rgba(255,255,255,.2),0 0 24px rgba(25,35,52,.035)}
+.theme-light .watermark-mark small{color:rgba(25,35,52,.13)}
+@media(max-width:1100px){
+ .watermark{opacity:1!important}
+ .watermark-mark .watermark-logo{opacity:.18!important}
+ .watermark-mark span{color:rgba(255,255,255,.22)!important;text-shadow:0 1px 3px rgba(0,0,0,.2),0 0 26px rgba(255,255,255,.07)!important}
+ .theme-light .watermark-mark span{color:rgba(25,35,52,.20)!important;text-shadow:0 1px 2px rgba(255,255,255,.25),0 0 26px rgba(25,35,52,.04)!important}
+}
