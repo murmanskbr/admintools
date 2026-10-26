@@ -3119,7 +3119,8 @@
 '</div>' +
                 '<div class="form-field form-full"><label>Комментарий / что выполнено</label><textarea id="normComment" class="form-textarea" placeholder="Например: недельная норма, вечерняя смена и т. п."></textarea></div>' +
               '</div>' +
-              '<div class="form-actions"><button class="button button-primary" type="submit">Отправить норматив</button></div>' +
+              '<div id="normEditHint" class="field-hint" hidden></div>' +
+              '<div class="form-actions"><button class="button button-primary" type="submit">Отправить норматив</button><button class="button button-secondary" id="normCancelEdit" type="button" hidden>Отменить редактирование</button></div>' +
             '</form>' +
           '</div>' +
           '<div id="normRoot" class="spaced-box"><div class="box"><div class="empty">Загрузка истории...</div></div></div>' +
@@ -3129,6 +3130,21 @@
           var form = document.getElementById("normForm");
           var fileInput = document.getElementById("normFile");
           var preview = document.getElementById("normPreview");
+          var editingNormativeDate = "";
+          var cancelEditButton = document.getElementById("normCancelEdit");
+          function resetNormativeEdit() {
+            editingNormativeDate = "";
+            fileInput.required = true;
+            form.reset();
+            document.getElementById("normDate").value = dateIso(0);
+            if (preview) preview.innerHTML = "";
+            var submit = form.querySelector("button[type=submit]");
+            if (submit) submit.textContent = "Отправить норматив";
+            if (cancelEditButton) cancelEditButton.hidden = true;
+            var hint = document.getElementById("normEditHint");
+            if (hint) { hint.hidden = true; hint.textContent = ""; }
+          }
+          if (cancelEditButton) cancelEditButton.onclick = resetNormativeEdit;
           var normTab=document.getElementById("normTab"),inactiveTab=document.getElementById("inactiveTab");
           function showInactive(active){document.getElementById("normPane").hidden=active;document.getElementById("inactivePane").hidden=!active;normTab.classList.toggle("is-active",!active);inactiveTab.classList.toggle("is-active",active);}
           normTab.onclick=function(){showInactive(false);};inactiveTab.onclick=function(){showInactive(true);};
@@ -3163,7 +3179,7 @@
           form.onsubmit = async function (event) {
             event.preventDefault();
             var files = Array.from(fileInput.files || []);
-            if (!files.length) {
+            if (!files.length && !editingNormativeDate) {
               await requestModal("Файлы норматива", "Выберите хотя бы один файл.");
               return;
             }
@@ -3182,17 +3198,15 @@
                 document.getElementById("normPosition").value,
                 document.getElementById("normComment").value
               );
-              await requestModal("Готово", "Норматив отправлен на проверку.");
-              form.reset();
-              document.getElementById("normDate").value = dateIso(0);
-              if (preview) preview.innerHTML = "";
+              await requestModal("Готово", editingNormativeDate ? "Изменения норматива сохранены. Он остаётся на проверке." : "Норматив отправлен на проверку.");
+              resetNormativeEdit();
               location.reload();
             } catch (e) {
               await requestModal("Ошибка", e.message || "Не удалось отправить норматив.");
             } finally {
               if (button) {
                 button.disabled = false;
-                button.textContent = "Отправить норматив";
+                button.textContent = editingNormativeDate ? "Сохранить изменения" : "Отправить норматив";
               }
             }
           };
@@ -3213,7 +3227,7 @@
 
             var html = Object.keys(groups).sort().reverse().map(function (date) {
               var rows = groups[date].map(function (item) {
-                var reviewed = !!item.reviewed_at;
+                var reviewed = !!item.reviewed_at || item.status !== "pending";
                 var statusCell = reviewed
                   ? '<div class="normative-result-stack"><span class="badge badge-green">Проверено</span>' + normativeStatus(item.status) + '</div>'
                   : normativeStatus(item.status);
@@ -3226,7 +3240,8 @@
                   '<td>' + E(item.review_comment || "—") + '</td>' +
                   '<td>' + (
                     item.id
-                      ? '<button class="small-button" data-own-norm="' + E(item.id) + '">Открыть</button>'
+                      ? '<button class="small-button" data-own-norm="' + E(item.id) + '">Открыть</button>' +
+                        (!reviewed ? ' <button class="small-button" data-edit-norm="' + E(item.id) + '" data-edit-date="' + E(item.submission_date || "") + '" data-edit-position="' + E(item.position || "") + '" data-edit-comment="' + E(item.comment || "") + '">Редактировать</button>' : '')
                       : '<span class="muted">Результат зафиксирован</span>'
                   ) + '</td>' +
                 '</tr>';
@@ -3234,7 +3249,7 @@
 
               var weekday = new Date(date + "T00:00:00").toLocaleDateString("ru-RU", {weekday:"long"});
               var mobileItems = groups[date].map(function (item) {
-                var reviewed = !!item.reviewed_at;
+                var reviewed = !!item.reviewed_at || item.status !== "pending";
                 var status = normativeStatus(item.status);
                 return '<article class="normative-mobile-card">' +
                   '<div class="normative-mobile-top">' +
@@ -3246,7 +3261,7 @@
                     '<div><small>Отправлен</small><b>' + E(formatDateTime(item.created_at)) + '</b></div>' +
                   '</div>' +
                   '<div class="normative-mobile-comment"><small>Решение</small><p>' + E(item.review_comment || "—") + '</p></div>' +
-                  (item.id ? '<button class="button button-secondary normative-mobile-open" data-own-norm="' + E(item.id) + '">Открыть</button>' : '') +
+                  (item.id ? '<div class="normative-history-actions"><button class="button button-secondary normative-mobile-open" data-own-norm="' + E(item.id) + '">Открыть</button>' + (!reviewed ? '<button class="button button-secondary" data-edit-norm="' + E(item.id) + '" data-edit-date="' + E(item.submission_date || "") + '" data-edit-position="' + E(item.position || "") + '" data-edit-comment="' + E(item.comment || "") + '">Редактировать</button>' : '') + '</div>' : '') +
                 '</article>';
               }).join("");
 
@@ -3264,6 +3279,28 @@
                   submissionId: Number(button.dataset.ownNorm),
                   management: false
                 });
+              };
+            });
+            document.querySelectorAll("[data-edit-norm]").forEach(function (button) {
+              button.onclick = function () {
+                var date = button.dataset.editDate || "";
+                var dateField = document.getElementById("normDate");
+                var positionField = document.getElementById("normPosition");
+                var commentField = document.getElementById("normComment");
+                var submit = form.querySelector("button[type=submit]");
+                if (dateField) dateField.value = date;
+                if (positionField) positionField.value = button.dataset.editPosition || "";
+                if (commentField) commentField.value = button.dataset.editComment || "";
+                editingNormativeDate = date;
+                fileInput.required = false;
+                if (submit) submit.textContent = "Сохранить изменения";
+                if (cancelEditButton) cancelEditButton.hidden = false;
+                var hint = document.getElementById("normEditHint");
+                if (hint) {
+                  hint.hidden = false;
+                  hint.textContent = "Редактируется норматив за " + date + ". Если выберете новые файлы, прежние файлы будут заменены. Без новых файлов изменятся только должность и комментарий.";
+                }
+                form.scrollIntoView({ behavior: "smooth", block: "start" });
               };
             });
           } catch (error) {
