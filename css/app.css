@@ -5648,3 +5648,69 @@ body[data-page="requests"] .own-request-answer{background:rgba(127,140,160,.12);
   .normative-admin-card-meta small { font-size: .68rem; }
   .normative-admin-card-meta b { font-size: .78rem; }
 }
+
+
+/* Inline normative review: expand details inside the selected admin row/card. */
+.normative-inline-review-host[hidden] { display: none !important; }
+.normative-inline-review-host { min-width: 0; }
+.normative-inline-review {
+  margin: 12px 0;
+  padding: clamp(14px, 2vw, 24px);
+  border: 1px solid var(--line, rgba(255,255,255,.14));
+  border-radius: 18px;
+  background: var(--surface2, rgba(255,255,255,.035));
+  box-shadow: 0 12px 30px rgba(0,0,0,.14);
+  text-align: left;
+}
+.normative-inline-review-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line, rgba(255,255,255,.12));
+}
+.normative-inline-review-head small { display:block; font-size:.72rem; letter-spacing:.06em; color:var(--muted); }
+.normative-inline-review-head h3 { margin:5px 0; font-size:1.15rem; overflow-wrap:anywhere; }
+.normative-inline-review-head p { margin:0; }
+.normative-inline-review #normativeDetailRoot { min-width:0; }
+.normative-inline-review .norm-images {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));
+  gap:16px;
+  margin-top:12px;
+}
+.normative-inline-review .norm-image {
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid var(--line,rgba(255,255,255,.12));
+  border-radius:14px;
+  background:var(--surface,rgba(0,0,0,.12));
+}
+.normative-inline-review .norm-image img {
+  display:block;
+  width:100%;
+  height:clamp(300px,42vw,560px);
+  max-height:none;
+  object-fit:contain;
+  background:rgba(0,0,0,.12);
+  cursor:zoom-in;
+}
+.normative-inline-review .norm-image span {
+  display:block;
+  padding:10px 12px;
+  overflow-wrap:anywhere;
+  font-size:.86rem;
+}
+.normative-inline-detail-row > td { padding:0 12px 14px!important; background:transparent!important; }
+.normative-inline-review .normative-decision-panel { margin-top:18px; }
+.normative-inline-review .detail-grid { gap:12px; }
+.normative-inline-review .detail-grid > div { min-width:0; overflow-wrap:anywhere; }
+@media(max-width:640px) {
+  .normative-inline-review { margin:10px 0; padding:14px; }
+  .normative-inline-review-head { align-items:flex-start; }
+  .normative-inline-review .norm-images { grid-template-columns:minmax(0,1fr); }
+  .normative-inline-review .norm-image img { height:min(68vh,520px); }
+}
