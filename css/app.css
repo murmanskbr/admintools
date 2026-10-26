@@ -5121,3 +5121,19 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 @media(max-width:600px){.notification-card-v2{padding:13px 12px 13px 16px;gap:10px}.notification-kind-icon{flex-basis:30px;width:30px;height:30px;font-size:16px}.notification-toolbar .button{flex:1}.notification-card-content>small{font-size:10px}}
 
 .management-queue{margin-bottom:18px}.management-queue h2{font-size:16px;margin:0 0 12px}.management-queue>a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line);color:var(--text);text-decoration:none}.management-queue>a:hover{color:var(--accent)}.management-queue>a b{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:rgba(255,51,72,.12);color:var(--accent);font-size:13px}
+
+
+/* Notifications segmented tabs */
+.notification-segmented{display:flex;align-items:center;gap:4px;width:100%;margin:0 0 18px;padding:5px;border:1px solid var(--border-color,rgba(148,163,184,.18));border-radius:14px;background:var(--surface-2,rgba(148,163,184,.07));overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin}
+.notification-segmented [data-notification-tab]{flex:0 0 auto;min-height:40px;padding:9px 16px;border:0;border-radius:10px;background:transparent;color:var(--text-muted,#9ca3af);font:inherit;font-weight:650;white-space:nowrap;cursor:pointer}
+.notification-segmented [data-notification-tab].is-active{background:var(--accent,#334155);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.notification-segmented [data-notification-tab] span{font-variant-numeric:tabular-nums}
+.push-status-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.push-status-chips .notification-chip{white-space:nowrap}
+.badge-red{background:rgba(239,68,68,.13)!important;color:#ef4444!important;border:1px solid rgba(239,68,68,.25)}
+.personal-push-settings{padding:20px}
+.push-personal-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.push-personal-head h2{margin:5px 0 0}
+.personal-push-settings>p{line-height:1.55;max-width:720px}
+.notification-segmented~#notificationCreateRoot,.notification-segmented~#eventCreateRoot{margin-bottom:16px}
+@media(max-width:640px){.notification-segmented{flex-wrap:nowrap;justify-content:flex-start;margin-bottom:14px}.notification-segmented [data-notification-tab]{padding:9px 13px;font-size:14px}.push-roster-filters{grid-template-columns:1fr!important}.push-status-chips{overflow-x:auto;flex-wrap:nowrap}.push-status-chips .notification-chip{flex:0 0 auto}}
