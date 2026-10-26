@@ -3100,6 +3100,7 @@
       '<div class="box spaced-box"><h2>Мои неактивы</h2><div id="inactiveMineRoot">Загрузка...</div></div></section>';
   }
   function normatives(user, all) {
+    var normativeEdit = { date: "", form: null, fileInput: null, cancelButton: null };
     if (!all) {
       return {
         title: "Нормативы и неактив",
@@ -3130,10 +3131,13 @@
           var form = document.getElementById("normForm");
           var fileInput = document.getElementById("normFile");
           var preview = document.getElementById("normPreview");
-          var editingNormativeDate = "";
+          normativeEdit.date = "";
           var cancelEditButton = document.getElementById("normCancelEdit");
+           normativeEdit.form = form;
+           normativeEdit.fileInput = fileInput;
+           normativeEdit.cancelButton = cancelEditButton;
           function resetNormativeEdit() {
-            editingNormativeDate = "";
+            normativeEdit.date = "";
             fileInput.required = true;
             form.reset();
             document.getElementById("normDate").value = dateIso(0);
@@ -3179,7 +3183,7 @@
           form.onsubmit = async function (event) {
             event.preventDefault();
             var files = Array.from(fileInput.files || []);
-            if (!files.length && !editingNormativeDate) {
+            if (!files.length && !normativeEdit.date) {
               await requestModal("Файлы норматива", "Выберите хотя бы один файл.");
               return;
             }
@@ -3198,7 +3202,7 @@
                 document.getElementById("normPosition").value,
                 document.getElementById("normComment").value
               );
-              await requestModal("Готово", editingNormativeDate ? "Изменения норматива сохранены. Он остаётся на проверке." : "Норматив отправлен на проверку.");
+              await requestModal("Готово", normativeEdit.date ? "Изменения норматива сохранены. Он остаётся на проверке." : "Норматив отправлен на проверку.");
               resetNormativeEdit();
               location.reload();
             } catch (e) {
@@ -3206,7 +3210,7 @@
             } finally {
               if (button) {
                 button.disabled = false;
-                button.textContent = editingNormativeDate ? "Сохранить изменения" : "Отправить норматив";
+                button.textContent = normativeEdit.date ? "Сохранить изменения" : "Отправить норматив";
               }
             }
           };
@@ -3287,20 +3291,20 @@
                 var dateField = document.getElementById("normDate");
                 var positionField = document.getElementById("normPosition");
                 var commentField = document.getElementById("normComment");
-                var submit = form.querySelector("button[type=submit]");
+                var submit = normativeEdit.form && normativeEdit.form.querySelector("button[type=submit]");
                 if (dateField) dateField.value = date;
                 if (positionField) positionField.value = button.dataset.editPosition || "";
                 if (commentField) commentField.value = button.dataset.editComment || "";
-                editingNormativeDate = date;
-                fileInput.required = false;
+                normativeEdit.date = date;
+                if (normativeEdit.fileInput) normativeEdit.fileInput.required = false;
                 if (submit) submit.textContent = "Сохранить изменения";
-                if (cancelEditButton) cancelEditButton.hidden = false;
+                if (normativeEdit.cancelButton) normativeEdit.cancelButton.hidden = false;
                 var hint = document.getElementById("normEditHint");
                 if (hint) {
                   hint.hidden = false;
                   hint.textContent = "Редактируется норматив за " + date + ". Если выберете новые файлы, прежние файлы будут заменены. Без новых файлов изменятся только должность и комментарий.";
                 }
-                form.scrollIntoView({ behavior: "smooth", block: "start" });
+                if (normativeEdit.form) normativeEdit.form.scrollIntoView({ behavior: "smooth", block: "start" });
               };
             });
           } catch (error) {
