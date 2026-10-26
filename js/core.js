@@ -336,7 +336,7 @@
       if(window.__brCurrentUser&&window.__brCurrentUser.role==="management"){
         var qkey="br_management_queue_counts_v1",qcache=null;
         try{qcache=JSON.parse(sessionStorage.getItem(qkey)||"null");}catch(_){}
-        function paintQueue(data){["pendingInactive","pendingGeneral","pendingNormatives"].forEach(function(k){var id={pendingInactive:"pendingInactiveBadge",pendingGeneral:"pendingRequestsBadge",pendingNormatives:"pendingNormativesBadge"}[k];var el=document.getElementById(id);if(el){el.textContent=data[k]>9?"9+":String(data[k]||"");el.classList.toggle("is-visible",Number(data[k])>0);}});window.__brQueueCounts=data;}
+        function paintQueue(data){["pendingInactive","pendingGeneral","pendingNormatives"].forEach(function(k){var id={pendingInactive:"pendingNormativesBadge",pendingGeneral:"pendingRequestsBadge",pendingNormatives:"pendingNormativesBadge"}[k];var el=document.getElementById(id);if(el){var value=(k==="pendingInactive"?Number(data.pendingInactive||0)+Number(data.pendingNormatives||0):Number(data[k]||0));el.textContent=value>9?"9+":String(value||"");el.classList.toggle("is-visible",value>0);}});window.__brQueueCounts=data;}
         if(qcache&&Date.now()-qcache.t<60000)paintQueue(qcache.data);
         else {
           var api=window.BR_API,token=window.__brCurrentUser.token;
@@ -348,7 +348,7 @@
             var inactive=values[0].requests||[],general=values[1].requests||[],norms=values[2].normatives||values[2].submissions||[];
             var data={pendingInactive:inactive.filter(function(x){return x.status==="pending";}).length,pendingGeneral:general.filter(function(x){return x.status==="pending";}).length,pendingNormatives:norms.filter(function(x){return !x.reviewed_at&&(x.status==="pending"||x.status==="not_submitted");}).length};
             try{sessionStorage.setItem(qkey,JSON.stringify({t:Date.now(),data:data}));}catch(_){}
-            paintQueue(data);
+            paintQueue(data);window.dispatchEvent(new Event("br:management-queue-updated"));
           });
         }
       }
