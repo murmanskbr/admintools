@@ -2311,7 +2311,7 @@
     }
     async function refreshAll(force) {
       var jobs = [loadNotifications(force)];
-      if (user.role === "management") jobs.push(loadPushStatusAll(force), loadEvents(force));
+      if (user.role === "management") jobs.push(loadPushStatusAll(force), loadEvents(force), loadManagementQueue(force));
       await Promise.all(jobs);
     }
     function targetLabel(value) {
@@ -2421,7 +2421,7 @@
 
         return '<div class="page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + createControls +
           (user.role === "management"
-            ? '<div id="pushStatusRoot" class="push-status-root"><div class="box"><div class="empty">Загрузка статуса push-подписок...</div></div></div>'
+            ? '<div id="managementQueueRoot" class="management-queue-root"><div class="box"><div class="empty">Загрузка очереди проверки...</div></div></div><div id="pushStatusRoot" class="push-status-root"><div class="box"><div class="empty">Загрузка статуса push-подписок...</div></div></div>'
             : '') +
           '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>' +
           (user.role === "management"
@@ -2616,6 +2616,24 @@
       },
       load: async function () { await refreshAll(false); }
     };
+
+    async function loadManagementQueue(force) {
+      if(user.role!=="management")return;
+      var root=document.getElementById("managementQueueRoot");if(!root)return;
+      return cachedLoad("managementQueueCounts",function(){
+        return Promise.all([
+          window.BR_API.inactiveRequestsAll(user.token,"pending"),
+          window.BR_API.generalRequestsAll(user.token,"pending"),
+          window.BR_API.normativesList(user.token,"all")
+        ]).then(function(v){var a=v[0].requests||[],b=v[1].requests||[],c=v[2].normatives||v[2].submissions||[];return {
+          inactive:a.filter(function(x){return x.status==="pending";}).length,
+          general:b.filter(function(x){return x.status==="pending";}).length,
+          norms:c.filter(function(x){return !x.reviewed_at&&(x.status==="pending"||x.status==="not_submitted");}).length
+        };});
+      },function(data){
+        root.innerHTML='<div class="box management-queue"><h2>Требует проверки</h2><a href="../pages/normatives-all.html"><span>Заявки на неактив</span><b>'+E(data.inactive)+'</b></a><a href="../pages/requests-all.html"><span>Обращения без ответа</span><b>'+E(data.general)+'</b></a><a href="../pages/normatives-all.html"><span>Нормативы на проверке</span><b>'+E(data.norms)+'</b></a></div>';
+      },{root:"managementQueueRoot",force:!!force});
+    }
 
     async function loadPushStatusAll(force) {
       var root = document.getElementById("pushStatusRoot");
