@@ -2854,40 +2854,46 @@
     }
   }
 
+  function requestModal(title, message) {
+    return new Promise(function(resolve) {
+      var node=document.createElement("div"); node.className="modal-backdrop";
+      node.innerHTML='<div class="modal-card" role="dialog" aria-modal="true" style="width:min(420px,100%)"><div class="modal-head"><h2>'+E(title)+'</h2><button type="button" class="modal-close" data-close>×</button></div><p>'+E(message)+'</p><div class="form-actions"><button type="button" class="button button-primary" data-close>Понятно</button></div></div>';
+      document.body.appendChild(node);
+      function close(){node.remove();resolve();}
+      node.querySelectorAll("[data-close]").forEach(function(x){x.onclick=close;});
+      node.onclick=function(e){if(e.target===node)close();};
+      node.querySelector("[data-close]").focus();
+    });
+  }
+  function ownCachedLoad(user,key,fetcher,render,force) {
+    var k="br_cache_v1:"+user.id+":"+key, saved=null;
+    try{saved=JSON.parse(sessionStorage.getItem(k)||"null");}catch(_){}
+    if(saved&&saved.data) render(saved.data);
+    if(!force&&saved&&Date.now()-saved.t<300000)return Promise.resolve(saved.data);
+    return Promise.resolve().then(fetcher).then(function(data){
+      try{sessionStorage.setItem(k,JSON.stringify({t:Date.now(),data:data}));}catch(_){}
+      render(data);return data;
+    });
+  }
+  function ownRequestStatus(status) {
+    var v=String(status||"pending");
+    return '<span class="badge '+(v==="approved"||v==="answered"?"badge-green":v==="rejected"||v==="cancelled"?"badge-red":"badge-yellow")+'">'+E(({approved:"✓ Одобрено",answered:"✓ Отвечено",rejected:"✕ Отклонено",cancelled:"✕ Отозвано",pending:"⏳ На рассмотрении"})[v]||v)+'</span>';
+  }
   function requests(user) {
     return {
-      title: "Мои обращения",
-      subtitle: "Обращения к руководству",
-      render: function () {
-        var list = localList("br_requests").filter(function (item) {
-          return item.nickname === user.nickname;
-        });
-
-        var rows = list.length ? list.map(function (item) {
-          return '<tr><td>' + E(item.type) + '</td><td>' + E(item.date) + '</td><td>' +
-            E(item.status) + '</td><td>' + E(item.text) + '</td></tr>';
-        }).join("") : '<tr><td colspan="4">Обращений пока нет.</td></tr>';
-
-        return '<div class="box"><form id="requestForm"><div class="form-grid">' +
-          '<div class="form-field"><label>Тип обращения</label><select id="requestType" class="form-select"><option>Вопрос</option><option>Неактив</option><option>Жалоба</option><option>Предложение</option></select></div>' +
-          '<div class="form-field form-full"><label>Текст</label><textarea id="requestText" class="form-textarea" required></textarea></div>' +
-          '</div><button class="button button-primary" type="submit">Отправить обращение</button></form></div>' +
-          '<div class="box table-box spaced-box"><table><thead><tr><th>Тип</th><th>Дата</th><th>Статус</th><th>Текст</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
-      },
-      bind: function () {
-        document.getElementById("requestForm").onsubmit = function (event) {
-          event.preventDefault();
-          var list = localList("br_requests");
-          list.unshift({
-            nickname: user.nickname,
-            type: document.getElementById("requestType").value,
-            date: new Date().toLocaleDateString("ru-RU"),
-            status: "На рассмотрении",
-            text: document.getElementById("requestText").value.trim()
-          });
-          save("br_requests", list.slice(0, 200));
-          location.reload();
+      title:"Мои обращения",subtitle:"Обращения к руководству",
+      render:function(){return '<div class="box"><form id="generalForm"><div class="form-grid"><div class="form-field"><label>Тип обращения</label><select id="generalType" class="form-select"><option value="question">Вопрос</option><option value="complaint">Жалоба</option><option value="suggestion">Предложение</option></select></div><div class="form-field form-full"><label>Текст обращения</label><textarea id="generalMessage" class="form-textarea" required></textarea></div></div><button class="button button-primary" type="submit">Отправить руководству</button></form></div><div class="box spaced-box"><h2>Мои обращения</h2><div id="generalMineRoot" class="empty">Загрузка...</div></div>';},
+      bind:function(){
+        var root=document.getElementById("generalMineRoot"),form=document.getElementById("generalForm");
+        function load(force){return ownCachedLoad(user,"generalRequestsMine",function(){return window.BR_API.generalRequestsMine(user.token);},function(result){
+          var list=Array.isArray(result&&result.requests)?result.requests:[];
+          root.innerHTML=list.length?list.map(function(x){return '<article class="box spaced-box"><b>'+E(({question:"Вопрос",complaint:"Жалоба",suggestion:"Предложение"})[x.request_type]||x.request_type)+'</b> '+ownRequestStatus(x.status)+'<p>'+E(x.message||"—")+'</p><small>'+E(formatDateTime(x.created_at))+'</small><p><b>Ответ руководства:</b> '+E(x.management_comment||"—")+'</p></article>';}).join(""):'<div class="empty">Обращений пока нет.</div>';
+        },force).catch(function(e){requestModal("Ошибка",e.message||"Не удалось загрузить обращения.");});}
+        form.onsubmit=async function(e){e.preventDefault();var button=form.querySelector('[type="submit"]'),message=document.getElementById("generalMessage").value.trim();if(!message){await requestModal("Комментарий","Введите текст обращения.");return;}button.disabled=true;
+          try{await window.BR_API.generalRequestCreate(user.token,document.getElementById("generalType").value,message);form.reset();await load(true);await requestModal("Готово","Обращение отправлено руководству.");}
+          catch(err){await requestModal("Ошибка",err.message||"Не удалось отправить обращение.");}finally{button.disabled=false;}
         };
+        load(false);
       }
     };
   }
