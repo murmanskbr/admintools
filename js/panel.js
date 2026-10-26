@@ -3295,9 +3295,7 @@
         list.forEach(function(item){ statusCounts[normativeFilterKey(item)]++; });
         var rows = list.map(function (item) {
           var key = normativeFilterKey(item);
-          var action = item.submission_id
-            ? '<button class="small-button" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Проверить</button>'
-            : '<span class="muted">Нет файла</span>';
+          var action = '<button class="small-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Проверить</button>';
           return '<tr data-admin-id="' + E(item.admin_id || 0) + '" data-normative-status="' + E(key) + '" data-normative-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-normative-position="' + E(item.position || "") + '">' +
             '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + E(item.nickname) + '</button></td>' +
             '<td>' + E(item.position || "—") + '</td><td>' + E(formatDateOnly(renderDate)) + '</td>' +
@@ -3306,9 +3304,7 @@
         }).join("");
         var mobileCards = list.map(function(item) {
           var key = normativeFilterKey(item);
-          var action = item.submission_id
-            ? '<button class="button button-primary normative-admin-open" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Открыть проверку</button>'
-            : '<div class="normative-admin-no-file">Файл за эту дату не отправлен</div>';
+          var action = '<button class="button button-primary normative-admin-open" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + (item.submission_id ? 'Открыть проверку' : 'Выставить статус') + '</button>';
           return '<article class="normative-admin-card" data-normative-status="' + E(key) + '" data-normative-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-normative-position="' + E(item.position || "") + '">' +
             '<div class="normative-admin-card-head"><div class="normative-admin-person"><b>' + E(item.nickname || "Без никнейма") + '</b><span>' + E(item.position || "Должность не указана") + '</span></div><div class="normative-admin-card-status">' + normativeStatus(item.status) + '</div></div>' +
             '<div class="normative-admin-card-meta"><div><small>Дата</small><b>' + E(formatDateOnly(renderDate)) + '</b></div><div><small>Отправлено</small><b>' + E(item.created_at ? formatDateTime(item.created_at) : "Нет отправки") + '</b></div><div><small>Файлы</small><b>' + E(String(item.file_count || 0)) + '</b></div></div>' +
@@ -3478,16 +3474,19 @@
         var controls = options.management
           ? '<div class="review-panel normative-decision-panel">' +
               '<div class="review-current"><span>Текущий статус</span>' + normativeStatus(currentStatus) + '</div>' +
+              '<label class="normative-review-label" for="reviewStatusSelect">Выставить статус нормы</label>' +
+              '<select id="reviewStatusSelect" class="form-select">' +
+                '<option value="norm"' + (currentStatus === "norm" ? ' selected' : '') + '>✓ Норма</option>' +
+                '<option value="no_norm"' + (currentStatus === "no_norm" ? ' selected' : '') + '>✕ Нет нормы</option>' +
+                '<option value="rework"' + (currentStatus === "rework" ? ' selected' : '') + '>Перенорма</option>' +
+                '<option value="inactive"' + (currentStatus === "inactive" ? ' selected' : '') + '>Неактив</option>' +
+              '</select>' +
               '<label class="normative-review-label" for="reviewComment">Комментарий руководства <span class="muted">(необязательно)</span></label>' +
               '<textarea id="reviewComment" class="form-textarea" maxlength="1000" rows="3" placeholder="Напишите пояснение, если оно требуется"></textarea>' +
-              '<div class="normative-decision-hint">Решение и статус нормы сохраняются одним действием. Администратор получит уведомление о результате.</div>' +
+              '<div class="normative-decision-hint">' + (s ? 'Выберите итоговый статус и сохраните решение.' : 'Файл не отправлен — статус можно выставить вручную. Выбор сохранится для этого администратора и даты.') + ' После сохранения список обновится.</div>' +
               '<div class="review-actions normative-review-actions">' +
-                '<button class="button button-primary" type="button" data-review="norm"' + (!s ? ' disabled' : '') + '>✓ Одобрить · Норма</button>' +
-                '<button class="button button-secondary" type="button" data-review="rework"' + (!s ? ' disabled' : '') + '>Перенорма</button>' +
-                '<button class="button button-danger" type="button" data-review="no_norm">Отклонить · Нет нормы</button>' +
-                '<button class="button button-secondary" type="button" data-review="inactive"' + (!s ? ' disabled' : '') + '>Неактив</button>' +
+                '<button class="button button-primary" type="button" id="saveNormativeDecision">Сохранить статус</button>' +
               '</div>' +
-              (!s ? '<small class="muted">Норматив за эту дату не отправлен. Можно зафиксировать результат «Нет нормы».</small>' : '') +
             '</div>'
           : '<div class="notice">Результат проверки: ' + normativeStatus(currentStatus) + (s && s.reviewed_at ? '<br><small>Проверено: ' + E(formatDateTime(s.reviewed_at)) + '</small>' : '') + '</div>';
 
@@ -3504,76 +3503,75 @@
           controls;
 
         if (options.management) {
-          document.querySelectorAll("[data-review]").forEach(function (button) {
-            button.onclick = async function (event) {
+          var saveDecisionButton = document.getElementById("saveNormativeDecision");
+          if (saveDecisionButton) {
+            saveDecisionButton.onclick = async function (event) {
               if (event) {
                 event.preventDefault();
                 event.stopPropagation();
               }
 
+              var statusInput = document.getElementById("reviewStatusSelect");
               var commentInput = document.getElementById("reviewComment");
+              var reviewStatus = statusInput ? statusInput.value : "";
               var comment = commentInput ? commentInput.value.trim() : "";
-              var reviewStatus = button.getAttribute("data-review") || "";
-
-              if (!reviewStatus) {
-                alert("Не выбран результат проверки.");
+              var labels = {
+                norm: "Норма",
+                rework: "Перенорма",
+                no_norm: "Нет нормы",
+                inactive: "Неактив"
+              };
+              if (!reviewStatus || !labels[reviewStatus]) {
+                alert("Выберите статус нормы.");
                 return;
               }
 
-              button.disabled = true;
-
-              var reviewButtons = document.querySelectorAll("[data-review]");
-              reviewButtons.forEach(function (item) {
-                item.disabled = true;
-              });
+              saveDecisionButton.disabled = true;
+              saveDecisionButton.textContent = "Сохранение…";
 
               try {
-                var reviewResult = await window.BR_API.normativeReview(
-                  options.token,
-                  options.submissionId,
-                  options.adminId,
-                  options.date,
-                  reviewStatus,
-                  comment
-                );
+                var reviewResult;
+                if (s) {
+                  reviewResult = await window.BR_API.normativeReview(
+                    options.token,
+                    options.submissionId,
+                    options.adminId,
+                    options.date,
+                    reviewStatus,
+                    comment
+                  );
+                } else {
+                  // Для администратора без отправленного файла используем ручную
+                  // отметку, которая работает и без записи о подаче норматива.
+                  reviewResult = await window.BR_API.normativeMark(
+                    options.token,
+                    actualNickname || fallbackNickname,
+                    options.date,
+                    reviewStatus,
+                    comment
+                  );
+                }
 
-                // Показываем сохранённый результат сразу в текущей строке.
-                // Повторная загрузка списка ниже служит синхронизацией,
-                // а не единственным способом обновить интерфейс.
-                var savedStatus =
-                  reviewResult && reviewResult.status
-                    ? String(reviewResult.status)
-                    : reviewStatus;
+                var savedStatus = reviewResult && reviewResult.status
+                  ? String(reviewResult.status)
+                  : reviewStatus;
 
                 var targetRow = document.querySelector(
                   '#normativeJournalTable tbody tr[data-admin-id="' +
-                    String(options.adminId || 0) +
-                    '"]'
+                    String(options.adminId || 0) + '"]'
                 );
-
                 if (targetRow) {
                   var cells = targetRow.children;
-
-                  if (cells[4]) {
-                    cells[4].innerHTML = normativeStatus(savedStatus);
-                  }
-
-                  if (cells[6]) {
-                    cells[6].textContent = comment || "—";
-                  }
-
+                  if (cells[4]) cells[4].innerHTML = normativeStatus(savedStatus);
+                  if (cells[6]) cells[6].textContent = comment || "—";
                   targetRow.setAttribute("data-normative-status", savedStatus);
                 }
 
                 modalRoot.innerHTML = "";
-                var reviewLabels = {
-                  norm: "Одобрено — Норма",
-                  rework: "Выставлена перенорма",
-                  no_norm: "Отклонено — Нет нормы",
-                  inactive: "Установлен статус «Неактив»"
-                };
                 showNormativeResult(
-                  (actualNickname || fallbackNickname) + ": " + (reviewLabels[savedStatus] || "Решение сохранено") + ". Уведомление отправлено администратору.",
+                  (actualNickname || fallbackNickname) + ": установлен статус «" +
+                    (labels[savedStatus] || labels[reviewStatus]) + "» за " +
+                    formatDateOnly(options.date) + ".",
                   "success"
                 );
 
@@ -3581,21 +3579,17 @@
                   try {
                     await loadDaily(true);
                   } catch (refreshError) {
-                    console.warn(
-                      "[BR AdminTools] Статус сохранён, но список нормативов не удалось синхронизировать:",
-                      refreshError
-                    );
+                    console.warn("[BR AdminTools] Статус сохранён, но список нормативов не удалось синхронизировать:", refreshError);
+                    showNormativeResult("Статус сохранён, но список не удалось обновить. Обновите страницу.", "error");
                   }
                 }
-              } catch (e) {
-                alert(e.message || "Не удалось сохранить решение.");
-
-                reviewButtons.forEach(function (item) {
-                  item.disabled = false;
-                });
+              } catch (error) {
+                alert(error.message || "Не удалось сохранить статус.");
+                saveDecisionButton.disabled = false;
+                saveDecisionButton.textContent = "Сохранить статус";
               }
             };
-          });
+          }
         }
       }).catch(function (error) {
         console.error(
