@@ -2620,18 +2620,8 @@
     async function loadManagementQueue(force) {
       if(user.role!=="management")return;
       var root=document.getElementById("managementQueueRoot");if(!root)return;
-      return cachedLoad("managementQueueCounts",function(){
-        return Promise.all([
-          window.BR_API.inactiveRequestsAll(user.token,"pending"),
-          window.BR_API.generalRequestsAll(user.token,"pending"),
-          window.BR_API.normativesList(user.token,"all")
-        ]).then(function(v){var a=v[0].requests||[],b=v[1].requests||[],c=v[2].normatives||v[2].submissions||[];return {
-          inactive:a.filter(function(x){return x.status==="pending";}).length,
-          general:b.filter(function(x){return x.status==="pending";}).length,
-          norms:c.filter(function(x){return !x.reviewed_at&&x.status==="pending";}).length
-        };});
-      },function(data){
-        root.innerHTML='<div class="box management-queue"><h2>Требует проверки</h2><a href="../pages/normatives-all.html"><span>Заявки на неактив</span><b>'+E(data.inactive)+'</b></a><a href="../pages/requests-all.html"><span>Обращения без ответа</span><b>'+E(data.general)+'</b></a><a href="../pages/normatives-all.html"><span>Нормативы на проверке</span><b>'+E(data.norms)+'</b></a></div>';
+      return cachedLoad("managementQueueCounts",function(){return window.BR_API.managementPendingCounts(user.token);},function(data){
+        root.innerHTML='<div class="box management-queue"><h2>Требует проверки</h2><a href="../pages/normatives-all.html"><span>Заявки на неактив</span><b>'+E(data.inactive_requests||0)+'</b></a><a href="../pages/requests-all.html"><span>Обращения без ответа</span><b>'+E(data.unanswered_requests||0)+'</b></a><a href="../pages/normatives-all.html"><span>Нормативы на проверке</span><b>'+E(data.normatives_pending||0)+'</b></a></div>';
       },{root:"managementQueueRoot",force:!!force});
     }
 
@@ -2750,6 +2740,8 @@
       var root=document.getElementById("notificationsRoot");
       if(!root)return;
       function kind(item){
+        var exact={inactive_approved:{icon:"✓",cls:"approved",target:"../pages/normatives.html"},inactive_rejected:{icon:"✕",cls:"rejected",target:"../pages/normatives.html"},request_reply:{icon:"💬",cls:"reply",target:"../pages/requests.html"},normative_review:{icon:"✓",cls:"approved",target:"../pages/normatives.html"},announcement:{icon:"📣",cls:"announcement",target:"../pages/notifications.html"},system:{icon:"⚙",cls:"system",target:"../pages/notifications.html"}};
+        if(exact[item.kind])return exact[item.kind];
         var v=String((item.type||item.category||item.notification_type||"")+" "+(item.title||"")+" "+(item.body||"")).toLowerCase();
         if(/одобр|approved|согласован/.test(v))return {icon:"✓",cls:"approved",target:user.role==="management"?"../pages/requests-all.html":"../pages/requests.html"};
         if(/отклон|rejected|отказ/.test(v))return {icon:"✕",cls:"rejected",target:user.role==="management"?"../pages/requests-all.html":"../pages/requests.html"};
@@ -2774,7 +2766,7 @@
           });
           var html=Object.keys(groups).map(function(day){if(!groups[day].length)return "";return '<section class="notification-day-group"><h2>'+day+'</h2>'+groups[day].map(function(item){
             var k=kind(item),date=formatDateTime(item.created_at),author=item.author_nickname||item.created_by_nickname||item.sender_nickname||item.author||"Система",role=item.author_role||item.sender_role||item.created_by_role||"";
-            return '<article class="notification-card-v2 '+(item.is_read?'is-read':'is-unread')+' notification-kind-'+k.cls+'"><span class="notification-kind-icon" aria-hidden="true">'+k.icon+'</span><div class="notification-card-content"><div class="notification-card-heading">'+(!item.is_read?'<span class="notification-unread-dot" aria-label="Непрочитано"></span>':'')+'<b>'+E(item.title||"Уведомление")+'</b></div><p>'+E(item.body||"")+'</p><small>От: '+E(author)+' • '+E(role||"—")+' • '+E(date)+'</small><div class="notification-card-actions"><button type="button" class="small-button" data-open-notification="'+E(item.id)+'" data-target="'+E(k.target)+'">Открыть</button>'+(user.role==="management"?' <button type="button" class="small-button notification-delete" data-delete-notification="'+E(item.id)+'">Удалить</button>':'')+'</div></div></article>';
+            return '<article class="notification-card-v2 '+(item.is_read?'is-read':'is-unread')+' notification-kind-'+k.cls+'"><span class="notification-kind-icon" aria-hidden="true">'+k.icon+'</span><div class="notification-card-content"><div class="notification-card-heading">'+(!item.is_read?'<span class="notification-unread-dot" aria-label="Непрочитано"></span>':'')+'<b>'+E(item.title||"Уведомление")+'</b></div><p>'+E(item.body||"")+'</p><small>От: '+E(author)+' • '+E(role||"—")+' • '+E(date)+'</small><div class="notification-card-actions"><button type="button" class="small-button" data-open-notification="'+E(item.id)+'" data-target="'+E((String(item.link||"").indexOf("../pages/")===0&&String(item.link||"").slice(-5)===".html"?item.link:k.target))+'">Открыть</button>'+(user.role==="management"?' <button type="button" class="small-button notification-delete" data-delete-notification="'+E(item.id)+'">Удалить</button>':'')+'</div></div></article>';
           }).join("")+'</section>';}).join("");
           root.innerHTML='<div class="notification-toolbar"><div class="notification-chips"><button type="button" class="notification-chip '+(onlyUnread?'is-active':'')+'" id="showUnread">Непрочитанные ('+unread+')</button><button type="button" class="notification-chip '+(!onlyUnread?'is-active':'')+'" id="showAll">Все</button></div><button class="button button-secondary" id="readAll" type="button" '+(!unread?'disabled':'')+'>Прочитать все</button></div>'+html;
           wireToolbar();
@@ -2789,7 +2781,7 @@
         function wireToolbar(){
           var u=root.querySelector("#showUnread"),v=root.querySelector("#showAll"),read=root.querySelector("#readAll");
           if(u)u.onclick=function(){onlyUnread=true;draw();};if(v)v.onclick=function(){onlyUnread=false;draw();};
-          if(read)read.onclick=async function(){read.disabled=true;try{for(var item of all.filter(function(x){return !x.is_read;})){await window.BR_API.notificationRead(user.token,Number(item.id));item.is_read=true;}unread=0;try{sessionStorage.removeItem("br_unread_count_v1");}catch(_){}window.dispatchEvent(new Event("br:notifications-updated"));draw();}catch(e){read.disabled=false;alert(e.message||"Не удалось прочитать все уведомления.");}};
+          if(read)read.onclick=async function(){read.disabled=true;read.textContent="Обновление…";try{await window.BR_API.notificationsReadAll(user.token);all.forEach(function(item){item.is_read=true;});unread=0;try{sessionStorage.removeItem("br_unread_count_v1");}catch(_){}window.dispatchEvent(new Event("br:notifications-updated"));draw();}catch(e){read.disabled=false;read.textContent="Прочитать все";alert(e.message||"Не удалось прочитать все уведомления.");}};
         }
         draw();
       }
