@@ -428,7 +428,7 @@
               '<div class="dashboard-account-grid">' +
                 '<div><small>ДОЛЖНОСТЬ</small><b>' + E(user.position || "—") + '</b></div>' +
                 '<div><small>РОЛЬ</small><b>' + E(user.role === "management" ? "Руководство" : "Администратор") + '</b></div>' +
-                '<div><small>ПОСЛЕДНИЙ ВХОД</small><b>' + E(user.last_login_at ? formatDateTime(user.last_login_at) : "—") + '</b></div>' +
+                '<div><small>ПОСЛЕДНИЙ ВХОД</small><b id="dashboardLastLogin">' + E(user.last_login_at ? formatDateTime(user.last_login_at) : "Обновляем…") + '</b></div>' +
                 '<div class="dashboard-normative-today"><small>НОРМАТИВ СЕГОДНЯ</small><b id="dashboardNormativeToday"><span class="badge badge-yellow">Проверяем…</span></b></div>' +
               '</div>' +
             '</div>' +
@@ -499,7 +499,50 @@
             if (retry) retry.onclick = function () { loadServer(true); };
           }
         }
-        await loadServer(false);
+        async function loadDashboardAccount() {
+          var lastLogin = document.getElementById("dashboardLastLogin");
+          var normativeToday = document.getElementById("dashboardNormativeToday");
+          var today = dateIso(0);
+          var labels = {
+            pending: ["На проверке", "badge-yellow"],
+            norm: ["Норма", "badge-green"],
+            rework: ["Перенорма", "badge-blue"],
+            no_norm: ["Нет нормы", "badge-red"],
+            inactive: ["Неактив", "badge-gray"],
+            not_submitted: ["Не сдан", "badge-red"],
+            approved: ["Проверен", "badge-green"],
+            rejected: ["Отклонён", "badge-red"]
+          };
+          try {
+            var results = await Promise.all([
+              window.BR_API.me(user.token),
+              window.BR_API.normativesMine(user.token)
+            ]);
+            var me = results[0] && results[0].admin;
+            if (me && me.last_login_at) {
+              user.last_login_at = me.last_login_at;
+              if (lastLogin) lastLogin.textContent = formatDateTime(me.last_login_at);
+            } else if (lastLogin && user.last_login_at) {
+              lastLogin.textContent = formatDateTime(user.last_login_at);
+            }
+            var items = results[1] && Array.isArray(results[1].normatives) ? results[1].normatives : [];
+            var item = items.find(function (row) { return String(row.submission_date || "").slice(0, 10) === today; });
+            if (normativeToday) {
+              if (!item) {
+                normativeToday.innerHTML = '<span class="badge badge-red">✕ Не сдан</span>';
+              } else {
+                var status = String(item.status || "pending").toLowerCase();
+                var entry = labels[status] || ["На проверке", "badge-yellow"];
+                var icon = status === "pending" ? "⏳ " : status === "norm" || status === "approved" ? "✓ " : status === "no_norm" || status === "rejected" ? "✕ " : "";
+                normativeToday.innerHTML = '<span class="badge ' + entry[1] + '">' + icon + E(entry[0]) + '</span>';
+              }
+            }
+          } catch (error) {
+            if (normativeToday) normativeToday.innerHTML = '<span class="badge">Не удалось загрузить</span>';
+            if (lastLogin && !user.last_login_at) lastLogin.textContent = "—";
+          }
+        }
+        await Promise.all([loadServer(false), loadDashboardAccount()]);
       }
     };
   }
