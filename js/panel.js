@@ -2951,7 +2951,7 @@
     };
   }
 
-  function requestsAll() {
+  function requestsAll(user) {
     return {
       managementOnly: true,
       title: "Обращения администрации",
@@ -2966,7 +2966,7 @@
           if (!root) return;
           if (refresh) { refresh.disabled = true; refresh.textContent = "Загрузка…"; }
           try {
-            var result = await window.BR_API.generalRequestsAll(window.BR_AUTH && window.BR_AUTH.token || (window.BR_SESSION && window.BR_SESSION.token) || (function(){try{return JSON.parse(sessionStorage.getItem("br_user")||"{}").token;}catch(_){return "";}})(), "");
+            var result = await window.BR_API.generalRequestsAll(user.token, "");
             var list = Array.isArray(result && result.requests) ? result.requests : [];
             root.innerHTML = list.length ? list.map(function (item) {
               var status = ownRequestStatus(item.status);
@@ -2978,7 +2978,7 @@
                 var id = Number(button.dataset.generalReply), field = document.getElementById("generalReply" + id), comment = field ? field.value.trim() : "";
                 if (!comment) { alert("Введите ответ перед отправкой."); return; }
                 button.disabled = true; button.textContent = "Отправка…";
-                try { await window.BR_API.generalRequestReply(load.token, id, comment); await load(true); }
+                try { await window.BR_API.generalRequestReply(user.token, id, comment); await load(true); }
                 catch (error) { alert(error.message || "Не удалось отправить ответ."); button.disabled = false; button.textContent = "Отправить ответ"; }
               };
             });
@@ -2986,12 +2986,6 @@
             root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить обращения с сервера.") + '</div></div>';
           } finally { if (refresh) { refresh.disabled = false; refresh.textContent = "↻ Обновить"; } }
         }
-        var currentUser = null;
-        try { currentUser = JSON.parse(sessionStorage.getItem("br_user") || "null"); } catch (_) {}
-        if (!currentUser || !currentUser.token) {
-          try { currentUser = JSON.parse(localStorage.getItem("br_user") || "null"); } catch (_) {}
-        }
-        load.token = currentUser && currentUser.token || "";
         if (refresh) refresh.onclick = function () { load(true); };
         load(false);
       }
