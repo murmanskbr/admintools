@@ -2820,6 +2820,7 @@
         var tabCount=document.getElementById("notificationTabCount"); if(tabCount)tabCount.textContent=unread?"("+unread+")":"";
         var onlyUnread=true;
         function draw(){
+          if(tabCount)tabCount.textContent=unread?"("+unread+")":"";
           var list=all.filter(function(x){return !onlyUnread||!x.is_read;});
           if(!list.length){root.innerHTML='<div class="notification-toolbar"><div class="notification-chips"><button type="button" class="notification-chip is-active" id="showUnread">Непрочитанные ('+unread+')</button><button type="button" class="notification-chip" id="showAll">Все</button></div><button class="button button-secondary" id="readAll" type="button" '+(!unread?'disabled':'')+'>Прочитать все</button></div><div class="box"><div class="empty">Всё прочитано ✓</div></div>';wireToolbar();return;}
           var today=new Date();today.setHours(0,0,0,0);var yesterday=new Date(today);yesterday.setDate(yesterday.getDate()-1);
