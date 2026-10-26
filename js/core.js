@@ -318,8 +318,7 @@
       [document.getElementById("notificationMenuBadge"),document.getElementById("notificationBottomBadge")].forEach(function(badge){
         if(!badge)return;badge.textContent=count>9?"9+":String(count);badge.classList.toggle("is-visible",count>0);badge.setAttribute("aria-hidden",count>0?"false":"true");
       });
-      var base=document.title.replace(/^\(\d+\+?\)\s*/,"");
-      document.title=(count?"("+(count>9?"9+":count)+") ":"")+base;
+      document.title=(count?"("+(count>9?"9+":count)+") ":"")+"Black Russia";
       window.__brUnreadCount=count;
     }
     if(saved&&typeof saved.count==="number")paint(saved.count);
