@@ -3428,10 +3428,12 @@
       if (!modalRoot) return;
 
       var fallbackNickname = String(options.nickname || "").trim() || "Администратор";
-      modalRoot.innerHTML = '<div class="modal-backdrop" id="normativeBackdrop"><div class="modal-card">' +
-        '<div class="modal-head"><div><small>ПРОВЕРКА НОРМАТИВА</small><h2>' + E(fallbackNickname) + '</h2></div><button class="modal-close" id="normativeClose" type="button">×</button></div>' +
-        '<div id="normativeDetailRoot"><div class="empty">Загрузка данных...</div></div>' +
-      '</div></div>';
+      modalRoot.innerHTML = '<div class="modal-backdrop normative-review-backdrop" id="normativeBackdrop">' +
+        '<div class="modal-card normative-review-modal" role="dialog" aria-modal="true" aria-labelledby="normativeReviewTitle">' +
+          '<div class="modal-head normative-review-head"><div><small>ПРОВЕРКА И ВЫСТАВЛЕНИЕ НОРМЫ</small><h2 id="normativeReviewTitle">' + E(fallbackNickname) + '</h2><p class="muted">Проверьте материалы и выберите итоговое решение в этом окне.</p></div>' +
+          '<button class="modal-close" id="normativeClose" type="button" aria-label="Закрыть окно">×</button></div>' +
+          '<div id="normativeDetailRoot"><div class="empty">Загрузка данных...</div></div>' +
+        '</div></div>';
 
       document.getElementById("normativeClose").onclick = function () { modalRoot.innerHTML = ""; };
 
@@ -3460,13 +3462,15 @@
 
         var currentStatus = s && s.status ? s.status : (result.status || "pending");
         var controls = options.management
-          ? '<div class="review-panel">' +
-              '<div class="review-current">Текущий результат: ' + normativeStatus(currentStatus) + '</div>' +
-              '<textarea id="reviewComment" class="form-textarea" placeholder="Комментарий проверки"></textarea>' +
-              '<div class="review-actions">' +
+          ? '<div class="review-panel normative-decision-panel">' +
+              '<div class="review-current"><span>Текущий статус</span>' + normativeStatus(currentStatus) + '</div>' +
+              '<label class="normative-review-label" for="reviewComment">Комментарий руководства <span class="muted">(необязательно)</span></label>' +
+              '<textarea id="reviewComment" class="form-textarea" maxlength="1000" rows="3" placeholder="Напишите пояснение, если оно требуется"></textarea>' +
+              '<div class="normative-decision-hint">Решение и статус нормы сохраняются одним действием. Администратор получит уведомление о результате.</div>' +
+              '<div class="review-actions normative-review-actions">' +
+                '<button class="button button-primary" type="button" data-review="norm"' + (!s ? ' disabled' : '') + '>✓ Одобрить · Норма</button>' +
                 '<button class="button button-secondary" type="button" data-review="rework"' + (!s ? ' disabled' : '') + '>Перенорма</button>' +
-                '<button class="button button-primary" type="button" data-review="norm"' + (!s ? ' disabled' : '') + '>Норма</button>' +
-                '<button class="button button-danger" type="button" data-review="no_norm">Нет нормы</button>' +
+                '<button class="button button-danger" type="button" data-review="no_norm">Отклонить · Нет нормы</button>' +
                 '<button class="button button-secondary" type="button" data-review="inactive"' + (!s ? ' disabled' : '') + '>Неактив</button>' +
               '</div>' +
               (!s ? '<small class="muted">Норматив за эту дату не отправлен. Можно зафиксировать результат «Нет нормы».</small>' : '') +
@@ -3548,6 +3552,16 @@
                 }
 
                 modalRoot.innerHTML = "";
+                var reviewLabels = {
+                  norm: "Одобрено — Норма",
+                  rework: "Выставлена перенорма",
+                  no_norm: "Отклонено — Нет нормы",
+                  inactive: "Установлен статус «Неактив»"
+                };
+                showNormativeResult(
+                  (actualNickname || fallbackNickname) + ": " + (reviewLabels[savedStatus] || "Решение сохранено") + ". Уведомление отправлено администратору.",
+                  "success"
+                );
 
                 if (document.body.getAttribute("data-page") === "normatives-all") {
                   try {
