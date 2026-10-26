@@ -3093,7 +3093,7 @@
   function inactivePaneMarkup() {
     return '<section id="inactivePane" hidden><div class="box"><form id="inactiveForm"><div class="form-grid">'+
       '<div class="form-field"><label>Тип</label><select id="inactiveType" class="form-select"><option value="single">Один день</option><option value="group">Период</option></select></div>'+
-      '<div class="form-field"><label>Дата начала</label><input id="inactiveStart" class="form-input" type="date" required></div>'+
+      '<div class="form-field"><label id="inactiveStartLabel">Дата неактива</label><input id="inactiveStart" class="form-input" type="date" required></div>'+
       '<div class="form-field" id="inactiveEndField" hidden><label>Дата конца</label><input id="inactiveEnd" class="form-input" type="date"></div>'+
       '<div class="form-field form-full"><label>Причина</label><textarea id="inactiveReason" class="form-textarea" maxlength="500"></textarea></div></div>'+
       '<button class="button button-primary" type="submit">Отправить руководству</button></form></div>'+
@@ -3155,7 +3155,7 @@
           normTab.onclick=function(){showInactive(false);};inactiveTab.onclick=function(){showInactive(true);};
           var inactiveForm=document.getElementById("inactiveForm"),type=document.getElementById("inactiveType"),start=document.getElementById("inactiveStart"),end=document.getElementById("inactiveEnd");
           start.min=dateIso(0);end.min=dateIso(0);
-          type.onchange=function(){var group=type.value==="group";document.getElementById("inactiveEndField").hidden=!group;end.required=group;};
+          type.onchange=function(){var group=type.value==="group";document.getElementById("inactiveStartLabel").textContent=group?"Дата начала":"Дата неактива";document.getElementById("inactiveEndField").hidden=!group;end.required=group;if(!group)end.value="";};
           function loadInactiveRequests(force){return ownCachedLoad(user,"inactiveRequestsMine",function(){return window.BR_API.inactiveRequestsMine(user.token);},function(result){
             var list=Array.isArray(result&&result.requests)?result.requests:[];
             document.getElementById("inactiveMineRoot").innerHTML=list.length?list.map(function(x){
