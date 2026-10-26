@@ -20,7 +20,8 @@
     var map = {
       pending: ["На рассмотрении", "badge-yellow"],
       approved: ["Одобрено", "badge-green"],
-      rejected: ["Отклонено", "badge-red"]
+      rejected: ["Отклонено", "badge-red"],
+      cancelled: ["Отозвано", "badge-red"]
     };
     var x = map[String(status || "")] || ["Неизвестно", ""];
     return '<span class="badge ' + x[1] + '">' + ({approved:'✓ ',pending:'⏳ ',rejected:'✕ '}[String(status || '')] || '') + E(x[0]) + "</span>";
