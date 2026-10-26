@@ -2338,7 +2338,7 @@
       var createN=document.getElementById("openNotificationForm"), createE=document.getElementById("openEventForm");
       if(createN)createN.hidden=tab!=="notifications";
       if(createE)createE.hidden=tab!=="events";
-      var refresh=document.getElementById("notificationsRefresh"); if(refresh)refresh.hidden=tab==="events"&&user.role==="management";
+      var refresh=document.getElementById("notificationsRefresh"); if(refresh)refresh.hidden=false;
       return refreshAll(!!force);
     }
     function targetLabel(value) {
@@ -2668,7 +2668,7 @@
       if (user.role !== "management") {
         var permission = ("Notification" in window) ? Notification.permission : "unsupported";
         var registration = null, subscription = null;
-        try { if ("serviceWorker" in navigator) { registration = await navigator.serviceWorker.getRegistration("../sw.js") || await navigator.serviceWorker.ready; subscription = registration && registration.pushManager ? await registration.pushManager.getSubscription() : null; } } catch (_) {}
+        try { if ("serviceWorker" in navigator) { registration = await navigator.serviceWorker.getRegistration("../sw.js"); subscription = registration && registration.pushManager ? await registration.pushManager.getSubscription() : null; } } catch (_) {}
         var enabled = !!subscription;
         var status = permission === "denied" ? '<span class="badge badge-red">Нет разрешения</span>' : enabled ? '<span class="badge badge-green">✓ Включены</span>' : '<span class="badge badge-gray">Выключены</span>';
         root.innerHTML = '<div class="box personal-push-settings"><div class="push-personal-head"><div><small>НА ЭТОМ УСТРОЙСТВЕ</small><h2>Push-уведомления</h2></div>'+status+'</div><p class="muted">'+(permission==="denied"?"Разрешение заблокировано в браузере. Откройте настройки сайта в браузере и разрешите уведомления.":permission==="unsupported"?"Этот браузер не поддерживает push-уведомления.":"Получайте важные уведомления администрации даже когда сайт закрыт.")+'</p><button class="button '+(enabled?'button-secondary':'button-primary')+'" id="togglePersonalPush" type="button" '+(permission==="denied"||permission==="unsupported"?'disabled':'')+'>'+(enabled?'Выключить':'Включить')+'</button><div id="personalPushMessage" class="field-hint"></div></div>';
