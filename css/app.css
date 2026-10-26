@@ -5119,3 +5119,5 @@ body[data-page="dashboard"] .server-stat-updated strong{font-size:16px;white-spa
 .notification-unread-dot{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:#ef3349}
 .notification-card-actions{display:flex;gap:8px;margin-top:12px}
 @media(max-width:600px){.notification-card-v2{padding:13px 12px 13px 16px;gap:10px}.notification-kind-icon{flex-basis:30px;width:30px;height:30px;font-size:16px}.notification-toolbar .button{flex:1}.notification-card-content>small{font-size:10px}}
+
+.management-queue{margin-bottom:18px}.management-queue h2{font-size:16px;margin:0 0 12px}.management-queue>a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line);color:var(--text);text-decoration:none}.management-queue>a:hover{color:var(--accent)}.management-queue>a b{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:rgba(255,51,72,.12);color:var(--accent);font-size:13px}
