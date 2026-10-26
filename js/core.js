@@ -302,6 +302,8 @@
         "</span>";
       badge =
         '<span class="notification-menu-badge" id="notificationMenuBadge" aria-hidden="true"></span>';
+    } else if (page === "normatives-all" || page === "requests-all") {
+      badge = '<span class="notification-menu-badge management-queue-badge" id="' + (page === "normatives-all" ? "pendingNormativesBadge" : "pendingRequestsBadge") + '" aria-hidden="true"></span>';
     }
 
     return '<a class="side-link' + active + '" href="../' + target + '">' +
@@ -330,7 +332,27 @@
       var list=result&&Array.isArray(result.notifications)?result.notifications:[];
       var count=list.filter(function(item){return !item.is_read;}).length;
       try{sessionStorage.setItem(key,JSON.stringify({t:Date.now(),count:count}));}catch(_){}
-      paint(count);return count;
+      paint(count);
+      if(window.__brCurrentUser&&window.__brCurrentUser.role==="management"){
+        var qkey="br_management_queue_counts_v1",qcache=null;
+        try{qcache=JSON.parse(sessionStorage.getItem(qkey)||"null");}catch(_){}
+        function paintQueue(data){["pendingInactive","pendingGeneral","pendingNormatives"].forEach(function(k){var id={pendingInactive:"pendingInactiveBadge",pendingGeneral:"pendingRequestsBadge",pendingNormatives:"pendingNormativesBadge"}[k];var el=document.getElementById(id);if(el){el.textContent=data[k]>9?"9+":String(data[k]||"");el.classList.toggle("is-visible",Number(data[k])>0);}});window.__brQueueCounts=data;}
+        if(qcache&&Date.now()-qcache.t<60000)paintQueue(qcache.data);
+        else {
+          var api=window.BR_API,token=window.__brCurrentUser.token;
+          Promise.all([
+            api.inactiveRequestsAll(token,"pending").catch(function(){return {requests:[]};}),
+            api.generalRequestsAll(token,"pending").catch(function(){return {requests:[]};}),
+            api.normativesList(token,"all").catch(function(){return {normatives:[]};})
+          ]).then(function(values){
+            var inactive=values[0].requests||[],general=values[1].requests||[],norms=values[2].normatives||values[2].submissions||[];
+            var data={pendingInactive:inactive.filter(function(x){return x.status==="pending";}).length,pendingGeneral:general.filter(function(x){return x.status==="pending";}).length,pendingNormatives:norms.filter(function(x){return !x.reviewed_at&&(x.status==="pending"||x.status==="not_submitted");}).length};
+            try{sessionStorage.setItem(qkey,JSON.stringify({t:Date.now(),data:data}));}catch(_){}
+            paintQueue(data);
+          });
+        }
+      }
+      return count;
     }).catch(function(error){console.warn("[BR AdminTools] Не удалось обновить счётчик уведомлений:",error);});
   }
   function startNotificationBadge(user) {
@@ -475,6 +497,7 @@
     }
 
     applyTheme(session.user.theme || "dark");
+    window.__brCurrentUser = session.user;
 
     // API requests also report an expired server-side session.
     // There is no local idle/session countdown on the panel.
