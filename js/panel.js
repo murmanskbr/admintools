@@ -2729,75 +2729,53 @@
     }
 
     async function loadNotifications(force) {
-      var root = document.getElementById("notificationsRoot");
-      if (!root) return;
-
-      function renderResult(result) {
-        var list = Array.isArray(result.notifications) ? result.notifications : [];
-        var unread = list.filter(function (item) { return !item.is_read; }).length;
-
-        if (!list.length) {
-          root.innerHTML = '<div class="box"><div class="empty">Новых уведомлений нет.</div></div>';
-          return;
-        }
-
-        var cards = list.map(function (item) {
-          var cls = item.is_read ? "notification" : "notification unread";
-          var readButton = item.is_read
-            ? '<span class="badge badge-blue">Прочитано</span>'
-            : '<button class="small-button" data-read-notification="' + E(item.id) + '">Прочитать</button>';
-
-          var deleteButton = user.role === "management"
-            ? '<button class="small-button notification-delete" data-delete-notification="' + E(item.id) + '">Удалить</button>'
-            : '';
-
-          return '<article class="' + cls + '">' +
-            '<div class="notification-top">' +
-              '<div><div class="notification-title">' + E(item.title) + '</div>' +
-              '<div class="notification-meta">' + E(formatDateTime(item.created_at)) + ' • ' + E(targetLabel(item.target_role)) + '</div></div>' +
-              '<div class="notification-actions">' + readButton + deleteButton + '</div>' +
-            '</div>' +
-            '<div class="notification-text">' + E(item.body) + '</div>' +
-            (item.expires_at ? '<div class="notification-meta notification-expiry">До ' + E(formatDateTime(item.expires_at)) + '</div>' : '') +
-          '</article>';
-        }).join("");
-
-        root.innerHTML =
-          '<div class="notification-summary">' +
-            '<div><small>ЦЕНТР УВЕДОМЛЕНИЙ</small><b>' + E(String(list.length)) + ' сообщений</b></div>' +
-            '<span>' + E(String(unread)) + ' непрочитанных</span>' +
-          '</div>' +
-          '<div class="notification-list">' + cards + '</div>';
-
-        document.querySelectorAll("[data-read-notification]").forEach(function (button) {
-          button.onclick = async function () {
-            button.disabled = true;
-            try {
-              await window.BR_API.notificationRead(user.token, Number(button.dataset.readNotification));
-              await refreshAll(true);
-              window.dispatchEvent(new Event("br:notifications-updated"));
-            } catch (e) {
-              alert(e.message || "Не удалось отметить уведомление.");
-              button.disabled = false;
-            }
-          };
-        });
-
-        document.querySelectorAll("[data-delete-notification]").forEach(function (button) {
-          button.onclick = async function () {
-            if (!confirm("Удалить это уведомление?")) return;
-            button.disabled = true;
-            try {
-              await window.BR_API.notificationDelete(user.token, Number(button.dataset.deleteNotification));
-              await refreshAll(true);
-            } catch (e) {
-              alert(e.message || "Не удалось удалить уведомление.");
-              button.disabled = false;
-            }
-          };
-        });
+      var root=document.getElementById("notificationsRoot");
+      if(!root)return;
+      function kind(item){
+        var v=String((item.type||item.category||item.notification_type||"")+" "+(item.title||"")+" "+(item.body||"")).toLowerCase();
+        if(/одобр|approved|согласован/.test(v))return {icon:"✓",cls:"approved",target:user.role==="management"?"../pages/requests-all.html":"../pages/requests.html"};
+        if(/отклон|rejected|отказ/.test(v))return {icon:"✕",cls:"rejected",target:user.role==="management"?"../pages/requests-all.html":"../pages/requests.html"};
+        if(/ответ руководств|обращени|комментар/.test(v))return {icon:"💬",cls:"reply",target:user.role==="management"?"../pages/requests-all.html":"../pages/requests.html"};
+        if(/неактив/.test(v))return {icon:"⚙",cls:"system",target:user.role==="management"?"../pages/normatives-all.html":"../pages/normatives.html"};
+        if(/норматив/.test(v))return {icon:"⚙",cls:"system",target:user.role==="management"?"../pages/normatives-all.html":"../pages/normatives.html"};
+        if(/систем/.test(v))return {icon:"⚙",cls:"system",target:"../pages/notifications.html"};
+        return {icon:"📣",cls:"announcement",target:"../pages/notifications.html"};
       }
-      return cachedLoad('notificationsList', function () { return window.BR_API.notificationsList(user.token); }, renderResult, {root:'notificationsRoot',force:!!force});
+      function renderResult(result){
+        var all=Array.isArray(result.notifications)?result.notifications.slice():[];
+        var unread=all.filter(function(x){return !x.is_read;}).length;
+        var onlyUnread=true;
+        function draw(){
+          var list=all.filter(function(x){return !onlyUnread||!x.is_read;});
+          if(!list.length){root.innerHTML='<div class="notification-toolbar"><div class="notification-chips"><button type="button" class="notification-chip is-active" id="showUnread">Непрочитанные ('+unread+')</button><button type="button" class="notification-chip" id="showAll">Все</button></div><button class="button button-secondary" id="readAll" type="button" '+(!unread?'disabled':'')+'>Прочитать все</button></div><div class="box"><div class="empty">Всё прочитано ✓</div></div>';wireToolbar();return;}
+          var today=new Date();today.setHours(0,0,0,0);var yesterday=new Date(today);yesterday.setDate(yesterday.getDate()-1);
+          var groups={"Сегодня":[],"Вчера":[],"Ранее":[]};
+          list.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);}).forEach(function(item){
+            var d=new Date(item.created_at||0);d.setHours(0,0,0,0);
+            var key=d.getTime()===today.getTime()?"Сегодня":d.getTime()===yesterday.getTime()?"Вчера":"Ранее";groups[key].push(item);
+          });
+          var html=Object.keys(groups).map(function(day){if(!groups[day].length)return "";return '<section class="notification-day-group"><h2>'+day+'</h2>'+groups[day].map(function(item){
+            var k=kind(item),date=formatDateTime(item.created_at),author=item.author_nickname||item.created_by_nickname||item.sender_nickname||item.author||"Система",role=item.author_role||item.sender_role||item.created_by_role||"";
+            return '<article class="notification-card-v2 '+(item.is_read?'is-read':'is-unread')+' notification-kind-'+k.cls+'"><span class="notification-kind-icon" aria-hidden="true">'+k.icon+'</span><div class="notification-card-content"><div class="notification-card-heading">'+(!item.is_read?'<span class="notification-unread-dot" aria-label="Непрочитано"></span>':'')+'<b>'+E(item.title||"Уведомление")+'</b></div><p>'+E(item.body||"")+'</p><small>От: '+E(author)+' • '+E(role||"—")+' • '+E(date)+'</small><div class="notification-card-actions"><button type="button" class="small-button" data-open-notification="'+E(item.id)+'" data-target="'+E(k.target)+'">Открыть</button>'+(user.role==="management"?' <button type="button" class="small-button notification-delete" data-delete-notification="'+E(item.id)+'">Удалить</button>':'')+'</div></div></article>';
+          }).join("")+'</section>';}).join("");
+          root.innerHTML='<div class="notification-toolbar"><div class="notification-chips"><button type="button" class="notification-chip '+(onlyUnread?'is-active':'')+'" id="showUnread">Непрочитанные ('+unread+')</button><button type="button" class="notification-chip '+(!onlyUnread?'is-active':'')+'" id="showAll">Все</button></div><button class="button button-secondary" id="readAll" type="button" '+(!unread?'disabled':'')+'>Прочитать все</button></div>'+html;
+          wireToolbar();
+          root.querySelectorAll("[data-open-notification]").forEach(function(button){button.onclick=async function(){
+            button.disabled=true;var item=all.find(function(x){return String(x.id)===String(button.dataset.openNotification);});
+            try{if(item&&!item.is_read){await window.BR_API.notificationRead(user.token,Number(item.id));item.is_read=true;try{sessionStorage.removeItem("br_unread_count_v1");}catch(_){}window.dispatchEvent(new Event("br:notifications-updated"));}
+              if(button.dataset.target&&button.dataset.target!=="../pages/notifications.html")location.href=button.dataset.target;else draw();
+            }catch(e){button.disabled=false;alert(e.message||"Не удалось открыть уведомление.");}
+          };});
+          root.querySelectorAll("[data-delete-notification]").forEach(function(button){button.onclick=async function(){if(!confirm("Удалить уведомление?"))return;button.disabled=true;try{await window.BR_API.notificationDelete(user.token,Number(button.dataset.deleteNotification));all=all.filter(function(x){return String(x.id)!==String(button.dataset.deleteNotification);});unread=all.filter(function(x){return !x.is_read;}).length;draw();}catch(e){button.disabled=false;alert(e.message||"Не удалось удалить уведомление.");}};});
+        }
+        function wireToolbar(){
+          var u=root.querySelector("#showUnread"),v=root.querySelector("#showAll"),read=root.querySelector("#readAll");
+          if(u)u.onclick=function(){onlyUnread=true;draw();};if(v)v.onclick=function(){onlyUnread=false;draw();};
+          if(read)read.onclick=async function(){read.disabled=true;try{for(var item of all.filter(function(x){return !x.is_read;})){await window.BR_API.notificationRead(user.token,Number(item.id));item.is_read=true;}unread=0;try{sessionStorage.removeItem("br_unread_count_v1");}catch(_){}window.dispatchEvent(new Event("br:notifications-updated"));draw();}catch(e){read.disabled=false;alert(e.message||"Не удалось прочитать все уведомления.");}};
+        }
+        draw();
+      }
+      return cachedLoad("notificationsList",function(){return window.BR_API.notificationsList(user.token);},renderResult,{root:"notificationsRoot",force:!!force});
     }
 
     async function loadEvents(force) {
