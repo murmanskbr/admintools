@@ -3286,83 +3286,85 @@
           return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
         });
 
+        function normativeFilterKey(item) {
+          var value = String(item.status || "not_submitted").toLowerCase();
+          return ["pending", "norm", "rework", "no_norm", "inactive", "not_submitted"].indexOf(value) >= 0 ? value : "not_submitted";
+        }
+        var statusCounts = {all:list.length, not_submitted:0, pending:0, norm:0, rework:0, no_norm:0, inactive:0};
+        list.forEach(function(item){ statusCounts[normativeFilterKey(item)]++; });
         var rows = list.map(function (item) {
+          var key = normativeFilterKey(item);
           var action = item.submission_id
             ? '<button class="small-button" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Проверить</button>'
             : '<span class="muted">Нет файла</span>';
-
-          return '<tr data-admin-id="' + E(item.admin_id || 0) + '">' +
+          return '<tr data-admin-id="' + E(item.admin_id || 0) + '" data-normative-status="' + E(key) + '" data-normative-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-normative-position="' + E(item.position || "") + '">' +
             '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + E(item.nickname) + '</button></td>' +
-            '<td>' + E(item.position || "—") + '</td>' +
-            '<td>' + E(formatDateOnly(renderDate)) + '</td>' +
-            '<td>' + E(item.created_at ? formatDateTime(item.created_at) : "—") + '</td>' +
-            '<td>' + normativeStatus(item.status) + '</td>' +
-            '<td>' + E(item.file_count || 0) + '</td>' +
-            '<td>' + E(item.review_comment || "—") + '</td>' +
-            '<td>' + action + '</td>' +
-          '</tr>';
+            '<td>' + E(item.position || "—") + '</td><td>' + E(formatDateOnly(renderDate)) + '</td>' +
+            '<td>' + E(item.created_at ? formatDateTime(item.created_at) : "—") + '</td><td>' + normativeStatus(item.status) + '</td>' +
+            '<td>' + E(item.file_count || 0) + '</td><td>' + E(item.review_comment || "—") + '</td><td>' + action + '</td></tr>';
+        }).join("");
+        var mobileCards = list.map(function(item) {
+          var key = normativeFilterKey(item);
+          var action = item.submission_id
+            ? '<button class="button button-primary normative-admin-open" data-open-admin-norm="' + E(item.submission_id) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">Открыть проверку</button>'
+            : '<div class="normative-admin-no-file">Файл за эту дату не отправлен</div>';
+          return '<article class="normative-admin-card" data-normative-status="' + E(key) + '" data-normative-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-normative-position="' + E(item.position || "") + '">' +
+            '<div class="normative-admin-card-head"><div class="normative-admin-person"><b>' + E(item.nickname || "Без никнейма") + '</b><span>' + E(item.position || "Должность не указана") + '</span></div><div class="normative-admin-card-status">' + normativeStatus(item.status) + '</div></div>' +
+            '<div class="normative-admin-card-meta"><div><small>Дата</small><b>' + E(formatDateOnly(renderDate)) + '</b></div><div><small>Отправлено</small><b>' + E(item.created_at ? formatDateTime(item.created_at) : "Нет отправки") + '</b></div><div><small>Файлы</small><b>' + E(String(item.file_count || 0)) + '</b></div></div>' +
+            (item.review_comment ? '<div class="normative-admin-card-comment"><small>Комментарий руководства</small><p>' + E(item.review_comment) + '</p></div>' : '') + action + '</article>';
         }).join("");
 
         var statusButtons =
-          '<div class="normative-filters">' +
-            '<button class="filter-button active" data-status-filter="all" type="button">Все</button>' +
-            '<button class="filter-button" data-status-filter="not_submitted" type="button">Не сдали</button>' +
-            '<button class="filter-button" data-status-filter="pending" type="button">На проверке</button>' +
-            '<button class="filter-button" data-status-filter="norm" type="button">Норма</button>' +
-            '<button class="filter-button" data-status-filter="rework" type="button">Перенорма</button>' +
-            '<button class="filter-button" data-status-filter="no_norm" type="button">Нет нормы</button>' +
-            '<button class="filter-button" data-status-filter="inactive" type="button">Неактив</button>' +
-            '<input id="normativeSearch" class="form-input normative-search" type="search" placeholder="Поиск по никнейму">' +
-            '<select id="normativePosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { var ar=POSITIONS.indexOf(a), br=POSITIONS.indexOf(b); return (ar < 0 ? 999 : ar)-(br < 0 ? 999 : br); }).map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join('') + '</select>' +
-            '<select id="normativeSort" class="form-select" aria-label="Сортировка"><option value="position">По должности</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option></select>' +
-          '</div>';
+          '<div class="normative-overview" aria-label="Сводка статусов">' +
+            '<button type="button" class="normative-overview-card is-selected" data-status-filter="all"><span>Всего</span><b>' + E(String(statusCounts.all)) + '</b></button>' +
+            '<button type="button" class="normative-overview-card is-attention" data-status-filter="pending"><span>На проверке</span><b>' + E(String(statusCounts.pending)) + '</b></button>' +
+            '<button type="button" class="normative-overview-card is-inactive" data-status-filter="inactive"><span>Неактив</span><b>' + E(String(statusCounts.inactive)) + '</b></button>' +
+            '<button type="button" class="normative-overview-card is-good" data-status-filter="norm"><span>Норма</span><b>' + E(String(statusCounts.norm)) + '</b></button>' +
+            '<button type="button" class="normative-overview-card is-rework" data-status-filter="rework"><span>Перенорма</span><b>' + E(String(statusCounts.rework)) + '</b></button>' +
+            '<button type="button" class="normative-overview-card is-missing" data-status-filter="not_submitted"><span>Не сдали</span><b>' + E(String(statusCounts.not_submitted)) + '</b></button>' +
+            '<button type="button" class="normative-overview-card is-rejected" data-status-filter="no_norm"><span>Нет нормы</span><b>' + E(String(statusCounts.no_norm)) + '</b></button></div>' +
+          '<div class="normative-toolbar"><div class="normative-toolbar-title"><b id="normativeListTitle">Все администраторы</b><span id="normativeVisibleCount">' + E(String(list.length)) + ' записей</span></div>' +
+          '<div class="normative-filters"><input id="normativeSearch" class="form-input normative-search" type="search" placeholder="Найти администратора…" aria-label="Поиск по никнейму">' +
+          '<select id="normativePosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { var ar=POSITIONS.indexOf(a), br=POSITIONS.indexOf(b); return (ar < 0 ? 999 : ar)-(br < 0 ? 999 : br); }).map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join('') + '</select>' +
+          '<select id="normativeSort" class="form-select" aria-label="Сортировка"><option value="position">По должности</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option></select></div></div>';
 
         root.innerHTML =
-          '<div class="box table-box"><div class="stats-table-head"><div><small>НОРМАТИВЫ ЗА ДАТУ</small><b>' +
-          E(formatDateOnly(renderDate)) +
-          '</b></div><span class="muted">' + E(String(list.length)) + ' аккаунтов с доступом</span></div>' +
-          '<div class="admins-source-row"><span>Текущие активные доступы</span><span>Синхронизация со списком доступа к сайту</span></div>' +
-          statusButtons +
-          '<table id="normativeJournalTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Дата</th><th>Время</th><th>Статус</th><th>Файлы</th><th>Решение</th><th>Действия</th></tr></thead><tbody>' +
+          '<section class="normative-admin-workspace"><div class="normative-admin-page-head"><div><small>КОНТРОЛЬ АДМИНИСТРАЦИИ</small><h2>Нормативы и неактивы</h2><p>Выберите статус ниже, чтобы увидеть только нужные записи.</p></div><span class="normative-date-pill">' + E(formatDateOnly(renderDate)) + '</span></div>' +
+          '<div class="normative-admin-overview-wrap">' + statusButtons + '</div><section class="normative-admin-results">' +
+          '<div class="normative-desktop-table"><div class="box table-box"><table id="normativeJournalTable"><thead><tr><th>Администратор</th><th>Должность</th><th>Дата</th><th>Отправлено</th><th>Статус нормы</th><th>Файлы</th><th>Решение</th><th>Действия</th></tr></thead><tbody>' +
           (rows || '<tr><td colspan="8" class="table-empty">Администраторов в реестре нет.</td></tr>') +
-          '</tbody></table></div>';
+          '</tbody></table></div></div><div id="normativeMobileList" class="normative-admin-mobile-list">' +
+          (mobileCards || '<div class="box"><div class="empty">Администраторов в реестре нет.</div></div>') + '</div></section></section>';
 
         var activeFilter = "all";
         var searchInput = document.getElementById("normativeSearch");
         var positionInput = document.getElementById("normativePosition");
         var sortInput = document.getElementById("normativeSort");
 
+        var statusTitles = {all:"Все администраторы",not_submitted:"Не сдали норматив",pending:"Ожидают проверки",norm:"Норма выставлена",rework:"Перенорма",no_norm:"Нет нормы",inactive:"Неактивы"};
         function applyNormativeFilters() {
           var query = searchInput ? searchInput.value.trim().toLowerCase() : "";
-          document.querySelectorAll("#normativeJournalTable tbody tr[data-normative-status]").forEach(function (row) {
+          var visible = 0;
+          document.querySelectorAll("[data-normative-status][data-normative-nickname]").forEach(function (row) {
             var status = row.getAttribute("data-normative-status") || "";
             var nickname = row.getAttribute("data-normative-nickname") || "";
-            row.style.display =
-              (activeFilter === "all" || status === activeFilter) &&
-              (!query || nickname.indexOf(query) !== -1) &&
-              (!positionInput.value || row.getAttribute("data-normative-position") === positionInput.value)
-                ? ""
-                : "none";
+            var show = (activeFilter === "all" || status === activeFilter) && (!query || nickname.indexOf(query) !== -1) &&
+              (!positionInput.value || row.getAttribute("data-normative-position") === positionInput.value);
+            row.style.display = show ? "" : "none";
+            if (show && row.classList.contains("normative-admin-card")) visible++;
+          });
+          var title = document.getElementById("normativeListTitle");
+          var count = document.getElementById("normativeVisibleCount");
+          if (title) title.textContent = statusTitles[activeFilter] || "Администраторы";
+          if (count) count.textContent = visible + " записей";
+          document.querySelectorAll("[data-status-filter]").forEach(function (button) {
+            button.classList.toggle("is-selected", (button.getAttribute("data-status-filter") || "all") === activeFilter);
           });
         }
-
-        // Mark rows after they are inserted so the filters do not need
-        // to rebuild the whole table.
-        document.querySelectorAll("#normativeJournalTable tbody tr").forEach(function (row, index) {
-          var item = list[index];
-          if (item) {
-            row.setAttribute("data-normative-status", item.status || "not_submitted");
-            row.setAttribute("data-normative-nickname", String(item.nickname || "").toLowerCase());
-            row.setAttribute("data-normative-position", String(item.position || ""));
-          }
-        });
 
         document.querySelectorAll("[data-status-filter]").forEach(function (button) {
           button.onclick = function () {
             activeFilter = button.getAttribute("data-status-filter") || "all";
-            document.querySelectorAll("[data-status-filter]").forEach(function (item) {
-              item.classList.toggle("active", item === button);
-            });
             applyNormativeFilters();
           };
         });
@@ -3373,8 +3375,8 @@
         positionInput.onchange = applyNormativeFilters;
         sortInput.onchange = function () {
           var tbody = document.querySelector("#normativeJournalTable tbody");
-          var rows = Array.from(tbody.querySelectorAll("tr[data-normative-nickname]"));
-          rows.sort(function (a, b) {
+          var mobileRoot = document.getElementById("normativeMobileList");
+          function compareRows(a, b) {
             var mode = sortInput.value;
             if (mode !== "position") {
               var order = a.getAttribute("data-normative-nickname").localeCompare(b.getAttribute("data-normative-nickname"), "ru");
@@ -3383,8 +3385,9 @@
             var ar = POSITIONS.indexOf(a.getAttribute("data-normative-position"));
             var br = POSITIONS.indexOf(b.getAttribute("data-normative-position"));
             return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) || a.getAttribute("data-normative-nickname").localeCompare(b.getAttribute("data-normative-nickname"), "ru");
-          });
-          rows.forEach(function (row) { tbody.appendChild(row); });
+          }
+          Array.from(tbody.querySelectorAll("tr[data-normative-nickname]")).sort(compareRows).forEach(function (row) { tbody.appendChild(row); });
+          if (mobileRoot) Array.from(mobileRoot.querySelectorAll(".normative-admin-card[data-normative-nickname]")).sort(compareRows).forEach(function (row) { mobileRoot.appendChild(row); });
         };
 
         document.querySelectorAll("[data-open-admin-norm]").forEach(function (button) {
