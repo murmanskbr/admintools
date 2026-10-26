@@ -3554,9 +3554,10 @@
                 } else {
                   // Для администратора без отправленного файла используем ручную
                   // отметку, которая работает и без записи о подаче норматива.
-                  reviewResult = await window.BR_API.normativeMark(
+                  reviewResult = await window.BR_API.normativeReview(
                     options.token,
-                    actualNickname || fallbackNickname,
+                    0,
+                    options.adminId,
                     options.date,
                     reviewStatus,
                     comment
