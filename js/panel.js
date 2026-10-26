@@ -4495,7 +4495,7 @@
         .replace(/\s+/g, " ")
         .trim();
 
-      if (!text) return 999;
+      if (!text) return 0;
       if (text.indexOf("основной заместитель главного администратора") >= 0) return 15.5;
       if (text.indexOf("главный администратор") >= 0 && text.indexOf("заместитель") < 0) return 16;
       if (text.indexOf("заместитель главного администратора") >= 0 || text.indexOf("зам. главного администратора") >= 0) return 14;
@@ -4515,7 +4515,7 @@
       if (text === "следящий" || text.indexOf(" следящий") >= 0) return 2;
       if (text.indexOf("модератор") >= 0) return 3;
       if (text === "администратор" || text.indexOf(" администратор") >= 0) return 5;
-      return 999;
+      return 0;
     }
 
     function sortAccessAccounts(list, mode) {
@@ -4528,6 +4528,9 @@
         if (mode === "last_login") return new Date(b.last_login_at || 0) - new Date(a.last_login_at || 0);
         var rankA = accessPositionRank(a.position);
         var rankB = accessPositionRank(b.position);
+        // Keep unknown positions at the bottom in either sort direction.
+        if (rankA === 0 && rankB !== 0) return 1;
+        if (rankB === 0 && rankA !== 0) return -1;
         if (rankA !== rankB) return mode === "position_asc" ? rankA - rankB : rankB - rankA;
         var positionCompare = String(a.position || "").localeCompare(String(b.position || ""), "ru", { sensitivity: "base" });
         if (positionCompare !== 0) return positionCompare;
