@@ -5714,3 +5714,12 @@ body[data-page="requests"] .own-request-answer{background:rgba(127,140,160,.12);
   .normative-inline-review .norm-images { grid-template-columns:minmax(0,1fr); }
   .normative-inline-review .norm-image img { height:min(68vh,520px); }
 }
+
+
+/* Pending normative history actions */
+.normative-history-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.normative-history-actions .button { min-width:0; }
+@media(max-width:640px) {
+  .normative-history-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .normative-history-actions .button { width:100%; white-space:normal; }
+}
