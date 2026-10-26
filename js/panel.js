@@ -3584,7 +3584,8 @@
       title: "Нормативы администрации",
       subtitle: "Контроль нормативов по датам",
       render: function () {
-        return '<div class="page-toolbar normative-toolbar">' +
+        return '<section class="box spaced-box"><div class="page-toolbar"><div><small>ЗАЯВКИ СОТРУДНИКОВ</small><b>Заявки на неактив</b></div><button class="button button-secondary" id="inactiveManagementRefresh" type="button">↻ Обновить</button></div><div id="inactiveManagementRoot"><div class="empty">Загрузка заявок…</div></div></section>' +
+        '<div class="page-toolbar normative-toolbar">' +
           '<div><small>ВЫСТАВЛЕНИЕ И ПРОВЕРКА</small><b>Контроль норматива за выбранную дату</b></div>' +
           '<div class="date-controls">' +
             '<div class="date-picker-nav">' +
@@ -3602,6 +3603,38 @@
         '<div id="normativeModal"></div>';
       },
       bind: function () {
+        var inactiveManagementRoot = document.getElementById("inactiveManagementRoot");
+        var inactiveManagementRefresh = document.getElementById("inactiveManagementRefresh");
+        async function loadManagementInactive() {
+          if (!inactiveManagementRoot) return;
+          if (inactiveManagementRefresh) { inactiveManagementRefresh.disabled = true; inactiveManagementRefresh.textContent = "Загрузка…"; }
+          try {
+            var result = await window.BR_API.inactiveRequestsAll(user.token, "");
+            var requests = Array.isArray(result && result.requests) ? result.requests : [];
+            inactiveManagementRoot.innerHTML = requests.length ? requests.map(function (item) {
+              var id = Number(item.id || item.request_id || 0);
+              var startDate = String(item.start_date || "");
+              var endDate = String(item.end_date || startDate);
+              var dateText = formatDateNumeric(startDate) + (endDate && endDate !== startDate ? " — " + formatDateNumeric(endDate) : "");
+              var status = String(item.status || "pending");
+              var canReview = status === "pending";
+              return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><div><b class="own-request-type">' + E(item.nickname || item.admin_nickname || "Администратор") + '</b><div class="muted">' + E(dateText) + '</div></div>' + ownRequestStatus(status) + '</div><p><b>Причина:</b> ' + E(item.reason || "—") + '</p><div class="own-request-answer"><b>Комментарий руководства</b><p>' + E(item.review_comment || "Пока нет комментария.") + '</p></div>' + (canReview ? '<div class="form-field"><label for="inactiveReviewComment' + E(id) + '">Комментарий</label><textarea class="form-textarea" id="inactiveReviewComment' + E(id) + '" placeholder="Комментарий к решению"></textarea></div><div class="form-actions"><button class="button button-primary" type="button" data-inactive-review="approved" data-inactive-id="' + E(id) + '">Одобрить</button><button class="button button-danger" type="button" data-inactive-review="rejected" data-inactive-id="' + E(id) + '">Отклонить</button></div>' : '') + '</article>';
+            }).join("") : '<div class="empty">Заявок на неактив пока нет.</div>';
+            inactiveManagementRoot.querySelectorAll("[data-inactive-review]").forEach(function (button) {
+              button.onclick = async function () {
+                var id = Number(button.dataset.inactiveId), status = button.dataset.inactiveReview;
+                var field = document.getElementById("inactiveReviewComment" + id), comment = field ? field.value.trim() : "";
+                button.disabled = true;
+                try { await window.BR_API.inactiveRequestReview(user.token, id, status, comment); await loadManagementInactive(); }
+                catch (error) { alert(error.message || "Не удалось сохранить решение по неактиву."); button.disabled = false; }
+              };
+            });
+          } catch (error) {
+            inactiveManagementRoot.innerHTML = '<div class="empty">' + E(error.message || "Не удалось загрузить заявки на неактив.") + '</div>';
+          } finally { if (inactiveManagementRefresh) { inactiveManagementRefresh.disabled = false; inactiveManagementRefresh.textContent = "↻ Обновить"; } }
+        }
+        if (inactiveManagementRefresh) inactiveManagementRefresh.onclick = loadManagementInactive;
+        loadManagementInactive();
         var input = document.getElementById("controlDate");
         var prev = document.getElementById("datePrev");
         var next = document.getElementById("dateNext");
