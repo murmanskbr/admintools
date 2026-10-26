@@ -170,7 +170,7 @@
                   '<button class="small-button" type="button" data-inactive-approve="' + E(item.id) + '">Одобрить</button>' +
                   '<button class="small-button" type="button" data-inactive-reject="' + E(item.id) + '">Отклонить</button>' +
                 '</div>'
-              : '<span class="muted">' + E("Рассмотрено" + (item.reviewed_at ? " · " + dateTime(item.reviewed_at) : "")) + '</span>';
+              : '<span class="muted">' + E("Рассмотрено" + (item.reviewed_at ? " · " + dateTime(item.reviewed_at) : "")) + '</span>' + (item.status === "approved" ? ' <button class="small-button" type="button" data-inactive-cancel="' + E(item.id) + '">Отозвать</button>' : "");
 
             return '<tr class="' + ({approved:'card-ok',pending:'card-wait',rejected:'card-bad'}[String(item.status || '')] || '') + '">' +
               '<td><span class="request-card-title">' + E(item.nickname || "—") + '</span><span class="request-mobile-status">' + inactiveStatus(item.status) + '</span></td>' +
@@ -191,6 +191,8 @@
           root.querySelectorAll("[data-inactive-approve]").forEach(function (button) {
             button.onclick = function () { reviewInactive(Number(button.dataset.inactiveApprove), "approved"); };
           });
+
+          root.querySelectorAll("[data-inactive-cancel]").forEach(function(button) { button.onclick = function(){ cancelInactive(Number(button.dataset.inactiveCancel)); }; });
 
           root.querySelectorAll("[data-inactive-reject]").forEach(function (button) {
             button.onclick = function () { reviewInactive(Number(button.dataset.inactiveReject), "rejected"); };
@@ -306,6 +308,15 @@
             await siteDialog({title:status==="approved"?"Неактив одобрен":"Заявка отклонена",description:"Действие выполнено."});
             loadInactive(true);
           } catch(error) { await siteDialog({title:"Ошибка",description:error.message||"Не удалось обработать заявку."}); }
+        }
+        async function cancelInactive(id) {
+          var confirmed = await siteDialog({title:"Отозвать одобренный неактив?",description:"Период перестанет учитываться системой. Администратор получит уведомление."});
+          if(confirmed === null) return;
+          try {
+            await window.BR_API.inactivePeriodCancel(sessionToken(),id);
+            await siteDialog({title:"Неактив отозван",description:"Период деактивирован."});
+            loadInactive(true);
+          } catch(error) { await siteDialog({title:"Ошибка",description:error.message || "Не удалось отозвать неактив."}); }
         }
         async function replyGeneral(id) {
           var comment = await siteDialog({title:"Ответить на обращение",description:"Повторно изменить комментарий нельзя.",comment:true,required:true});
