@@ -3100,7 +3100,7 @@
       '<div class="box spaced-box"><h2>Мои неактивы</h2><div id="inactiveMineRoot">Загрузка...</div></div></section>';
   }
   function normatives(user, all) {
-    var normativeEdit = { date: "", form: null, fileInput: null, cancelButton: null };
+    var normativeEdit = { id: 0, date: "", form: null, fileInput: null, cancelButton: null };
     if (!all) {
       return {
         title: "Нормативы и неактив",
@@ -3200,7 +3200,8 @@
                 files,
                 document.getElementById("normDate").value,
                 document.getElementById("normPosition").value,
-                document.getElementById("normComment").value
+                document.getElementById("normComment").value,
+                normativeEdit.id
               );
               await requestModal("Готово", normativeEdit.date ? "Изменения норматива сохранены. Он остаётся на проверке." : "Норматив отправлен на проверку.");
               resetNormativeEdit();
@@ -3295,7 +3296,9 @@
                 if (dateField) dateField.value = date;
                 if (positionField) positionField.value = button.dataset.editPosition || "";
                 if (commentField) commentField.value = button.dataset.editComment || "";
+                normativeEdit.id = Number(button.dataset.editNorm || 0);
                 normativeEdit.date = date;
+                if (dateField) dateField.disabled = true;
                 if (normativeEdit.fileInput) normativeEdit.fileInput.required = false;
                 if (submit) submit.textContent = "Сохранить изменения";
                 if (normativeEdit.cancelButton) normativeEdit.cancelButton.hidden = false;
