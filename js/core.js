@@ -311,51 +311,41 @@
   }
 
   function refreshNotificationBadge(token, force) {
-    var key="br_unread_count_v1", saved=null;
-    try { saved=JSON.parse(sessionStorage.getItem(key)||"null"); } catch (_) {}
-    function paint(count) {
+    var key="br_unread_count_v1",saved=null;
+    try{saved=JSON.parse(sessionStorage.getItem(key)||"null");}catch(_){}
+    function paint(count){
       count=Math.max(0,Number(count)||0);
       [document.getElementById("notificationMenuBadge"),document.getElementById("notificationBottomBadge")].forEach(function(badge){
-        if(!badge)return;
-        badge.textContent=count>9?"9+":String(count);
-        badge.classList.toggle("is-visible",count>0);
-        badge.setAttribute("aria-hidden",count>0?"false":"true");
+        if(!badge)return;badge.textContent=count>9?"9+":String(count);badge.classList.toggle("is-visible",count>0);badge.setAttribute("aria-hidden",count>0?"false":"true");
       });
       var base=document.title.replace(/^\(\d+\+?\)\s*/,"");
-      document.title=(count?"("+ (count>9?"9+":count) +") ":"")+base;
+      document.title=(count?"("+(count>9?"9+":count)+") ":"")+base;
       window.__brUnreadCount=count;
     }
-    if(saved&&typeof saved.count==="number"&&!force) paint(saved.count);
+    if(saved&&typeof saved.count==="number")paint(saved.count);
     if(!force&&saved&&Date.now()-saved.t<60000)return Promise.resolve(saved.count);
-    if(!window.BR_API||typeof window.BR_API.notificationsList!=="function")return Promise.resolve();
-    return window.BR_API.notificationsList(token).then(function(result){
-      var list=result&&Array.isArray(result.notifications)?result.notifications:[];
-      var count=list.filter(function(item){return !item.is_read;}).length;
+    if(!window.BR_API||typeof window.BR_API.notificationsUnreadCount!=="function")return Promise.resolve();
+    return window.BR_API.notificationsUnreadCount(token).then(function(result){
+      var count=Math.max(0,Number(result&&result.unread_count)||0);
       try{sessionStorage.setItem(key,JSON.stringify({t:Date.now(),count:count}));}catch(_){}
-      paint(count);
-      return count;
+      paint(count);return count;
     }).catch(function(error){console.warn("[BR AdminTools] Не удалось обновить счётчик уведомлений:",error);});
   }
   function refreshManagementQueueBadge(user,force) {
-    if(!user||user.role!=="management"||!window.BR_API)return Promise.resolve();
+    if(!user||user.role!=="management"||!window.BR_API||typeof window.BR_API.managementPendingCounts!=="function")return Promise.resolve();
     var key="br_management_queue_counts_v1",saved=null;
     try{saved=JSON.parse(sessionStorage.getItem(key)||"null");}catch(_){}
     function paint(data){
-      var values={pendingInactive:Number(data.pendingInactive||0),pendingNormatives:Number(data.pendingNormatives||0),pendingRequests:Number(data.pendingGeneral||0)};
-      Object.keys(values).forEach(function(k){var id=k==="pendingInactive"?"pendingInactiveBadge":k==="pendingNormatives"?"pendingNormativesBadge":"pendingRequestsBadge";var el=document.getElementById(id);if(el){el.textContent=values[k]>9?"9+":String(values[k]||"");el.classList.toggle("is-visible",values[k]>0);}});
+      var values={pendingInactive:Number(data.inactive_requests||0),pendingNormatives:Number(data.normatives_pending||0),pendingRequests:Number(data.unanswered_requests||0)};
+      Object.keys(values).forEach(function(k){var id={pendingInactive:"pendingInactiveBadge",pendingNormatives:"pendingNormativesBadge",pendingRequests:"pendingRequestsBadge"}[k],el=document.getElementById(id);if(el){el.textContent=values[k]>9?"9+":String(values[k]||"");el.classList.toggle("is-visible",values[k]>0);}});
     }
     if(saved&&saved.data)paint(saved.data);
     if(!force&&saved&&Date.now()-saved.t<60000)return Promise.resolve(saved.data);
-    return Promise.all([
-      window.BR_API.inactiveRequestsAll(user.token,"pending").catch(function(){return {requests:[]};}),
-      window.BR_API.generalRequestsAll(user.token,"pending").catch(function(){return {requests:[]};}),
-      window.BR_API.normativesList(user.token,"all").catch(function(){return {normatives:[]};})
-    ]).then(function(v){
-      var a=v[0].requests||[],b=v[1].requests||[],c=v[2].normatives||v[2].submissions||[];
-      var data={pendingInactive:a.filter(function(x){return x.status==="pending";}).length,pendingGeneral:b.filter(function(x){return x.status==="pending";}).length,pendingNormatives:c.filter(function(x){return !x.reviewed_at&&x.status==="pending";}).length};
+    return window.BR_API.managementPendingCounts(user.token).then(function(result){
+      var data={inactive_requests:Number(result.inactive_requests)||0,unanswered_requests:Number(result.unanswered_requests)||0,normatives_pending:Number(result.normatives_pending)||0};
       try{sessionStorage.setItem(key,JSON.stringify({t:Date.now(),data:data}));}catch(_){}
       paint(data);return data;
-    }).catch(function(){});
+    }).catch(function(error){console.warn("[BR AdminTools] Не удалось обновить очередь руководства:",error);});
   }
 
   function startNotificationBadge(user) {
