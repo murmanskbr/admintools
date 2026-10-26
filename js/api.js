@@ -1485,6 +1485,10 @@
                 );
             },
 
+        inactivePeriodCancel: function(token, requestId) {
+            return request({action:"inactive_period_cancel",request_id:Number(requestId)},token);
+        },
+
         inactiveRequestReview:
             function (token, requestId, status, reviewComment) {
                 return request(
