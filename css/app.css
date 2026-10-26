@@ -5375,3 +5375,44 @@ body[data-page="requests"] .own-request-answer{background:rgba(127,140,160,.12);
   margin-top: 6px;
   line-height: 1.45;
 }
+
+
+/* Ensure unread counts are visible in both desktop and mobile navigation.
+   This overrides the legacy 8px-dot rule above. */
+.notification-menu-badge,
+.notification-menu-badge.is-visible {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  flex: 0 0 auto !important;
+  padding: 0 5px !important;
+  margin-left: auto !important;
+  border-radius: 999px !important;
+  background: #e3263e !important;
+  color: #fff !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 18px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  box-shadow: 0 0 0 2px var(--surface, #10141d) !important;
+}
+.notification-menu-badge:not(.is-visible) {
+  display: none !important;
+}
+.mobile-bottom-nav .notification-menu-badge {
+  position: absolute !important;
+  top: 1px !important;
+  left: calc(50% + 5px) !important;
+  right: auto !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  padding: 0 4px !important;
+  font-size: 9px !important;
+  line-height: 16px !important;
+  margin: 0 !important;
+}
