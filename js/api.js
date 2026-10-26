@@ -1303,6 +1303,21 @@
                     token
                 );
             },
+        notificationsUnreadCount:
+            function (token) {
+                return request({ action: "notifications_unread_count" }, token);
+            },
+
+        notificationsReadAll:
+            function (token) {
+                return request({ action: "notifications_read_all" }, token);
+            },
+
+        managementPendingCounts:
+            function (token) {
+                return request({ action: "management_pending_counts" }, token);
+            },
+
 
         notificationCreate:
             function (
