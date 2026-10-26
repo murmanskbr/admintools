@@ -355,10 +355,32 @@
       return count;
     }).catch(function(error){console.warn("[BR AdminTools] Не удалось обновить счётчик уведомлений:",error);});
   }
+  function refreshManagementQueueBadge(user,force) {
+    if(!user||user.role!=="management"||!window.BR_API)return Promise.resolve();
+    var key="br_management_queue_counts_v1",saved=null;
+    try{saved=JSON.parse(sessionStorage.getItem(key)||"null");}catch(_){}
+    function paint(data){
+      var values={pendingNormatives:Number(data.pendingInactive||0)+Number(data.pendingNormatives||0),pendingRequests:Number(data.pendingGeneral||0)};
+      Object.keys(values).forEach(function(k){var el=document.getElementById(k==="pendingNormatives"?"pendingNormativesBadge":"pendingRequestsBadge");if(el){el.textContent=values[k]>9?"9+":String(values[k]||"");el.classList.toggle("is-visible",values[k]>0);}});
+    }
+    if(saved&&saved.data)paint(saved.data);
+    if(!force&&saved&&Date.now()-saved.t<60000)return Promise.resolve(saved.data);
+    return Promise.all([
+      window.BR_API.inactiveRequestsAll(user.token,"pending").catch(function(){return {requests:[]};}),
+      window.BR_API.generalRequestsAll(user.token,"pending").catch(function(){return {requests:[]};}),
+      window.BR_API.normativesList(user.token,"all").catch(function(){return {normatives:[]};})
+    ]).then(function(v){
+      var a=v[0].requests||[],b=v[1].requests||[],c=v[2].normatives||v[2].submissions||[];
+      var data={pendingInactive:a.filter(function(x){return x.status==="pending";}).length,pendingGeneral:b.filter(function(x){return x.status==="pending";}).length,pendingNormatives:c.filter(function(x){return !x.reviewed_at&&(x.status==="pending"||x.status==="not_submitted");}).length};
+      try{sessionStorage.setItem(key,JSON.stringify({t:Date.now(),data:data}));}catch(_){}
+      paint(data);return data;
+    }).catch(function(){});
+  }
+
   function startNotificationBadge(user) {
     if(!user||!user.token)return;
     var timer=null,running=false;
-    function update(force){if(document.visibilityState!=="visible"||running)return;running=true;refreshNotificationBadge(user.token,force).finally(function(){running=false;});}
+    function update(force){if(document.visibilityState!=="visible"||running)return;running=true;Promise.all([refreshNotificationBadge(user.token,force),refreshManagementQueueBadge(user,force)]).finally(function(){running=false;});}
     update(false);
     function startTimer(){if(timer)clearInterval(timer);timer=setInterval(function(){update(false);},60000);}
     document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"){update(false);startTimer();}else if(timer){clearInterval(timer);timer=null;}});
