@@ -375,7 +375,7 @@
             '<a class="dashboard-action" href="../pages/requests-all.html"><b>Обращения</b><span>Контроль обращений</span></a>'
           : '<a class="dashboard-action" href="../pages/profile.html"><b>Мой профиль</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Данные аккаунта</span></a>' +
             '<a class="dashboard-action" href="../pages/requests.html"><b>Мои обращения</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="m8 12 3 3 5-6"/></svg><span>Связь с руководством</span></a>' +
-            '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>Подача и просмотр</span></a>' + '<a class="dashboard-action" href="../pages/notifications.html"><b>Уведомления</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true">undefined</svg><span>Новости и сообщения</span></a>';
+            '<a class="dashboard-action" href="../pages/normatives.html"><b>Нормативы и неактив</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>Подача и просмотр</span></a>' + '<a class="dashboard-action" href="../pages/notifications.html"><b>Уведомления</b><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true">undefined</svg><span>Новости и сообщения</span></a>';
 
         var managementNotice = user.role === "management"
           ? '<details class="box dashboard-performance" style="margin-top:14px;padding:16px 18px;line-height:1.6">' +
@@ -3046,7 +3046,7 @@
             }).join(""):'<div class="empty">Заявок на неактив пока нет.</div>';
           },force).catch(function(e){requestModal("Ошибка",e.message||"Не удалось загрузить заявки.");});}
           inactiveForm.onsubmit=async function(event){event.preventDefault();var button=inactiveForm.querySelector('[type="submit"]'),a=start.value,b=type.value==="single"?a:end.value,reason=document.getElementById("inactiveReason").value.trim();
-            if(!a||!b||b<a){await requestModal("Проверьте даты","Укажите корректный период.");return;}button.disabled=true;
+            if(!a||!b||a<dateIso(0)||b<a){await requestModal("Проверьте даты","Укажите корректный период.");return;}button.disabled=true;
             try{var overlap=await window.BR_API.inactiveRequestOverlapCheck(user.token,a,b);if(overlap&&overlap.has_overlap){await requestModal("Пересечение дат","На выбранный период уже есть одобренный неактив.");return;}
               await window.BR_API.inactiveRequestCreate(user.token,type.value,a,b,reason);inactiveForm.reset();type.onchange();await loadInactiveRequests(true);await requestModal("Готово","Заявка отправлена руководству.");
             }catch(e){await requestModal("Ошибка",e.message||"Не удалось отправить заявку.");}finally{button.disabled=false;}
@@ -3067,7 +3067,7 @@
             event.preventDefault();
             var files = Array.from(fileInput.files || []);
             if (!files.length) {
-              alert("Выберите хотя бы один файл.");
+              await requestModal("Файлы норматива", "Выберите хотя бы один файл.");
               return;
             }
 
@@ -3085,13 +3085,13 @@
                 document.getElementById("normPosition").value,
                 document.getElementById("normComment").value
               );
-              alert("Норматив отправлен на проверку.");
+              await requestModal("Готово", "Норматив отправлен на проверку.");
               form.reset();
               document.getElementById("normDate").value = dateIso(0);
               if (preview) preview.innerHTML = "";
               location.reload();
             } catch (e) {
-              alert(e.message || "Не удалось отправить норматив.");
+              await requestModal("Ошибка", e.message || "Не удалось отправить норматив.");
             } finally {
               if (button) {
                 button.disabled = false;
@@ -3979,7 +3979,7 @@
       access: "Выдать доступ",
       admins: "Администраторы",
       notifications: "Уведомления",
-      normatives: "Нормативы",
+      normatives: "Нормативы и неактив",
       "normatives-all": "Проставка нормативов",
       requests: "Мои обращения",
       "statistics-all": "Статистика администрации",
