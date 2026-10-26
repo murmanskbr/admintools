@@ -3607,57 +3607,132 @@
       title: "Нормативы администрации",
       subtitle: "Контроль нормативов по датам",
       render: function () {
-        return '<div class="page-toolbar normative-toolbar">' +
-          '<div><small>ВЫСТАВЛЕНИЕ И ПРОВЕРКА</small><b>Контроль норматива за выбранную дату</b></div>' +
-          '<div class="date-controls">' +
-            '<div class="date-picker-nav">' +
-              '<button class="small-button" id="datePrev" type="button">←</button>' +
-              '<input id="controlDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
-              '<button class="small-button" id="dateNext" type="button">→</button>' +
-            '</div>' +
-            '<div class="date-actions">' +
-              '<button class="button button-secondary" id="dateToday" type="button">Сегодня</button>' +
-              '<div class="cache-page-tools"><small id="normDailyUpdated" class="cache-updated-at muted">Обновлено —</small><button class="button button-secondary" id="normDailyRefresh" type="button">↻ Обновить</button></div>' +
+        return '<div class="normative-section-tabs" role="tablist" aria-label="Раздел нормативов">' +
+          '<button class="button button-primary is-active" id="normativeTabButton" type="button" role="tab" aria-selected="true">Норматив</button>' +
+          '<button class="button button-secondary" id="inactiveTabButton" type="button" role="tab" aria-selected="false">Неактивы</button>' +
+        '</div>' +
+        '<section id="normativeTabPanel" role="tabpanel">' +
+          '<div class="page-toolbar normative-toolbar">' +
+            '<div><small>ВЫСТАВЛЕНИЕ И ПРОВЕРКА</small><b>Контроль норматива за выбранную дату</b></div>' +
+            '<div class="date-controls">' +
+              '<div class="date-picker-nav">' +
+                '<button class="small-button" id="datePrev" type="button">←</button>' +
+                '<input id="controlDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
+                '<button class="small-button" id="dateNext" type="button">→</button>' +
+              '</div>' +
+              '<div class="date-actions">' +
+                '<button class="button button-secondary" id="dateToday" type="button">Сегодня</button>' +
+                '<div class="cache-page-tools"><small id="normDailyUpdated" class="cache-updated-at muted">Обновлено —</small><button class="button button-secondary" id="normDailyRefresh" type="button">↻ Обновить</button></div>' +
+              '</div>' +
             '</div>' +
           '</div>' +
-        '</div>' +
-        '<div id="normRoot">' + cacheSkeleton(6) + '</div>' +
-        '<section class="box spaced-box"><div class="page-toolbar"><div><small>ОТДЕЛЬНЫЙ РАЗДЕЛ</small><b>Заявки на неактив</b><p class="muted">Проверка заявок сотрудников на отсутствие в игре</p></div><button class="button button-secondary" id="inactiveManagementRefresh" type="button">↻ Обновить</button></div><div id="inactiveManagementRoot"><div class="empty">Загрузка заявок…</div></div></section>' +
+          '<div id="normRoot">' + cacheSkeleton(6) + '</div>' +
+        '</section>' +
+        '<section id="inactiveTabPanel" role="tabpanel" hidden>' +
+          '<div class="page-toolbar">' +
+            '<div><small>ИСТОРИЯ ЗАЯВОК</small><b>Заявки на неактив</b><p class="muted">Все заявки, даты отсутствия и решения руководства</p></div>' +
+            '<button class="button button-secondary" id="inactiveManagementRefresh" type="button">↻ Обновить</button>' +
+          '</div>' +
+          '<div class="stats-toolbar-actions normative-inactive-filters">' +
+            '<button class="small-button is-active" type="button" data-inactive-filter="">Все</button>' +
+            '<button class="small-button" type="button" data-inactive-filter="pending">На рассмотрении</button>' +
+            '<button class="small-button" type="button" data-inactive-filter="approved">Одобрены</button>' +
+            '<button class="small-button" type="button" data-inactive-filter="rejected">Отклонены</button>' +
+          '</div>' +
+          '<div id="inactiveManagementRoot"><div class="empty">Загрузка заявок…</div></div>' +
+        '</section>' +
         '<div id="normativeModal"></div>';
       },
       bind: function () {
         var inactiveManagementRoot = document.getElementById("inactiveManagementRoot");
         var inactiveManagementRefresh = document.getElementById("inactiveManagementRefresh");
+        var normativeTabButton = document.getElementById("normativeTabButton");
+        var inactiveTabButton = document.getElementById("inactiveTabButton");
+        var normativeTabPanel = document.getElementById("normativeTabPanel");
+        var inactiveTabPanel = document.getElementById("inactiveTabPanel");
+        var inactiveRequestsCache = [];
+        var inactiveStatusFilter = "";
+
+        function setNormativeTab(tab) {
+          var showInactive = tab === "inactive";
+          normativeTabPanel.hidden = showInactive;
+          inactiveTabPanel.hidden = !showInactive;
+          normativeTabButton.classList.toggle("is-active", !showInactive);
+          inactiveTabButton.classList.toggle("is-active", showInactive);
+          normativeTabButton.classList.toggle("button-primary", !showInactive);
+          normativeTabButton.classList.toggle("button-secondary", showInactive);
+          inactiveTabButton.classList.toggle("button-primary", showInactive);
+          inactiveTabButton.classList.toggle("button-secondary", !showInactive);
+          normativeTabButton.setAttribute("aria-selected", showInactive ? "false" : "true");
+          inactiveTabButton.setAttribute("aria-selected", showInactive ? "true" : "false");
+          if (showInactive && !inactiveRequestsCache.length) loadManagementInactive();
+        }
+        normativeTabButton.onclick = function () { setNormativeTab("normative"); };
+        inactiveTabButton.onclick = function () { setNormativeTab("inactive"); };
+
+        function renderManagementInactive() {
+          if (!inactiveManagementRoot) return;
+          var requests = inactiveRequestsCache.filter(function(item) {
+            return !inactiveStatusFilter || String(item.status || "pending") === inactiveStatusFilter;
+          });
+          requests.sort(function(a,b) {
+            var pendingOrder = Number(String(b.status || "") === "pending") - Number(String(a.status || "") === "pending");
+            if (pendingOrder) return pendingOrder;
+            return String(b.created_at || b.submitted_at || "").localeCompare(String(a.created_at || a.submitted_at || ""));
+          });
+          inactiveManagementRoot.innerHTML = requests.length ? requests.map(function (item) {
+            var id = Number(item.id || item.request_id || 0);
+            var startDate = String(item.start_date || "");
+            var endDate = String(item.end_date || startDate);
+            var dateText = formatDateNumeric(startDate) + (endDate && endDate !== startDate ? " — " + formatDateNumeric(endDate) : "");
+            var status = String(item.status || "pending");
+            var canReview = status === "pending";
+            var submitted = item.created_at || item.submitted_at || item.requested_at;
+            return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><div><b class="own-request-type">' + E(item.nickname || item.admin_nickname || "Администратор") + '</b><div class="muted">Период: ' + E(dateText) + '</div><small class="muted">Отправлено: ' + E(submitted ? formatDateTime(submitted) : "Дата подачи не указана") + '</small></div>' + ownRequestStatus(status) + '</div><p><b>Причина:</b> ' + E(item.reason || "—") + '</p><div class="own-request-answer"><b>Комментарий руководства</b><p>' + E(item.review_comment || "Пока нет комментария.") + '</p></div>' + (canReview ? '<div class="form-field"><label for="inactiveReviewComment' + E(id) + '">Комментарий к решению (необязательно)</label><textarea class="form-textarea" maxlength="1000" id="inactiveReviewComment' + E(id) + '" placeholder="Комментарий к решению"></textarea></div><div class="form-actions"><button class="button button-primary" type="button" data-inactive-review="approved" data-inactive-id="' + E(id) + '">Одобрить</button><button class="button button-danger" type="button" data-inactive-review="rejected" data-inactive-id="' + E(id) + '">Отклонить</button></div>' : (item.reviewed_at ? '<small class="muted">Рассмотрено: ' + E(formatDateTime(item.reviewed_at)) + '</small>' : '')) + '</article>';
+          }).join("") : '<div class="box"><div class="empty">Заявок по выбранному фильтру нет.</div></div>';
+          inactiveManagementRoot.querySelectorAll("[data-inactive-review]").forEach(function (button) {
+            button.onclick = async function () {
+              var id = Number(button.dataset.inactiveId), status = button.dataset.inactiveReview;
+              var field = document.getElementById("inactiveReviewComment" + id), comment = field ? field.value.trim() : "";
+              var label = status === "approved" ? "одобрить" : "отклонить";
+              if (!confirm("Подтвердить решение: " + label + " заявку на неактив?")) return;
+              button.disabled = true;
+              try {
+                await window.BR_API.inactiveRequestReview(user.token, id, status, comment);
+                await loadManagementInactive();
+              } catch (error) {
+                alert(error.message || "Не удалось сохранить решение по неактиву.");
+                button.disabled = false;
+              }
+            };
+          });
+        }
+
         async function loadManagementInactive() {
           if (!inactiveManagementRoot) return;
           if (inactiveManagementRefresh) { inactiveManagementRefresh.disabled = true; inactiveManagementRefresh.textContent = "Загрузка…"; }
           try {
             var result = await window.BR_API.inactiveRequestsAll(user.token, "");
-            var requests = Array.isArray(result && result.requests) ? result.requests : [];
-            inactiveManagementRoot.innerHTML = requests.length ? requests.map(function (item) {
-              var id = Number(item.id || item.request_id || 0);
-              var startDate = String(item.start_date || "");
-              var endDate = String(item.end_date || startDate);
-              var dateText = formatDateNumeric(startDate) + (endDate && endDate !== startDate ? " — " + formatDateNumeric(endDate) : "");
-              var status = String(item.status || "pending");
-              var canReview = status === "pending";
-              return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><div><b class="own-request-type">' + E(item.nickname || item.admin_nickname || "Администратор") + '</b><div class="muted">' + E(dateText) + '</div></div>' + ownRequestStatus(status) + '</div><p><b>Причина:</b> ' + E(item.reason || "—") + '</p><div class="own-request-answer"><b>Комментарий руководства</b><p>' + E(item.review_comment || "Пока нет комментария.") + '</p></div>' + (canReview ? '<div class="form-field"><label for="inactiveReviewComment' + E(id) + '">Комментарий</label><textarea class="form-textarea" id="inactiveReviewComment' + E(id) + '" placeholder="Комментарий к решению"></textarea></div><div class="form-actions"><button class="button button-primary" type="button" data-inactive-review="approved" data-inactive-id="' + E(id) + '">Одобрить</button><button class="button button-danger" type="button" data-inactive-review="rejected" data-inactive-id="' + E(id) + '">Отклонить</button></div>' : '') + '</article>';
-            }).join("") : '<div class="empty">Заявок на неактив пока нет.</div>';
-            inactiveManagementRoot.querySelectorAll("[data-inactive-review]").forEach(function (button) {
-              button.onclick = async function () {
-                var id = Number(button.dataset.inactiveId), status = button.dataset.inactiveReview;
-                var field = document.getElementById("inactiveReviewComment" + id), comment = field ? field.value.trim() : "";
-                button.disabled = true;
-                try { await window.BR_API.inactiveRequestReview(user.token, id, status, comment); await loadManagementInactive(); }
-                catch (error) { alert(error.message || "Не удалось сохранить решение по неактиву."); button.disabled = false; }
-              };
-            });
+            inactiveRequestsCache = Array.isArray(result && result.requests) ? result.requests : [];
+            renderManagementInactive();
           } catch (error) {
             inactiveManagementRoot.innerHTML = '<div class="empty">' + E(error.message || "Не удалось загрузить заявки на неактив.") + '</div>';
-          } finally { if (inactiveManagementRefresh) { inactiveManagementRefresh.disabled = false; inactiveManagementRefresh.textContent = "↻ Обновить"; } }
+          } finally {
+            if (inactiveManagementRefresh) { inactiveManagementRefresh.disabled = false; inactiveManagementRefresh.textContent = "↻ Обновить"; }
+          }
         }
         if (inactiveManagementRefresh) inactiveManagementRefresh.onclick = loadManagementInactive;
-        loadManagementInactive();
+        document.querySelectorAll("[data-inactive-filter]").forEach(function(button) {
+          button.onclick = function() {
+            inactiveStatusFilter = button.getAttribute("data-inactive-filter") || "";
+            document.querySelectorAll("[data-inactive-filter]").forEach(function(other) {
+              other.classList.toggle("is-active", other === button);
+            });
+            renderManagementInactive();
+          };
+        });
+        setNormativeTab("normative");
+
         var input = document.getElementById("controlDate");
         var prev = document.getElementById("datePrev");
         var next = document.getElementById("dateNext");
