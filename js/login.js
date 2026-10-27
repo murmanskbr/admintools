@@ -60,6 +60,7 @@
         var lastActivityAt = result.session && result.session.last_activity_at
           ? new Date(result.session.last_activity_at).getTime()
           : Date.now();
+        window.BRApp.applyTheme(user.theme);
         window.BRApp.saveSession(user, expires, true, lastActivityAt);
 
         // Keep service workers registered: the push notification worker
