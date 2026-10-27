@@ -4702,13 +4702,9 @@
         if (mode === "last_login") return new Date(b.last_login_at || 0) - new Date(a.last_login_at || 0);
         var rankA = positionRank(a.position);
         var rankB = positionRank(b.position);
-        // Keep unknown positions at the bottom in either sort direction.
-        if (rankA === 0 && rankB !== 0) return 1;
-        if (rankB === 0 && rankA !== 0) return -1;
-        if (rankA !== rankB) return mode === "position_asc" ? rankA - rankB : rankB - rankA;
-        var positionCompare = String(a.position || "").localeCompare(String(b.position || ""), "ru", { sensitivity: "base" });
-        if (positionCompare !== 0) return positionCompare;
-        return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru", { sensitivity: "base" });
+        var rankDiff = rankA - rankB;
+        if (rankA === POSITIONS.length || rankB === POSITIONS.length) return rankDiff || comparePositions(a, b);
+        return (mode === "position_asc" ? -rankDiff : rankDiff) || comparePositions(a, b);
       });
       return items;
     }
@@ -4902,7 +4898,7 @@
           mode = mode || "position";
           query = query || "";
           positionFilter = positionFilter || "";
-          var positions = Array.from(new Set(state.accounts.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { return positionRank(b) - positionRank(a) || a.localeCompare(b, "ru"); });
+          var positions = Array.from(new Set(state.accounts.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { return positionRank(a) - positionRank(b) || a.localeCompare(b, "ru"); });
           var sortedAccounts = sortAccessAccounts(
             state.accounts.filter(function (item) { return (!query || String(item.nickname || "").toLowerCase().indexOf(query.toLowerCase()) >= 0 || String(item.login || "").toLowerCase().indexOf(query.toLowerCase()) >= 0) && (!positionFilter || item.position === positionFilter); }),
             mode
