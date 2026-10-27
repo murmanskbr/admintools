@@ -829,8 +829,68 @@
   });
 
 
+  // Единый порядок должностей: от главного администратора до младшего модератора.
+  var POSITIONS = Object.freeze([
+    "Главный администратор",
+    "Основной заместитель главного администратора",
+    "Заместитель главного администратора",
+    "Ст. След. за АП",
+    "Куратор администрации",
+    "Куратор агентов поддержки",
+    "Куратор организаций",
+    "Заместитель Куратора администрации",
+    "Заместитель Куратора агентов поддержки",
+    "Заместитель Куратора организаций",
+    "Старший администратор",
+    "Старший следящий",
+    "Администратор",
+    "Старший модератор",
+    "Модератор",
+    "Следящий",
+    "Младший модератор"
+  ]);
+  function normalizePosition(name) {
+    return String(name == null ? "" : name).trim().toLowerCase().replace(/ё/g, "е")
+      .replace(/\\s*\\([^)]*\\)\\s*$/g, "").replace(/\\s+/g, " ").trim();
+  }
+  var positionAliases = Object.create(null);
+  POSITIONS.forEach(function(name, index) { positionAliases[normalizePosition(name)] = index; });
+  // Поддерживаем обозначения из названий должностей и употребляемые сокращения.
+  [
+    ["га", 0], ["основной зга", 1], ["озга", 1], ["зга", 2],
+    ["старший следящий за ап", 3], ["ст. след. за ап", 3],
+    ["ка", 4], ["кап", 5], ["ко", 6], ["зка", 7], ["зкап", 8], ["зко", 9],
+    ["са", 10], ["сс", 11], ["адм", 12], ["см", 13], ["мм", 16],
+    ["ст. администратор", 10], ["ст. модератор", 13], ["мл. модератор", 16],
+    ["зам. главного администратора", 2],
+    ["зам. куратора администрации", 7], ["зам. куратора агентов поддержки", 8],
+    ["зам. куратора организаций", 9]
+  ].forEach(function(alias) { positionAliases[alias[0]] = alias[1]; });
+  var warnedPositions = Object.create(null);
+  function positionRank(name) {
+    var normalized = normalizePosition(name);
+    if (Object.prototype.hasOwnProperty.call(positionAliases, normalized)) return positionAliases[normalized];
+    if (normalized && !warnedPositions[normalized]) {
+      warnedPositions[normalized] = true;
+      console.warn("[BR AdminTools] Неизвестная должность:", name);
+    }
+    return POSITIONS.length;
+  }
+  function comparePositions(a, b) {
+    var first = a && typeof a === "object" ? a.position : a;
+    var second = b && typeof b === "object" ? b.position : b;
+    var diff = positionRank(first) - positionRank(second);
+    if (diff) return diff;
+    var firstNick = a && typeof a === "object" ? String(a.nickname || a.login || "") : "";
+    var secondNick = b && typeof b === "object" ? String(b.nickname || b.login || "") : "";
+    return firstNick.localeCompare(secondNick, "ru");
+  }
+
   window.BRApp = {
     esc: esc,
+    POSITIONS: POSITIONS,
+    positionRank: positionRank,
+    comparePositions: comparePositions,
     getSession: getSession,
     saveSession: saveSession,
     clearSession: clearStorage,
