@@ -3345,21 +3345,7 @@
       result = result || {};
         var list = Array.isArray(result.administrators) ? result.administrators.slice() : [];
 
-        // Сначала руководители по иерархии должностей, затем никнейм.
-        var positionRank = {};
-        POSITIONS.forEach(function (position, index) {
-          positionRank[String(position).trim().toLowerCase()] = index;
-        });
-        list.sort(function (a, b) {
-          var aRank = Object.prototype.hasOwnProperty.call(positionRank, String(a.position || "").trim().toLowerCase())
-            ? positionRank[String(a.position || "").trim().toLowerCase()]
-            : POSITIONS.length + 1;
-          var bRank = Object.prototype.hasOwnProperty.call(positionRank, String(b.position || "").trim().toLowerCase())
-            ? positionRank[String(b.position || "").trim().toLowerCase()]
-            : POSITIONS.length + 1;
-          if (aRank !== bRank) return aRank - bRank;
-          return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
-        });
+        list.sort(comparePositions);
 
         function normativeFilterKey(item) {
           var value = String(item.status || "not_submitted").toLowerCase();
@@ -4705,39 +4691,6 @@
     }
 
     // Иерархия должностей: от младшего модератора к главному администратору.
-    function accessPositionRank(position) {
-      var text = String(position || "")
-        .trim()
-        .toLowerCase()
-        .replace(/ё/g, "е")
-        .replace(/[().,;:]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-
-      if (!text) return 0;
-      if (text.indexOf("основной заместитель главного администратора") >= 0) return 15.5;
-      if (text.indexOf("главный администратор") >= 0 && text.indexOf("заместитель") < 0) return 16;
-      if (text.indexOf("заместитель главного администратора") >= 0 || text.indexOf("зам. главного администратора") >= 0) return 14;
-      // Поддерживаем обе формы названия должности: «Куратор администрации»
-      // и «Куратора администрации» — иначе заместитель попадал в неизвестные.
-      if (text.indexOf("куратор") >= 0 && text.indexOf("администрац") >= 0) {
-        return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 12 : 13;
-      }
-      if (text.indexOf("куратор агентов поддержки") >= 0) {
-        return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 10 : 11;
-      }
-      if (text.indexOf("куратор организаций") >= 0) {
-        return text.indexOf("заместитель") >= 0 || text.indexOf("зам.") >= 0 ? 8 : 9;
-      }
-      if (text.indexOf("старший следящий") >= 0 || text.indexOf("ст. след") >= 0) return 6;
-      if (text.indexOf("старший администратор") >= 0) return 7;
-      if (text.indexOf("старший модератор") >= 0) return 4;
-      if (text.indexOf("младший модератор") >= 0) return 1;
-      if (text === "следящий" || text.indexOf(" следящий") >= 0) return 2;
-      if (text.indexOf("модератор") >= 0) return 3;
-      if (text === "администратор" || text.indexOf(" администратор") >= 0) return 5;
-      return 0;
-    }
 
     function sortAccessAccounts(list, mode) {
       var items = Array.isArray(list) ? list.slice() : [];
@@ -4747,8 +4700,8 @@
           return mode === "nickname_desc" ? -comparison : comparison;
         }
         if (mode === "last_login") return new Date(b.last_login_at || 0) - new Date(a.last_login_at || 0);
-        var rankA = accessPositionRank(a.position);
-        var rankB = accessPositionRank(b.position);
+        var rankA = positionRank(a.position);
+        var rankB = positionRank(b.position);
         // Keep unknown positions at the bottom in either sort direction.
         if (rankA === 0 && rankB !== 0) return 1;
         if (rankB === 0 && rankA !== 0) return -1;
@@ -4949,7 +4902,7 @@
           mode = mode || "position";
           query = query || "";
           positionFilter = positionFilter || "";
-          var positions = Array.from(new Set(state.accounts.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { return accessPositionRank(b) - accessPositionRank(a) || a.localeCompare(b, "ru"); });
+          var positions = Array.from(new Set(state.accounts.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { return positionRank(b) - positionRank(a) || a.localeCompare(b, "ru"); });
           var sortedAccounts = sortAccessAccounts(
             state.accounts.filter(function (item) { return (!query || String(item.nickname || "").toLowerCase().indexOf(query.toLowerCase()) >= 0 || String(item.login || "").toLowerCase().indexOf(query.toLowerCase()) >= 0) && (!positionFilter || item.position === positionFilter); }),
             mode
