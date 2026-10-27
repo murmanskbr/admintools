@@ -606,8 +606,7 @@
         var nicknameIndex = headers.findIndex(function (h) { return /^(никнейм|ник|nickname|nick|username|логин)$/i.test(String(h || "").trim()); });
         var positionIndex = headers.findIndex(function (h) { return /должност|position/i.test(String(h || "")); });
         var roster = rows.map(function (row, i) { return { row: row, number: rowNumbers[i], nickname: nicknameIndex >= 0 ? String(row[nicknameIndex] || "") : "", position: positionIndex >= 0 ? String(row[positionIndex] || "") : "" }; });
-        function rosterRank(item) { var rank = positionRank(item.position.trim()); return rank < 0 ? 999 : rank; }
-        roster.sort(function (a,b) { return rosterRank(a) - rosterRank(b) || a.nickname.localeCompare(b.nickname, "ru"); });
+        roster.sort(comparePositions);
         rows = roster.map(function (item) { return item.row; });
         rowNumbers = roster.map(function (item) { return item.number; });
 
@@ -662,7 +661,8 @@
             }
             var ar = positionRank(a.dataset.rosterPosition);
             var br = positionRank(b.dataset.rosterPosition);
-            var diffRank = (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br);
+            var diffRank = ar - br;
+            if (ar === POSITIONS.length || br === POSITIONS.length) return diffRank || a.dataset.rosterNickname.localeCompare(b.dataset.rosterNickname, "ru");
             return (mode === "position_asc" ? -diffRank : diffRank) || a.dataset.rosterNickname.localeCompare(b.dataset.rosterNickname, "ru");
           });
           items.forEach(function (item) { tbody.appendChild(item); });
@@ -2817,7 +2817,7 @@
             }
             var ar = positionRank(a.dataset.pushPosition);
             var br = positionRank(b.dataset.pushPosition);
-            return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) || a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
+            return ar - br || a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
           });
           rows.forEach(function (row) { tbody.appendChild(row); });
         };
@@ -3441,7 +3441,7 @@
             }
             var ar = positionRank(a.getAttribute("data-normative-position"));
             var br = positionRank(b.getAttribute("data-normative-position"));
-            return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) || a.getAttribute("data-normative-nickname").localeCompare(b.getAttribute("data-normative-nickname"), "ru");
+            return ar - br || a.getAttribute("data-normative-nickname").localeCompare(b.getAttribute("data-normative-nickname"), "ru");
           }
           Array.from(tbody.querySelectorAll("tr[data-normative-nickname]")).sort(compareRows).forEach(function (row) { tbody.appendChild(row); });
           if (mobileRoot) Array.from(mobileRoot.querySelectorAll(".normative-admin-card[data-normative-nickname]")).sort(compareRows).forEach(function (row) { mobileRoot.appendChild(row); });
