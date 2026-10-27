@@ -152,25 +152,9 @@
     return null;
   }
 
-  var POSITIONS = [
-    "Главный администратор",
-    "Основной заместитель главного администратора",
-    "Заместитель главного администратора",
-    "Ст. След. за АП",
-    "Куратор администрации",
-    "Заместитель Куратора администрации",
-    "Куратор агентов поддержки",
-    "Заместитель Куратора агентов поддержки",
-    "Куратор организаций",
-    "Заместитель Куратора организаций",
-    "Старший администратор",
-    "Старший следящий",
-    "Администратор",
-    "Старший модератор",
-    "Модератор",
-    "Следящий",
-    "Младший модератор"
-  ];
+  var POSITIONS = window.BRApp.POSITIONS;
+  var positionRank = window.BRApp.positionRank;
+  var comparePositions = window.BRApp.comparePositions;
 
   function positionSelect(id, name, value, extraClass) {
     var current = String(value == null ? "" : value).trim();
@@ -622,7 +606,7 @@
         var nicknameIndex = headers.findIndex(function (h) { return /^(никнейм|ник|nickname|nick|username|логин)$/i.test(String(h || "").trim()); });
         var positionIndex = headers.findIndex(function (h) { return /должност|position/i.test(String(h || "")); });
         var roster = rows.map(function (row, i) { return { row: row, number: rowNumbers[i], nickname: nicknameIndex >= 0 ? String(row[nicknameIndex] || "") : "", position: positionIndex >= 0 ? String(row[positionIndex] || "") : "" }; });
-        function rosterRank(item) { var rank = POSITIONS.findIndex(function (p) { return p.toLowerCase() === item.position.trim().toLowerCase(); }); return rank < 0 ? 999 : rank; }
+        function rosterRank(item) { var rank = positionRank(item.position.trim()); return rank < 0 ? 999 : rank; }
         roster.sort(function (a,b) { return rosterRank(a) - rosterRank(b) || a.nickname.localeCompare(b.nickname, "ru"); });
         rows = roster.map(function (item) { return item.row; });
         rowNumbers = roster.map(function (item) { return item.number; });
@@ -646,8 +630,8 @@
         var rosterSort = document.getElementById("adminsSort");
         if (rosterPosition) {
           rosterPosition.innerHTML = '<option value="">Все должности</option>' + Array.from(new Set(roster.map(function (item) { return item.position.trim(); }).filter(Boolean))).sort(function (a,b) {
-            var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === a.toLowerCase(); });
-            var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === b.toLowerCase(); });
+            var ar = positionRank(a);
+            var br = positionRank(b);
             return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br);
           }).map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join('');
         }
@@ -676,8 +660,8 @@
               var diff = a.dataset.rosterNickname.localeCompare(b.dataset.rosterNickname, "ru");
               return mode === "nickname_desc" ? -diff : diff;
             }
-            var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === a.dataset.rosterPosition.toLowerCase(); });
-            var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === b.dataset.rosterPosition.toLowerCase(); });
+            var ar = positionRank(a.dataset.rosterPosition);
+            var br = positionRank(b.dataset.rosterPosition);
             var diffRank = (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br);
             return (mode === "position_asc" ? -diffRank : diffRank) || a.dataset.rosterNickname.localeCompare(b.dataset.rosterNickname, "ru");
           });
@@ -2756,8 +2740,8 @@
         }).length;
 
         list.sort(function (a, b) {
-          var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === String(a.position || "").trim().toLowerCase(); });
-          var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === String(b.position || "").trim().toLowerCase(); });
+          var ar = positionRank(String(a.position || "").trim());
+          var br = positionRank(String(b.position || "").trim());
           return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) ||
             String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
         });
@@ -2831,8 +2815,8 @@
               var nameDiff = a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
               return mode === "nickname_desc" ? -nameDiff : nameDiff;
             }
-            var ar = POSITIONS.findIndex(function (p) { return p.toLowerCase() === a.dataset.pushPosition.toLowerCase(); });
-            var br = POSITIONS.findIndex(function (p) { return p.toLowerCase() === b.dataset.pushPosition.toLowerCase(); });
+            var ar = positionRank(a.dataset.pushPosition);
+            var br = positionRank(b.dataset.pushPosition);
             return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) || a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
           });
           rows.forEach(function (row) { tbody.appendChild(row); });
@@ -3412,7 +3396,7 @@
             '<button type="button" class="normative-overview-card is-rejected" data-status-filter="no_norm"><span>Нет нормы</span><b>' + E(String(statusCounts.no_norm)) + '</b></button></div>' +
           '<div class="normative-toolbar"><div class="normative-toolbar-title"><b id="normativeListTitle">Все администраторы</b><span id="normativeVisibleCount">' + E(String(list.length)) + ' записей</span></div>' +
           '<div class="normative-filters"><input id="normativeSearch" class="form-input normative-search" type="search" placeholder="Найти администратора…" aria-label="Поиск по никнейму">' +
-          '<select id="normativePosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { var ar=POSITIONS.indexOf(a), br=POSITIONS.indexOf(b); return (ar < 0 ? 999 : ar)-(br < 0 ? 999 : br); }).map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join('') + '</select>' +
+          '<select id="normativePosition" class="form-select" aria-label="Фильтр должности"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).sort(function (a, b) { var ar=positionRank(a), br=positionRank(b); return (ar < 0 ? 999 : ar)-(br < 0 ? 999 : br); }).map(function (p) { return '<option value="' + E(p) + '">' + E(p) + '</option>'; }).join('') + '</select>' +
           '<select id="normativeSort" class="form-select" aria-label="Сортировка"><option value="position">По должности</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option></select></div></div>';
 
         root.innerHTML =
@@ -3469,8 +3453,8 @@
               var order = a.getAttribute("data-normative-nickname").localeCompare(b.getAttribute("data-normative-nickname"), "ru");
               return mode === "nickname_desc" ? -order : order;
             }
-            var ar = POSITIONS.indexOf(a.getAttribute("data-normative-position"));
-            var br = POSITIONS.indexOf(b.getAttribute("data-normative-position"));
+            var ar = positionRank(a.getAttribute("data-normative-position"));
+            var br = positionRank(b.getAttribute("data-normative-position"));
             return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) || a.getAttribute("data-normative-nickname").localeCompare(b.getAttribute("data-normative-nickname"), "ru");
           }
           Array.from(tbody.querySelectorAll("tr[data-normative-nickname]")).sort(compareRows).forEach(function (row) { tbody.appendChild(row); });
