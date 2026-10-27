@@ -5723,3 +5723,14 @@ body[data-page="requests"] .own-request-answer{background:rgba(127,140,160,.12);
   .normative-history-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
   .normative-history-actions .button { width:100%; white-space:normal; }
 }
+
+/* Dashboard refresh and pending summary */
+.server-refresh .server-refresh-icon{display:inline-block}
+.server-refresh.is-refreshing .server-refresh-icon{animation:dashboard-refresh-spin .7s linear infinite}
+@keyframes dashboard-refresh-spin{to{transform:rotate(360deg)}}
+.dashboard-pending-links{display:flex;flex-direction:column;align-items:stretch;gap:7px}
+.dashboard-pending-links a{display:flex;justify-content:space-between;gap:10px;color:var(--text);text-decoration:none;padding:6px 0;border-bottom:1px solid var(--line);font-size:12px}
+.dashboard-pending-links a:hover{text-decoration:underline}
+body[data-page="requests"] #generalMineRoot{display:block;width:100%;max-width:none;text-align:left}
+body[data-page="requests"] #generalMineRoot .own-request-card{width:100%;max-width:none;margin-left:0;margin-right:0;text-align:left;grid-column:1/-1}
+body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="requests"] #generalMineRoot .own-request-answer{text-align:left}
