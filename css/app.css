@@ -5734,3 +5734,12 @@ body[data-page="requests"] .own-request-answer{background:rgba(127,140,160,.12);
 body[data-page="requests"] #generalMineRoot{display:block;width:100%;max-width:none;text-align:left}
 body[data-page="requests"] #generalMineRoot .own-request-card{width:100%;max-width:none;margin-left:0;margin-right:0;text-align:left;grid-column:1/-1}
 body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="requests"] #generalMineRoot .own-request-answer{text-align:left}
+
+/* Light theme: fixed dark surfaces in navigation, drawer and bottom area */
+.theme-light .sidebar-bottom{background:#f6f8fb}
+@media(max-width:800px){.theme-light .sidebar-bottom{background:#f6f8fb!important}}
+.theme-light .sidebar,.theme-light .sidebar-menu{background:#fff;color:var(--text)}
+.theme-light .top,.theme-light .mobile-bottom-nav{background:#fff;color:var(--text);border-color:var(--line)}
+.theme-light .logout{background:#fff3f4;color:#c93649;border-color:#efcbd0}
+.theme-light .box,.theme-light .settings-card,.theme-light .own-request-card{background:var(--surface);color:var(--text);border-color:var(--line)}
+.theme-light .form-input,.theme-light .form-select,.theme-light .form-textarea,.theme-light .login-input{background:#fff;color:var(--text);border-color:var(--line)}
