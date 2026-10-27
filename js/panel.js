@@ -3957,7 +3957,7 @@
               '<label class="theme-option"><input type="radio" name="theme" value="dark"' + (lastSettings.theme === "dark" ? " checked" : "") + '><span><b>Тёмная</b><small>Стандартная тема панели</small></span></label>' +
               '<label class="theme-option"><input type="radio" name="theme" value="light"' + (lastSettings.theme === "light" ? " checked" : "") + '><span><b>Светлая</b><small>Светлый вариант интерфейса</small></span></label>' +
             '</div>' +
-            '<div class="form-actions"><button class="button button-primary" type="submit">Сохранить тему</button></div>' +
+
           '</form>' +
         '</section>' +
 
@@ -4102,37 +4102,32 @@
         }
 
         if (themeForm) {
+          var themeSaving = false;
           themeForm.querySelectorAll('input[name="theme"]').forEach(function (input) {
-            input.onchange = function () {
-              syncTheme(input.value);
-              showStatus("Предпросмотр темы применён. Нажмите «Сохранить тему», чтобы сохранить выбор.", true);
+            input.onchange = async function () {
+              if (themeSaving) return;
+              var previous = lastSettings.theme;
+              var selected = input.value;
+              syncTheme(selected);
+              themeSaving = true;
+              themeForm.querySelectorAll('input[name="theme"]').forEach(function (radio) { radio.disabled = true; });
+              try {
+                var result = await window.BR_API.settingsUpdate(user.token, { theme: selected });
+                var savedTheme = result && result.settings && result.settings.theme ? result.settings.theme : selected;
+                syncTheme(savedTheme);
+                showNormativeResult("Тема сохранена", "success");
+              } catch (error) {
+                syncTheme(previous);
+                var previousInput = themeForm.querySelector('input[name="theme"][value="' + previous + '"]');
+                if (previousInput) previousInput.checked = true;
+                showNormativeResult(error.message || "Не удалось сохранить тему", "error");
+              } finally {
+                themeSaving = false;
+                themeForm.querySelectorAll('input[name="theme"]').forEach(function (radio) { radio.disabled = false; });
+              }
             };
           });
-
-          themeForm.onsubmit = async function (event) {
-            event.preventDefault();
-
-            var checked = themeForm.querySelector('input[name="theme"]:checked');
-            var theme = checked ? checked.value : "dark";
-            var button = themeForm.querySelector("button[type=submit]");
-
-            button.disabled = true;
-            button.textContent = "Сохранение…";
-
-            try {
-              var result = await window.BR_API.settingsUpdate(user.token, { theme: theme });
-              var savedTheme = result && result.settings && result.settings.theme
-                ? result.settings.theme
-                : theme;
-              syncTheme(savedTheme);
-              showStatus("Тема сохранена.", true);
-            } catch (error) {
-              showStatus(error.message || "Не удалось сохранить тему.", false);
-            } finally {
-              button.disabled = false;
-              button.textContent = "Сохранить тему";
-            }
-          };
+          themeForm.onsubmit = function (event) { event.preventDefault(); };
         }
 
         if (googleForm) {
@@ -4198,7 +4193,11 @@
         try {
           var result = await window.BR_API.settingsGet(user.token);
           var settingsData = result && result.settings ? result.settings : {};
-          var theme = settingsData.theme || user.theme || "dark";
+          var localTheme = null;
+          try { localTheme = localStorage.getItem("br_theme"); } catch (_) {}
+          var theme = settingsData.theme === "light" || settingsData.theme === "dark"
+            ? settingsData.theme
+            : (localTheme === "light" || localTheme === "dark" ? localTheme : (user.theme || "dark"));
 
           syncTheme(theme);
 
