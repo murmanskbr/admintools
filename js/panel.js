@@ -429,7 +429,7 @@
                 '<div><small>ДОЛЖНОСТЬ</small><b>' + E(user.position || "—") + '</b></div>' +
                 '<div><small>РОЛЬ</small><b>' + E(user.role === "management" ? "Руководство" : "Администратор") + '</b></div>' +
                 '<div><small>ПОСЛЕДНИЙ ВХОД</small><b id="dashboardLastLogin">' + E(user.last_login_at ? formatDateTime(user.last_login_at) : "Обновляем…") + '</b></div>' +
-                '<div class="dashboard-normative-today"><small>НОРМАТИВ СЕГОДНЯ</small><b id="dashboardNormativeToday"><span class="badge badge-yellow">Проверяем…</span></b></div>' +
+                (user.role === "management" ? '<div class="dashboard-normative-today"><small>НА ПРОВЕРКЕ</small><div id="dashboardPendingCounts">Загрузка…</div></div>' : '<div class="dashboard-normative-today"><small>НОРМАТИВ СЕГОДНЯ</small><b id="dashboardNormativeToday"><span class="badge badge-yellow">Проверяем…</span></b></div>') +
               '</div>' +
             '</div>' +
             '<div class="box dashboard-links">' +
@@ -459,7 +459,7 @@
               '<div class="server-box-head"><div><small>СТАТИСТИКА СЕРВЕРА</small><h2>Мурманск</h2></div>' +
               '<div class="server-box-actions">' +
                 '<span class="server-status"><i style="background:' + (online != null ? "#36d47d" : "#8d96a7") + '"></i>' + status + '</span>' +
-                '<button class="small-button server-refresh" id="serverRefresh" type="button" aria-label="Обновить" title="Обновить">⟳</button>' +
+                '<button class="small-button server-refresh" id="serverRefresh" type="button" aria-label="Обновить" title="Обновить"><span class="server-refresh-icon">⟳</span></button>' +
               '</div></div>' +
               '<div class="server-stats-grid">' +
                 '<div class="server-stat"><small>ИГРОКИ</small><strong>' + E(online == null ? "—" : String(online) + (max != null ? " / " + max : "")) + '</strong><span>игроков онлайн</span></div>' +
@@ -471,76 +471,68 @@
             '</div>';
 
           var refresh = document.getElementById("serverRefresh");
-          if (refresh) {
-            refresh.onclick = function () {
-              loadServer(true);
-            };
-          }
-
-          var updated = document.getElementById("serverUpdated");
-          if (updated) updated.textContent = "Обновлено " + Math.max(0, Math.floor((Date.now() - t) / 60000)) + " мин назад";
+          if (refresh) refresh.onclick = function () { loadServer(true); };
+          updateServerTime(t);
+        }
+        var refreshingServer = false;
+        function serverAge(t) { return Math.max(0, Math.floor((Date.now() - t) / 60000)); }
+        function updateServerTime(t) {
+          var age = serverAge(t), tile = document.getElementById("serverUpdatedTile"), updated = document.getElementById("serverUpdated");
+          var clock = new Date(t).toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit"});
+          if (tile) tile.textContent = age < 1 ? "сейчас" : clock;
+          if (updated) updated.textContent = "Данные обновлены: " + clock + (age < 1 ? " (сейчас)" : " (" + age + " мин назад)");
         }
         async function loadServer(force) {
-          if (valid && !force) renderServer(cached.data, cached.t);
-          if (valid && !force && Date.now() - cached.t < 300000) return;
+          if (refreshingServer) return;
+          if (valid && !force) { renderServer(cached.data, cached.t); if (Date.now() - cached.t < 300000) return; }
+          refreshingServer = true;
+          var refresh = document.getElementById("serverRefresh");
+          if (refresh) { refresh.disabled = true; refresh.classList.add("is-refreshing"); }
           try {
-            var data = await window.BR_API.serverStats(user.token);
-            if (!valid || JSON.stringify(data) !== JSON.stringify(cached.data)) renderServer(data, Date.now());
-            else {
-              var updated = document.getElementById("serverUpdated");
-              if (updated) updated.textContent = "Обновлено 0 мин назад";
-            }
-            cached = {t:Date.now(),data:data}; valid = true;
+            var data = await window.BR_API.serverStats(user.token), timestamp = Date.now();
+            renderServer(data, timestamp);
+            cached = {t:timestamp,data:data}; valid = true;
             try { sessionStorage.setItem(key, JSON.stringify(cached)); } catch (_) {}
+            if (force) showNormativeResult("Обновлено", "success");
           } catch (error) {
-            if (valid) return;
-            root.innerHTML = '<div class="box dashboard-error"><div class="empty">Не удалось загрузить статистику сервера.</div><div class="dashboard-error-action"><button class="small-button server-refresh" id="serverRefresh" type="button">↻ Повторить</button></div></div>';
-            var retry = document.getElementById("serverRefresh");
-            if (retry) retry.onclick = function () { loadServer(true); };
+            var age = valid ? serverAge(cached.t) : null;
+            if (valid) renderServer(cached.data, cached.t);
+            else {
+              root.innerHTML = '<div class="box dashboard-error"><div class="empty">Не удалось загрузить статистику сервера.</div><div class="dashboard-error-action"><button class="small-button server-refresh" id="serverRefresh" type="button">⟳ Повторить</button></div></div>';
+              document.getElementById("serverRefresh").onclick = function () { loadServer(true); };
+            }
+            showNormativeResult(age === null ? "Не удалось обновить, сохранённых данных нет" : "Не удалось обновить, показаны данные " + age + " мин назад", "error");
+          } finally {
+            refreshingServer = false;
+            var button = document.getElementById("serverRefresh");
+            if (button) { button.disabled = false; button.classList.remove("is-refreshing"); }
+            if (valid) updateServerTime(cached.t);
           }
         }
         async function loadDashboardAccount() {
-          var lastLogin = document.getElementById("dashboardLastLogin");
-          var normativeToday = document.getElementById("dashboardNormativeToday");
-          var today = dateIso(0);
-          var labels = {
-            pending: ["На проверке", "badge-yellow"],
-            norm: ["Норма", "badge-green"],
-            rework: ["Перенорма", "badge-blue"],
-            no_norm: ["Нет нормы", "badge-red"],
-            inactive: ["Неактив", "badge-gray"],
-            not_submitted: ["Не сдан", "badge-red"],
-            approved: ["Проверен", "badge-green"],
-            rejected: ["Отклонён", "badge-red"]
-          };
-          try {
-            var results = await Promise.all([
-              window.BR_API.me(user.token),
-              window.BR_API.normativesMine(user.token)
-            ]);
-            var me = results[0] && results[0].admin;
-            if (me && me.last_login_at) {
-              user.last_login_at = me.last_login_at;
-              if (lastLogin) lastLogin.textContent = formatDateTime(me.last_login_at);
-            } else if (lastLogin && user.last_login_at) {
-              lastLogin.textContent = formatDateTime(user.last_login_at);
-            }
-            var items = results[1] && Array.isArray(results[1].normatives) ? results[1].normatives : [];
-            var item = items.find(function (row) { return String(row.submission_date || "").slice(0, 10) === today; });
-            if (normativeToday) {
-              if (!item) {
-                normativeToday.innerHTML = '<span class="badge badge-red">✕ Не сдан</span>';
-              } else {
-                var status = String(item.status || "pending").toLowerCase();
-                var entry = labels[status] || ["На проверке", "badge-yellow"];
-                var icon = status === "pending" ? "⏳ " : status === "norm" || status === "approved" ? "✓ " : status === "no_norm" || status === "rejected" ? "✕ " : "";
-                normativeToday.innerHTML = '<span class="badge ' + entry[1] + '">' + icon + E(entry[0]) + '</span>';
-              }
-            }
-          } catch (error) {
-            if (normativeToday) normativeToday.innerHTML = '<span class="badge">Не удалось загрузить</span>';
-            if (lastLogin && !user.last_login_at) lastLogin.textContent = "—";
+          var lastLogin = document.getElementById("dashboardLastLogin"), normativeToday = document.getElementById("dashboardNormativeToday"), pendingRoot = document.getElementById("dashboardPendingCounts");
+          var tasks = [window.BR_API.me(user.token).then(function(result) {
+            var me = result && result.admin;
+            if (me && me.last_login_at) user.last_login_at = me.last_login_at;
+            if (lastLogin) lastLogin.textContent = user.last_login_at ? formatDateTime(user.last_login_at) : "—";
+          }).catch(function() { if (lastLogin) lastLogin.textContent = user.last_login_at ? formatDateTime(user.last_login_at) : "Не удалось загрузить"; })];
+          if (user.role === "management") {
+            tasks.push(window.BR_API.managementPendingCounts(user.token).then(function(result) {
+              var data = result && (result.counts || result.data || result), norm = Number(data.normatives_pending || 0), inactive = Number(data.inactive_requests || 0), requests = Number(data.unanswered_requests || 0);
+              if (!pendingRoot) return;
+              pendingRoot.innerHTML = norm + inactive + requests === 0 ? '<span class="badge badge-green">✓ Всё проверено</span>' : '<div class="dashboard-pending-links"><a href="../pages/normatives-all.html">Нормативы: <b>' + E(norm) + '</b></a><a href="../pages/normatives-all.html">Заявки: <b>' + E(inactive) + '</b></a><a href="../pages/requests-all.html">Обращения без ответа: <b>' + E(requests) + '</b></a></div>';
+            }).catch(function() { if (pendingRoot) pendingRoot.textContent = "Не удалось загрузить"; }));
+          } else {
+            tasks.push(window.BR_API.normativesMine(user.token).then(function(result) {
+              var items = result && Array.isArray(result.normatives) ? result.normatives : [], today = dateIso(0);
+              var item = items.find(function(row) { return String(row.submission_date || "").slice(0,10) === today; });
+              if (!normativeToday) return;
+              if (!item) normativeToday.innerHTML = '<span class="badge badge-red">✕ Не подан</span>';
+              else if (String(item.status || "pending").toLowerCase() === "pending" && !item.reviewed_at) normativeToday.innerHTML = '<span class="badge badge-yellow">✓ Подан (на проверке)</span>';
+              else normativeToday.innerHTML = '<span class="badge badge-green">✓ Принят</span>';
+            }).catch(function() { if (normativeToday) normativeToday.textContent = "Не удалось загрузить"; }));
           }
+          await Promise.all(tasks);
         }
         await Promise.all([loadServer(false), loadDashboardAccount()]);
       }
