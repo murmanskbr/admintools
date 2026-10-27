@@ -557,7 +557,9 @@
       return;
     }
 
-    applyTheme(session.user.theme || "dark");
+    var initialTheme = null;
+    try { initialTheme = localStorage.getItem("br_theme"); } catch (_) {}
+    applyTheme(initialTheme === "light" || initialTheme === "dark" ? initialTheme : (session.user.theme || "dark"));
     window.__brCurrentUser = session.user;
 
     // API requests also report an expired server-side session.
