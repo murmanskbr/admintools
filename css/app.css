@@ -5743,3 +5743,27 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
 .theme-light .logout{background:#fff3f4;color:#c93649;border-color:#efcbd0}
 .theme-light .box,.theme-light .settings-card,.theme-light .own-request-card{background:var(--surface);color:var(--text);border-color:var(--line)}
 .theme-light .form-input,.theme-light .form-select,.theme-light .form-textarea,.theme-light .login-input{background:#fff;color:var(--text);border-color:var(--line)}
+
+/* Keep normative date actions aligned on narrow phones. */
+@media (max-width:520px) {
+  body[data-page="normatives-all"] .date-actions {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    align-items:stretch;
+    gap:8px;
+  }
+  body[data-page="normatives-all"] .date-actions #dateToday,
+  body[data-page="normatives-all"] .date-actions #normDailyRefresh {
+    width:100%; min-width:0; height:40px; min-height:40px;
+    margin:0; box-sizing:border-box;
+  }
+  body[data-page="normatives-all"] .date-actions .cache-page-tools {
+    display:contents;
+  }
+  body[data-page="normatives-all"] .date-actions #normDailyUpdated {
+    grid-column:1 / -1;
+    grid-row:2;
+    text-align:right;
+    white-space:normal;
+  }
+}
