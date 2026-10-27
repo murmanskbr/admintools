@@ -851,7 +851,7 @@
   ]);
   function normalizePosition(name) {
     return String(name == null ? "" : name).trim().toLowerCase().replace(/ё/g, "е")
-      .replace(/\\s*\\([^)]*\\)\\s*$/g, "").replace(/\\s+/g, " ").trim();
+      .replace(/\s*\([^)]*\)\s*$/g, "").replace(/\s+/g, " ").trim();
   }
   var positionAliases = Object.create(null);
   POSITIONS.forEach(function(name, index) { positionAliases[normalizePosition(name)] = index; });
