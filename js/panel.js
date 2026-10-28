@@ -986,6 +986,31 @@
         pendingSection = "";
       });
 
+      // Защитный fallback: если строгая фильтрация скрыла все строки,
+      // показываем непустые исходные строки, не подменяя данные и не выдумывая значения.
+      if (!displayRecords.length && rows.length) {
+        rows.forEach(function (row, rowIndex) {
+          if (!Array.isArray(row) || !rowTextValues(row).length) return;
+          if (isHeaderLikeRow(row) || sectionTitleFromRow(row)) return;
+
+          var nickname = nicknameIndex >= 0
+            ? rawCellValue(row[nicknameIndex]).trim()
+            : "";
+
+          if (nicknameIndex >= 0 && !nickname) return;
+
+          var sourceItem = statistics[rowIndex] || {};
+          displayRecords.push({
+            row: row,
+            sourceItem: sourceItem,
+            originalIndex: rowIndex,
+            sectionTitle: sourceItem && sourceItem.section_title
+              ? String(sourceItem.section_title).trim()
+              : ""
+          });
+        });
+      }
+
       return {
         headers: headers,
         rows: rows,
