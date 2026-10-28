@@ -5775,3 +5775,29 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
  body[data-page="statistics-all"] .stats-date-actions .cache-page-tools #allStatsRefresh{display:flex;justify-content:center;align-items:center;width:100%!important;min-width:0!important;max-width:100%;flex:none!important;box-sizing:border-box;grid-column:auto;grid-row:auto}
  body[data-page="statistics-all"] .stats-date-actions .cache-page-tools #allStatsUpdated{display:block;max-width:100%;min-width:0;white-space:normal!important;overflow-wrap:anywhere;letter-spacing:normal;text-align:center}
 }
+
+/* Fix: the mobile statistics cards must remain visible on phones.
+   This intentionally overrides older legacy rules that hid the list. */
+@media (max-width: 800px) {
+  body[data-page="statistics-all"] #allStatsRoot .table-box .stats-mobile-list {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 10px !important;
+  }
+
+  body[data-page="statistics-all"] #allStatsRoot .table-box .stats-mobile-card {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  body[data-page="statistics-all"] #allStatsRoot #allStatsTable {
+    display: none !important;
+  }
+}
