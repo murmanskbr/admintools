@@ -1733,7 +1733,7 @@
 
       root.innerHTML =
         '<div class="modal-backdrop" id="adminEditBackdrop">' +
-          '<div class="modal-card admin-edit-modal-card">' +
+          '<div class="modal-card admin-edit-card admin-edit-modal-card">' +
             '<div class="modal-head">' +
               '<div class="admin-edit-title"><small>ДАННЫЕ</small><h2>Редактирование строки</h2><span>Изменяются только существующие столбцы</span></div>' +
               '<button class="modal-close" id="adminEditClose" type="button">×</button>' +
