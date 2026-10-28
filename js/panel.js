@@ -1806,13 +1806,8 @@
 
     function load(user, forceRefresh) {
       var root = document.getElementById("allStatsRoot");
-      var dateInput = document.getElementById("allStatsDate");
       if (!root) return Promise.resolve(null);
-      if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(String(dateInput.value || ""))) selectedDate = String(dateInput.value);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(selectedDate || ""))) {
-        selectedDate = dateIso(0);
-        if (dateInput) dateInput.value = selectedDate;
-      }
+      selectedDate = dateIso(0);
       var requestedDate = selectedDate;
       var requestedUser = user || window.BRApp.session && window.BRApp.session.user;
       if (!requestedUser) return Promise.resolve(null);
@@ -1843,33 +1838,13 @@
         return '<div class="page-toolbar stats-all-toolbar">' +
           '<div><small>ОБЩАЯ СТАТИСТИКА</small><b>Google Таблица • исходные столбцы и значения</b></div>' +
           '<div class="stats-toolbar-actions">' +
-            '<button class="small-button" id="statsDatePrev" type="button">←</button>' +
-            '<input id="allStatsDate" class="form-input date-control" type="date" value="' + E(selectedDate) + '">' +
-            '<button class="small-button" id="statsDateNext" type="button">→</button>' +
-            '<div class="stats-date-actions"><button class="button button-secondary" id="statsDateToday" type="button">Сегодня</button>' +
-            '<div class="cache-page-tools"><small id="allStatsUpdated" class="cache-updated-at muted">Обновлено —</small><button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button></div></div>' +
+            '<div class="cache-page-tools"><small id="allStatsUpdated" class="cache-updated-at muted">Обновлено —</small><button class="button button-secondary" id="allStatsRefresh" type="button">↻ Обновить</button></div>' +
           '</div>' +
         '</div>' +
         '<div id="allStatsRoot">' + cacheSkeleton(7) + '</div>';
       },
       bind: function (user) {
-        var date = document.getElementById("allStatsDate");
-        var prev = document.getElementById("statsDatePrev");
-        var next = document.getElementById("statsDateNext");
-        var today = document.getElementById("statsDateToday");
         var refresh = document.getElementById("allStatsRefresh");
-
-        function setDate(value) {
-          if (!value) return;
-          selectedDate = value;
-          if (date) date.value = value;
-          load(user, false);
-        }
-
-        if (date) date.onchange = function () { setDate(date.value); };
-        if (prev) prev.onclick = function () { setDate(shiftSelectedDate(-1)); };
-        if (next) next.onclick = function () { setDate(shiftSelectedDate(1)); };
-        if (today) today.onclick = function () { setDate(dateIso(0)); };
 
         if (refresh) {
           refresh.onclick = function () {
