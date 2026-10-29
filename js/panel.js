@@ -3695,19 +3695,19 @@
                   successMessage += " В Google-таблице нет данных этого администратора — статус сохранён в панели, таблица не обновлена.";
                 }
 
-                showNormativeResult(
-                  successMessage,
-                  "success"
-                );
-
                 if (document.body.getAttribute("data-page") === "normatives-all") {
                   try {
                     await loadDaily(true);
                   } catch (refreshError) {
                     console.warn("[BR AdminTools] Статус сохранён, но список нормативов не удалось синхронизировать:", refreshError);
-                    showNormativeResult("Статус сохранён, но список не удалось обновить. Обновите страницу.", "error");
+                    successMessage += " Статус сохранён, но список не удалось автоматически обновить — обновите страницу.";
                   }
                 }
+
+                showNormativeResult(
+                  successMessage,
+                  "success"
+                );
               } catch (error) {
                 alert(error.message || "Не удалось сохранить статус.");
                 saveDecisionButton.disabled = false;
