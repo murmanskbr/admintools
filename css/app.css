@@ -5956,3 +5956,47 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
   .main>.watermark .watermark-mark span{font-size:clamp(22px,7vw,48px)}
   .main>.watermark .watermark-mark small{font-size:clamp(6px,1.6vw,9px);letter-spacing:.08em}
 }
+
+
+/* Mobile: keep the statistics update timestamp separate from the refresh button. */
+@media (max-width: 800px) {
+  body[data-page="statistics-all"] .stats-all-toolbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  body[data-page="statistics-all"] .stats-all-toolbar > div,
+  body[data-page="statistics-all"] .stats-toolbar-actions,
+  body[data-page="statistics-all"] .stats-toolbar-actions .cache-page-tools {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  body[data-page="statistics-all"] .stats-toolbar-actions .cache-page-tools {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+  body[data-page="statistics-all"] #allStatsRefresh {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    justify-content: center;
+  }
+  body[data-page="statistics-all"] #allStatsUpdated {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 2px !important;
+    text-align: left !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+    line-height: 1.4 !important;
+    font-size: 11px !important;
+  }
+}
