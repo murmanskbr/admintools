@@ -9,6 +9,7 @@
 
     var REQUEST_TIMEOUT_MS = 65000;
     var UPLOAD_TIMEOUT_MS = 135000;
+    var STATISTICS_TIMEOUT_MS = 60000;
 
     // Успешные изменения сообщаем другим вкладкам этого же сайта.
     // Данные администратора и содержимое запросов в событие не попадают.
@@ -615,7 +616,7 @@
                             )
                         )
                 },
-                REQUEST_TIMEOUT_MS
+                STATISTICS_TIMEOUT_MS
             );
         } catch (networkError) {
             var timeoutError =
