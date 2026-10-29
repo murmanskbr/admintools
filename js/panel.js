@@ -511,7 +511,7 @@
             tasks.push(window.BR_API.managementPendingCounts(user.token).then(function(result) {
               var data = result && (result.counts || result.data || result), norm = Number(data.normatives_pending || 0), inactive = Number(data.inactive_requests || 0), requests = Number(data.unanswered_requests || 0);
               if (!pendingRoot) return;
-              pendingRoot.innerHTML = norm + inactive + requests === 0 ? '<span class="badge badge-green">✓ Всё проверено</span>' : '<div class="dashboard-pending-links"><a href="../pages/normatives-all.html">Нормативы: <b>' + E(norm) + '</b></a><a href="../pages/normatives-all.html">Заявки: <b>' + E(inactive) + '</b></a><a href="../pages/requests-all.html">Обращения без ответа: <b>' + E(requests) + '</b></a></div>';
+              pendingRoot.innerHTML = norm + inactive + requests === 0 ? '<span class="badge badge-green">✓ Очередь проверки пуста</span>' : '<div class="dashboard-pending-links"><a href="../pages/normatives-all.html">Нормативы на проверке: <b>' + E(norm) + '</b></a><a href="../pages/normatives-all.html">Заявки на неактив: <b>' + E(inactive) + '</b></a><a href="../pages/requests-all.html">Обращения без ответа: <b>' + E(requests) + '</b></a></div>';
             }).catch(function() { if (pendingRoot) pendingRoot.textContent = "Не удалось загрузить"; }));
           } else {
             tasks.push(window.BR_API.normativesMine(user.token).then(function(result) {
