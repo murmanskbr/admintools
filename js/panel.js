@@ -99,7 +99,7 @@
       }
     }
     if (valid) {
-      if (!force && isCurrent()) render(old);
+      if (isCurrent()) render(old);
       stamp(saved.t);
     } else if (root && isCurrent()) {
       root.innerHTML = cacheSkeleton(opts.skeletonLines || 6);
@@ -110,6 +110,13 @@
       refresh.textContent = "Обновление…";
     }
     return Promise.resolve().then(fetcher).then(function (data) {
+      if (opts.preserveNonemptyRows && valid && old && Array.isArray(old.rows) && old.rows.length && data && Array.isArray(data.rows) && !data.rows.length) {
+        if (isCurrent()) {
+          stamp(saved.t);
+          if (typeof opts.onEmpty === "function") opts.onEmpty(Math.max(0, Math.floor((Date.now() - saved.t) / 60000)));
+        }
+        return old;
+      }
       var changed = !valid || JSON.stringify(data) !== JSON.stringify(old);
       if (changed && isCurrent()) render(data);
       try { sessionStorage.setItem(storageKey, JSON.stringify({t:Date.now(),data:data})); } catch (_) {}
@@ -1844,9 +1851,11 @@
       }, {
         root: "allStatsRoot", stampId: "allStatsUpdated", refreshId: "allStatsRefresh",
         force: !!forceRefresh, throwOnError: true,
+        preserveNonemptyRows: true,
+        onEmpty: function (minutes) { showNormativeResult("Сервер вернул пустую статистику, показаны данные " + minutes + " мин назад", "error"); },
         isCurrent: function () { return selectedDate === requestedDate; },
         onError: function (error, hasCache) {
-          if (hasCache) showNormativeResult("Не удалось обновить статистику. Сохранённые данные оставлены на экране.", "error");
+          if (hasCache) showNormativeResult("Не удалось обновить статистику" + (error && error.code ? " [" + error.code + "]" : "") + ". Сохранённые данные оставлены на экране.", "error");
           else {
             lastResult = null; lastData = []; lastHeaders = []; lastNicknameIndex = -1;
             if (root) root.innerHTML = '<div class="box"><div class="empty">' + E(error.message || "Не удалось загрузить актуальную статистику из Google Таблицы.") + '</div></div>';
