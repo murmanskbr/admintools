@@ -3352,6 +3352,10 @@
       var root = document.getElementById("normRoot");
       if (!root) return result;
       result = result || {};
+      if (String(result.date || "") !== String(renderDate || "")) {
+        root.innerHTML = '<div class="box"><div class="empty">Сервер вернул данные за другую дату. Они не показаны. Нажмите «Обновить».</div></div>';
+        return result;
+      }
         var list = Array.isArray(result.administrators) ? result.administrators.slice() : [];
 
         list.sort(comparePositions);
@@ -3514,8 +3518,13 @@
       if (dateInput && dateInput.value) selectedDate = dateInput.value;
       var requestedDate = selectedDate;
       root.setAttribute("aria-busy", "true");
-      return cachedPageLoad(user, "normativesAll:adminsOnly:v2:" + requestedDate, function () {
-        return window.BR_API.normativesDailyLocal(user.token, requestedDate);
+      return cachedPageLoad(user, "normativesAll:adminsOnly:v3:" + requestedDate, function () {
+        return window.BR_API.normativesDailyLocal(user.token, requestedDate).then(function (result) {
+          if (!result || String(result.date || "") !== requestedDate) {
+            throw new Error("Сервер вернул нормативы за другую дату. Данные не показаны.");
+          }
+          return result;
+        });
       }, function (result) { renderDailyResult(result, requestedDate); }, {
         root: "normRoot", stampId: "normDailyUpdated",
         force: !!forceRefresh, throwOnError: true,
