@@ -3368,7 +3368,7 @@
           return '<tr data-admin-id="' + E(item.admin_id || 0) + '" data-normative-status="' + E(key) + '" data-normative-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-normative-position="' + E(item.position || "") + '">' +
             '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + E(item.nickname) + '</button></td>' +
             '<td>' + E(item.position || "—") + '</td><td>' + E(formatDateOnly(renderDate)) + '</td>' +
-            '<td>' + E(item.created_at ? formatDateTime(item.created_at) : "—") + '</td><td>' + normativeStatus(item.status) + '</td>' +
+            '<td>' + E(Number(item.file_count || 0) > 0 && item.created_at ? formatDateTime(item.created_at) : "Нет отправки") + '</td><td>' + normativeStatus(item.status) + '</td>' +
             '<td>' + E(item.file_count || 0) + '</td><td>' + E(item.review_comment || "—") + '</td><td>' + action + '</td></tr>';
         }).join("");
         var mobileCards = list.map(function(item) {
@@ -3376,7 +3376,7 @@
           var action = '<button class="button button-primary normative-admin-open" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + (item.submission_id ? 'Открыть проверку' : 'Выставить статус') + '</button>';
           return '<article class="normative-admin-card" data-normative-status="' + E(key) + '" data-normative-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-normative-position="' + E(item.position || "") + '">' +
             '<div class="normative-admin-card-head"><div class="normative-admin-person"><b>' + E(item.nickname || "Без никнейма") + '</b><span>' + E(item.position || "Должность не указана") + '</span></div><div class="normative-admin-card-status">' + normativeStatus(item.status) + '</div></div>' +
-            '<div class="normative-admin-card-meta"><div><small>Дата</small><b>' + E(formatDateOnly(renderDate)) + '</b></div><div><small>Отправлено</small><b>' + E(item.created_at ? formatDateTime(item.created_at) : "Нет отправки") + '</b></div><div><small>Файлы</small><b>' + E(String(item.file_count || 0)) + '</b></div></div>' +
+            '<div class="normative-admin-card-meta"><div><small>Дата</small><b>' + E(formatDateOnly(renderDate)) + '</b></div><div><small>Отправлено</small><b>' + E(Number(item.file_count || 0) > 0 && item.created_at ? formatDateTime(item.created_at) : "Не отправлял") + '</b></div><div><small>Файлы</small><b>' + E(String(item.file_count || 0)) + '</b></div></div>' +
             (item.review_comment ? '<div class="normative-admin-card-comment"><small>Комментарий руководства</small><p>' + E(item.review_comment) + '</p></div>' : '') + action + '</article>';
         }).join("");
 
