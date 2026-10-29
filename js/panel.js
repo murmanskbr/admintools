@@ -4219,29 +4219,31 @@
     };
 
     var actions = {
-      access_candidates: "Действие: access_candidates",
-      access_list: "Действие: access_list",
-      settings_get: "Действие: settings_get",
-      notifications_list: "Действие: notifications_list",
-      push_config: "Действие: push_config",
-      push_config_get: "Действие: push_config_get",
-      push_status: "Действие: push_status",
-      notification_read: "Действие: notification_read",
-      events_list: "Действие: events_list",
-      general_requests_mine: "Действие: general_requests_mine",
-      general_requests_all: "Действие: general_requests_all",
-      inactive_requests_mine: "Действие: inactive_requests_mine",
-      inactive_requests_all: "Действие: inactive_requests_all",
-      inactive_request_overlap_check: "Действие: inactive_request_overlap_check",
-      inactive_periods_range: "Действие: inactive_periods_range",
-      normatives_list: "Действие: normatives_list",
-      normatives_all: "Действие: normatives_all",
-      normatives_mine: "Действие: normatives_mine",
-      normative_detail: "Действие: normative_detail",
-      normative_url: "Действие: normative_url",
-      game_presence_mine: "Действие: game_presence_mine",
-      game_presence_control: "Действие: game_presence_control",
-      server_stats: "Действие: server_stats",
+      access_candidates: "Поиск администраторов без доступа",
+      access_list: "Просмотр списка доступов",
+      settings_get: "Просмотр настроек",
+      notifications_list: "Просмотр уведомлений",
+      push_config: "Настройка push-уведомлений",
+      push_config_get: "Просмотр настроек push-уведомлений",
+      push_status: "Проверка push-подписки",
+      notification_read: "Прочтение уведомления",
+      events_list: "Просмотр событий",
+      general_requests_mine: "Просмотр своих обращений",
+      general_requests_all: "Просмотр обращений администрации",
+      inactive_requests_mine: "Просмотр своих заявок на неактив",
+      inactive_requests_all: "Просмотр заявок на неактив",
+      inactive_request_overlap_check: "Проверка пересечения дат неактива",
+      inactive_periods_range: "Просмотр периодов неактива",
+      normatives_list: "Просмотр списка нормативов",
+      normatives_all: "Просмотр всех нормативов",
+      normatives_mine: "Просмотр своих нормативов",
+      normative_detail: "Просмотр деталей норматива",
+      normative_url: "Получение ссылки на норматив",
+      game_presence_mine: "Просмотр своего статуса в игре",
+      game_presence_control: "Проверка статуса в игре",
+      server_stats: "Просмотр статистики сервера",
+      me: "Просмотр данных аккаунта",
+      legacy_sessions_cleanup: "Очистка устаревших сессий",
       page_view: "Открытие раздела",
       login: "Вход в систему",
       logout: "Выход из системы",
@@ -4336,6 +4338,39 @@
         return "Доступ изменён: " + nickname;
       }
 
+      var successAction = raw.match(/^Успешное действие:\\s*([a-z0-9_]+)$/i);
+      if (successAction && actions[successAction[1].toLowerCase()]) {
+        return actions[successAction[1].toLowerCase()];
+      }
+
+      var openedSection = raw.match(/^Открыт раздел:\\s*([a-z0-9_-]+)$/i);
+      if (openedSection) {
+        var sectionKey = openedSection[1].toLowerCase();
+        return "Открыт раздел: " + (pages[sectionKey] || sectionKey.replace(/-/g, " "));
+      }
+
+      var settingNames = {
+        theme: "Тема оформления",
+        web_app_url: "Адрес Google Apps Script",
+        password: "Пароль",
+        role: "Роль",
+        position: "Должность"
+      };
+      if (settingNames[raw]) return "Изменена настройка: " + settingNames[raw];
+
+      var normativeStatus = raw.match(/^(.*?статус:\\s*)(norm|rework|no_norm|inactive|not_submitted|pending)(.*)$/i);
+      if (normativeStatus) {
+        var statusNames = {
+          norm: "Принят",
+          rework: "На доработку",
+          no_norm: "Не сдан",
+          inactive: "Неактив",
+          not_submitted: "Не подан",
+          pending: "На проверке"
+        };
+        return normativeStatus[1] + statusNames[normativeStatus[2].toLowerCase()] + normativeStatus[3];
+      }
+
       return details[raw] || raw || "—";
     }
 
@@ -4408,8 +4443,28 @@
       };
     }
 
+    function localDateKey(value) {
+      var date = new Date(value || "");
+      if (!Number.isFinite(date.getTime())) return "";
+      return date.getFullYear() + "-" +
+        String(date.getMonth() + 1).padStart(2, "0") + "-" +
+        String(date.getDate()).padStart(2, "0");
+    }
+
     function renderTable(root, list) {
-      var filtered = list.filter(function (item) { return state.severity === "all" || (item.criticality || criticality(item.action).key) === state.severity; });
+      var nicknameFilter = String(state.nickname || "").trim().toLocaleLowerCase("ru");
+      var actionFilter = String(state.action || "").trim().toLowerCase();
+      var dateFilter = String(state.date || "").trim();
+      var filtered = list.filter(function (item) {
+        var itemNickname = String(item.nickname || "").toLocaleLowerCase("ru");
+        var itemAction = String(item.action || "").trim().toLowerCase();
+        var itemSeverity = item.criticality || criticality(item.action).key;
+
+        return (!nicknameFilter || itemNickname.indexOf(nicknameFilter) !== -1) &&
+          (!actionFilter || itemAction === actionFilter) &&
+          (!dateFilter || localDateKey(item.created_at || item.time) === dateFilter) &&
+          (state.severity === "all" || itemSeverity === state.severity);
+      });
       var rows = filtered.length
         ? filtered.slice(0, state.visible).map(function (x) {
             var actionKey = String(x.action || "").toLowerCase();
