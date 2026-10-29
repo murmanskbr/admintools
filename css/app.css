@@ -5891,6 +5891,8 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
 .main{isolation:isolate}
 .main>.top{position:relative;z-index:3}
 .main>.content{position:relative;z-index:2}
+.main>.watermark{z-index:999!important;opacity:1!important}
+.main>.content,.main>.content *{--watermark-layer:visible}
 .main>.watermark{
   position:fixed;
   inset:64px 0 0 var(--sidebar);
@@ -5924,7 +5926,7 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
   opacity:.09;
 }
 .main>.watermark .watermark-mark span{
-  color:rgba(128,138,155,.105);
+  color:rgba(128,138,155,.19);
   text-shadow:none;
   font-size:clamp(24px,6.8vw,96px);
   line-height:1;
@@ -5932,7 +5934,7 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
   letter-spacing:-.045em;
 }
 .main>.watermark .watermark-mark small{
-  color:rgba(128,138,155,.09);
+  color:rgba(128,138,155,.15);
   font-size:clamp(7px,.9vw,12px);
   letter-spacing:.12em;
 }
@@ -5940,8 +5942,8 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
   border-color:rgba(75,85,99,.10);
 }
 .theme-light .main>.watermark .watermark-logo{opacity:.075}
-.theme-light .main>.watermark .watermark-mark span{color:rgba(75,85,99,.09)}
-.theme-light .main>.watermark .watermark-mark small{color:rgba(75,85,99,.085)}
+.theme-light .main>.watermark .watermark-mark span{color:rgba(75,85,99,.15)}
+.theme-light .main>.watermark .watermark-mark small{color:rgba(75,85,99,.13)}
 @media(max-width:800px){
   .main>.watermark{inset:56px 0 78px 0}
   .main>.watermark .watermark-mark{
