@@ -5827,3 +5827,61 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
   .access-registry .access-registry-toolbar .form-input,
   .access-registry .access-registry-toolbar .form-select{min-height:42px;font-size:12px}
 }
+
+
+/* Access registry: prevent compressed columns on desktop and keep controls aligned. */
+@media (min-width: 801px) {
+  body[data-page="access"] .access-registry-root {
+    width: 100%;
+    min-width: 0;
+  }
+  body[data-page="access"] .access-registry-toolbar {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  body[data-page="access"] #accessRegistryTable {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  body[data-page="access"] #accessRegistryTable th,
+  body[data-page="access"] #accessRegistryTable td {
+    padding: 12px 10px;
+    vertical-align: middle;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  body[data-page="access"] #accessRegistryTable td.access-actions-cell {
+    white-space: nowrap;
+  }
+  body[data-page="access"] .access-registry-box {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+}
+@media (max-width: 800px) {
+  body[data-page="access"] .access-registry-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  body[data-page="access"] .access-registry-head > span {
+    max-width: none;
+    text-align: left;
+  }
+  body[data-page="access"] .access-registry-toolbar {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
+  body[data-page="access"] .access-registry-toolbar .access-registry-sort {
+    width: 100%;
+    min-width: 0;
+  }
+}
