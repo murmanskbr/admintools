@@ -5801,3 +5801,29 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
     display: none !important;
   }
 }
+
+
+/* Responsive access registry: keep search, role filter and sort inside the header. */
+.access-registry{min-width:0}
+.access-registry .access-registry-head{align-items:flex-start;flex-wrap:wrap}
+.access-registry .access-registry-head>div:first-child{flex:0 0 auto}
+.access-registry .access-registry-toolbar{display:grid;grid-template-columns:minmax(190px,1.4fr) minmax(150px,.8fr) minmax(190px,1fr);align-items:end;justify-content:stretch;gap:10px;flex:1 1 620px;min-width:0}
+.access-registry .access-registry-toolbar>.form-input,
+.access-registry .access-registry-toolbar>.form-select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+.access-registry .access-sort-control{display:flex;flex-direction:column;gap:5px;min-width:0}
+.access-registry .access-sort-control .access-registry-sort{width:100%;min-width:0}
+@media(max-width:1100px){
+  .access-registry .access-registry-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr);flex-basis:100%}
+  .access-registry .access-registry-toolbar>.form-input{grid-column:1/-1}
+  .access-registry .access-sort-control{grid-column:1/-1}
+}
+@media(max-width:600px){
+  .access-registry .access-registry-toolbar{grid-template-columns:minmax(0,1fr);gap:9px}
+  .access-registry .access-registry-toolbar>.form-input,
+  .access-registry .access-registry-toolbar>.form-select,
+  .access-registry .access-sort-control{grid-column:1}
+  .access-registry .access-registry-head{display:flex;flex-direction:column;gap:12px}
+  .access-registry .access-registry-toolbar{width:100%}
+  .access-registry .access-registry-toolbar .form-input,
+  .access-registry .access-registry-toolbar .form-select{min-height:42px;font-size:12px}
+}
