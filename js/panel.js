@@ -3514,7 +3514,7 @@
       if (dateInput && dateInput.value) selectedDate = dateInput.value;
       var requestedDate = selectedDate;
       root.setAttribute("aria-busy", "true");
-      return cachedPageLoad(user, "normativesAll:" + requestedDate, function () {
+      return cachedPageLoad(user, "normativesAll:adminsOnly:v2:" + requestedDate, function () {
         return window.BR_API.normativesDailyLocal(user.token, requestedDate);
       }, function (result) { renderDailyResult(result, requestedDate); }, {
         root: "normRoot", stampId: "normDailyUpdated",
