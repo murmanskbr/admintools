@@ -3686,10 +3686,17 @@
 
                 if (inline) { modalRoot.hidden = true; modalRoot.innerHTML = ""; }
                 else modalRoot.innerHTML = "";
-                showNormativeResult(
+                var successMessage =
                   (actualNickname || fallbackNickname) + ": установлен статус «" +
-                    (labels[savedStatus] || labels[reviewStatus]) + "» за " +
-                    formatDateOnly(options.date) + ".",
+                  (labels[savedStatus] || labels[reviewStatus]) + "» за " +
+                  formatDateOnly(options.date) + ".";
+
+                if (reviewResult && reviewResult.google_sheet_updated === false) {
+                  successMessage += " В Google-таблице нет данных этого администратора — статус сохранён в панели, таблица не обновлена.";
+                }
+
+                showNormativeResult(
+                  successMessage,
                   "success"
                 );
 
