@@ -5894,7 +5894,7 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
 .main>.watermark{
   position:fixed;
   inset:64px 0 0 var(--sidebar);
-  z-index:1;
+  z-index:4;
   display:grid;
   place-items:center;
   overflow:hidden;
