@@ -4684,10 +4684,15 @@
             state.nickname = "";
             state.action = "";
             state.date = "";
+            state.severity = "all";
 
             if (nicknameInput) nicknameInput.value = "";
             if (actionInput) actionInput.value = "";
             if (dateInput) dateInput.value = "";
+
+            document.querySelectorAll("[data-log-severity]").forEach(function (chip) {
+              chip.classList.toggle("active", chip.dataset.logSeverity === "all");
+            });
 
             load(user, false);
           };
