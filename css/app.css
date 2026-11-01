@@ -6505,3 +6505,43 @@ body[data-page="notifications"] .notification-segmented-emergency .notification-
     margin-left: auto;
   }
 }
+
+
+/* Emergency contact button: same segmented-control treatment as the Notifications tab. */
+body[data-page="notifications"] .notification-segmented-emergency .notification-emergency-root {
+  flex: 0 0 auto;
+  margin: 0 0 0 2px;
+}
+body[data-page="notifications"] .notification-segmented-emergency .notification-emergency-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent,#334155);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+body[data-page="notifications"] .notification-segmented-emergency .notification-emergency-toggle:hover {
+  filter: brightness(1.08);
+}
+body[data-page="notifications"] .notification-segmented-emergency .notification-emergency-toggle:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  body[data-page="notifications"] .notification-segmented-emergency .notification-emergency-toggle {
+    min-height: 40px;
+    padding: 9px 13px;
+    font-size: 14px;
+  }
+}
