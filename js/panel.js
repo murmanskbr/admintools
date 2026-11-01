@@ -4800,7 +4800,7 @@
             state.sortKey = key;
             state.sortDirection = key === "created_at" ? "desc" : "asc";
           }
-          renderTable(root, list);
+          loadLogs(activeUser);
         };
       });
 
@@ -4811,7 +4811,10 @@
       };
     }
 
+    var activeUser = null;
+
     async function loadLogs(user) {
+      activeUser = user;
       var root = document.getElementById("logsRoot");
       if (!root) return;
 
@@ -4834,6 +4837,8 @@
             nickname: state.nickname,
             action: state.action,
             criticality: state.severity === "all" ? "" : state.severity,
+            sort_by: state.sortKey,
+            sort_direction: state.sortDirection,
             created_from: range.from,
             created_to: range.to
           }
