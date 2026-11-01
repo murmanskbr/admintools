@@ -2380,6 +2380,7 @@
       show("notificationCreateRoot", tab==="notifications" && !!document.getElementById("notificationCreateRoot")?.dataset.open);
       show("eventCreateRoot", tab==="events" && !!document.getElementById("eventCreateRoot")?.dataset.open);
       show("notificationsRoot", tab==="notifications");
+      show("emergencyContactRoot", tab==="notifications" && user.role!=="management");
       show("managementQueueRoot", tab==="notifications" && user.role==="management");
       show("eventsRoot", tab==="events");
       show("pushStatusRoot", tab==="push");
@@ -2494,11 +2495,33 @@
             '</div>'
           : '';
 
-        var initial = (location.hash || "").replace("#","") || (function(){try{return sessionStorage.getItem("br_notifications_tab")||"notifications";}catch(_){return "notifications";}})();
+        
+         var emergencyControls = user.role !== "management"
+           ? '<div id="emergencyContactRoot" class="emergency-contact-root">' +
+               '<div class="box emergency-contact-card">' +
+                 '<div class="emergency-contact-header"><div><small>ЭКСТРЕННАЯ СВЯЗЬ</small><b>Возникла серьёзная проблема?</b><span>Оповестить администрацию или срочно обратиться к руководству.</span></div><button class="button button-danger" id="toggleEmergencyContact" type="button"><span aria-hidden="true">⚠</span> Экстренная связь</button></div>' +
+                 '<div id="emergencyContactPanel" class="emergency-contact-panel" hidden>' +
+                   '<div class="emergency-choice-grid">' +
+                     '<button class="emergency-choice emergency-choice-critical" type="button" data-emergency-type="critical_server"><span class="emergency-choice-icon">🚨</span><span><b>Критическая ситуация</b><small>Оповестить всех администраторов и руководство</small></span></button>' +
+                     '<button class="emergency-choice" type="button" data-emergency-type="admin_actions_block"><span class="emergency-choice-icon">🛡️</span><span><b>Заблокированы админ-действия</b><small>Отправить срочное обращение руководству</small></span></button>' +
+                   '</div>' +
+                   '<div id="emergencyComposer" class="emergency-composer" hidden>' +
+                     '<div class="emergency-composer-title" id="emergencyComposerTitle"></div>' +
+                     '<div id="emergencyCriticalReasonField" class="form-field"><label for="emergencyCriticalReason">Причина</label><select id="emergencyCriticalReason" class="form-select"><option value="Сервер нестабилен, возникают проблемы с репортами">Сервер нестабилен, проблемы с репортами</option><option value="Требуется помощь администрации">Требуется помощь администрации</option><option value="Другая критическая ситуация">Другая критическая ситуация</option></select></div>' +
+                     '<div class="form-field"><label for="emergencyDetails">Дополнительная информация <span class="muted">необязательно</span></label><textarea id="emergencyDetails" class="form-textarea" rows="3" maxlength="700" placeholder="Кратко опишите, что происходит"></textarea></div>' +
+                     '<div id="emergencySignalStatus" class="emergency-signal-status" aria-live="polite"></div>' +
+                     '<div class="form-actions emergency-composer-actions"><button class="button button-primary" id="sendEmergencySignal" type="button">Отправить сигнал</button><button class="button button-secondary" id="backEmergencySignal" type="button">Назад</button></div>' +
+                   '</div>' +
+                 '</div>' +
+               '</div>' +
+             '</div>'
+           : '';
+
+         var initial = (location.hash || "").replace("#","") || (function(){try{return sessionStorage.getItem("br_notifications_tab")||"notifications";}catch(_){return "notifications";}})();
         var tabs = '<div class="notification-segmented" role="tablist" aria-label="Раздел уведомлений"><button type="button" role="tab" data-notification-tab="notifications" aria-selected="true" class="is-active">Уведомления <span id="notificationTabCount"></span></button>' +
           (user.role==="management" ? '<button type="button" role="tab" data-notification-tab="events" aria-selected="false">Сборы</button>' : '') +
           '<button type="button" role="tab" data-notification-tab="push" aria-selected="false">Push</button></div>';
-        return '<div class="page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + tabs + createControls +
+        return '<div class="page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + tabs + emergencyControls + createControls +
           (user.role === "management" ? '<div id="managementQueueRoot" class="management-queue-root"><div class="box"><div class="empty">Загрузка очереди проверки...</div></div></div>' : '') +
           '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>' +
           '<div id="eventsRoot" class="events-root" hidden><div class="box"><div class="empty">Загрузка мероприятий...</div></div></div>' +
@@ -2529,6 +2552,145 @@
         var cancelEvent = document.getElementById("cancelEvent");
         var eventForm = document.getElementById("eventForm");
         var eventAt = document.getElementById("eAt");
+
+         var emergencyToggle = document.getElementById("toggleEmergencyContact");
+         var emergencyPanel = document.getElementById("emergencyContactPanel");
+         var emergencyComposer = document.getElementById("emergencyComposer");
+         var emergencyTitle = document.getElementById("emergencyComposerTitle");
+         var emergencyReasonField = document.getElementById("emergencyCriticalReasonField");
+         var emergencyReason = document.getElementById("emergencyCriticalReason");
+         var emergencyDetails = document.getElementById("emergencyDetails");
+         var emergencyStatus = document.getElementById("emergencySignalStatus");
+         var emergencySubmit = document.getElementById("sendEmergencySignal");
+         var selectedEmergencyType = "";
+
+         function emergencyCooldownKey(type) {
+           return "br_admin_alert_cooldown_v1:" + user.id + ":" + type;
+         }
+
+         function emergencyCooldownUntil(type) {
+           try {
+             var value = Number(localStorage.getItem(emergencyCooldownKey(type)) || 0);
+             return Number.isFinite(value) && value > Date.now() ? value : 0;
+           } catch (_) {
+             return 0;
+           }
+         }
+
+         function emergencyTimeLabel(value) {
+           return new Date(value).toLocaleTimeString("ru-RU", {
+             hour: "2-digit",
+             minute: "2-digit"
+           });
+         }
+
+         function updateEmergencyCooldown() {
+           if (!emergencySubmit || !selectedEmergencyType) return;
+           var until = emergencyCooldownUntil(selectedEmergencyType);
+           emergencySubmit.disabled = !!until;
+           emergencySubmit.textContent = until
+             ? "Доступно после " + emergencyTimeLabel(until)
+             : "Отправить сигнал";
+           if (until && emergencyStatus && !emergencyStatus.textContent) {
+             emergencyStatus.textContent =
+               "Этот тип сигнала уже отправлялся. Повторить можно после " +
+               emergencyTimeLabel(until) + ".";
+           }
+         }
+
+         if (emergencyToggle && emergencyPanel) {
+           emergencyToggle.onclick = function () {
+             emergencyPanel.hidden = !emergencyPanel.hidden;
+             if (emergencyPanel.hidden && emergencyComposer) {
+               emergencyComposer.hidden = true;
+               selectedEmergencyType = "";
+               if (emergencyStatus) emergencyStatus.textContent = "";
+             }
+           };
+         }
+
+         document.querySelectorAll("[data-emergency-type]").forEach(function (button) {
+           button.onclick = function () {
+             selectedEmergencyType = button.dataset.emergencyType;
+             if (emergencyComposer) emergencyComposer.hidden = false;
+             if (emergencyReasonField) {
+               emergencyReasonField.hidden = selectedEmergencyType !== "critical_server";
+             }
+             if (emergencyTitle) {
+               emergencyTitle.textContent = selectedEmergencyType === "critical_server"
+                 ? "Сигнал увидит вся администрация, включая руководство."
+                 : "Срочное обращение увидит только руководство.";
+             }
+             if (emergencyDetails) emergencyDetails.value = "";
+             if (emergencyStatus) emergencyStatus.textContent = "";
+             updateEmergencyCooldown();
+             if (emergencyDetails) emergencyDetails.focus();
+           };
+         });
+
+         var emergencyBack = document.getElementById("backEmergencySignal");
+         if (emergencyBack) {
+           emergencyBack.onclick = function () {
+             if (emergencyComposer) emergencyComposer.hidden = true;
+             selectedEmergencyType = "";
+             if (emergencyStatus) emergencyStatus.textContent = "";
+           };
+         }
+
+         if (emergencySubmit) {
+           emergencySubmit.onclick = async function () {
+             if (!selectedEmergencyType) return;
+             var until = emergencyCooldownUntil(selectedEmergencyType);
+             if (until) {
+               updateEmergencyCooldown();
+               return;
+             }
+
+             var details = emergencyDetails ? emergencyDetails.value.trim() : "";
+             var message = "";
+             if (selectedEmergencyType === "critical_server") {
+               message = emergencyReason ? emergencyReason.value : "Критическая ситуация на сервере";
+               if (details) message += "\\nДополнительная информация: " + details;
+             } else {
+               message = "Система автоматически заблокировала мои административные действия. Прошу руководство проверить ситуацию и помочь снять ограничение.";
+               if (details) message += "\\nДополнительная информация: " + details;
+             }
+
+             emergencySubmit.disabled = true;
+             emergencySubmit.textContent = "Отправка…";
+             if (emergencyStatus) emergencyStatus.textContent = "Отправляем сообщение…";
+
+             try {
+               var result = await window.BR_API.adminAlertCreate(
+                 user.token,
+                 selectedEmergencyType,
+                 message
+               );
+               var nextAllowed = new Date(result.next_allowed_at || Date.now() + 300000).getTime();
+               if (!Number.isFinite(nextAllowed)) nextAllowed = Date.now() + 300000;
+               try {
+                 localStorage.setItem(emergencyCooldownKey(selectedEmergencyType), String(nextAllowed));
+               } catch (_) {}
+               if (emergencyStatus) {
+                 emergencyStatus.textContent = selectedEmergencyType === "critical_server"
+                   ? "Экстренное уведомление отправлено всей администрации. Повторная отправка доступна после " + emergencyTimeLabel(nextAllowed) + "."
+                   : "Срочное обращение отправлено руководству. Повторная отправка доступна после " + emergencyTimeLabel(nextAllowed) + ".";
+               }
+               emergencySubmit.disabled = true;
+               emergencySubmit.textContent = "Отправлено";
+               if (selectedEmergencyType === "critical_server") {
+                 try { sessionStorage.removeItem("br_cache_v1:" + user.id + ":notificationsList"); } catch (_) {}
+                 await loadNotifications(true);
+               }
+             } catch (error) {
+               if (emergencyStatus) emergencyStatus.textContent = error.message || "Не удалось отправить сигнал.";
+               emergencySubmit.disabled = false;
+               emergencySubmit.textContent = "Повторить отправку";
+             }
+           };
+         }
+
+
 
         if (eventAt) {
           eventAt.min = moscowInputValue(60);
@@ -2851,7 +3013,7 @@
       var root=document.getElementById("notificationsRoot");
       if(!root)return;
       function kind(item){
-        var exact={inactive_approved:{icon:"✓",cls:"approved",target:"../pages/normatives.html"},inactive_rejected:{icon:"✕",cls:"rejected",target:"../pages/normatives.html"},request_reply:{icon:"💬",cls:"reply",target:"../pages/requests.html"},normative_review:{icon:"✓",cls:"approved",target:"../pages/normatives.html"},announcement:{icon:"📣",cls:"announcement",target:"../pages/notifications.html"},system:{icon:"⚙",cls:"system",target:"../pages/notifications.html"}};
+        var exact={inactive_approved:{icon:"✓",cls:"approved",target:"../pages/normatives.html"},inactive_rejected:{icon:"✕",cls:"rejected",target:"../pages/normatives.html"},request_reply:{icon:"💬",cls:"reply",target:"../pages/requests.html"},normative_review:{icon:"✓",cls:"approved",target:"../pages/normatives.html"},announcement:{icon:"📣",cls:"announcement",target:"../pages/notifications.html"},emergency:{icon:"🚨",cls:"emergency",target:"../pages/notifications.html"},urgent_request:{icon:"🛡️",cls:"emergency",target:"../pages/requests-all.html"},system:{icon:"⚙",cls:"system",target:"../pages/notifications.html"}};
         if(exact[item.kind])return exact[item.kind];
         var v=String((item.type||item.category||item.notification_type||"")+" "+(item.title||"")+" "+(item.body||"")).toLowerCase();
         if(/одобр|approved|согласован/.test(v))return {icon:"✓",cls:"approved",target:user.role==="management"?"../pages/requests-all.html":"../pages/requests.html"};
@@ -2879,7 +3041,7 @@
           });
           var html=Object.keys(groups).map(function(day){if(!groups[day].length)return "";return '<section class="notification-day-group"><h2>'+day+'</h2>'+groups[day].map(function(item){
             var k=kind(item),date=formatDateTime(item.created_at),author=item.author_nickname||item.created_by_nickname||item.sender_nickname||item.author||"Система",role=item.author_role||item.sender_role||item.created_by_role||"";
-            return '<article class="notification-card-v2 '+(item.is_read?'is-read':'is-unread')+' notification-kind-'+k.cls+'"><span class="notification-kind-icon" aria-hidden="true">'+k.icon+'</span><div class="notification-card-content"><div class="notification-card-heading">'+(!item.is_read?'<span class="notification-unread-dot" aria-label="Непрочитано"></span>':'')+'<b>'+E(item.title||"Уведомление")+'</b></div><p>'+E(item.body||"")+'</p><small>От: '+E(author)+' • '+E(role||"—")+' • '+E(date)+'</small><div class="notification-card-actions"><button type="button" class="small-button" data-open-notification="'+E(item.id)+'" data-target="'+E((String(item.link||"").indexOf("../pages/")===0&&String(item.link||"").slice(-5)===".html"?item.link:k.target))+'">Открыть</button>'+(!item.is_read?' <button type="button" class="small-button" data-read-notification="'+E(item.id)+'">Прочитать</button>':'')+(user.role==="management"?' <button type="button" class="small-button notification-delete" data-delete-notification="'+E(item.id)+'">Удалить</button>':'')+'</div></div></article>';
+            return '<article class="notification-card-v2 '+(item.is_read?'is-read':'is-unread')+' notification-kind-'+k.cls+'"><span class="notification-kind-icon" aria-hidden="true">'+k.icon+'</span><div class="notification-card-content"><div class="notification-card-heading">'+(!item.is_read?'<span class="notification-unread-dot" aria-label="Непрочитано"></span>':'')+'<b>'+E(item.title||"Уведомление")+'</b>'+(k.cls==="emergency"?' <span class="badge badge-red">Срочно</span>':'')+'</div><p>'+E(item.body||"")+'</p><small>От: '+E(author)+' • '+E(role||"—")+' • '+E(date)+'</small><div class="notification-card-actions"><button type="button" class="small-button" data-open-notification="'+E(item.id)+'" data-target="'+E((String(item.link||"").indexOf("../pages/")===0&&String(item.link||"").slice(-5)===".html"?item.link:k.target))+'">Открыть</button>'+(!item.is_read?' <button type="button" class="small-button" data-read-notification="'+E(item.id)+'">Прочитать</button>':'')+(user.role==="management"?' <button type="button" class="small-button notification-delete" data-delete-notification="'+E(item.id)+'">Удалить</button>':'')+'</div></div></article>';
           }).join("")+'</section>';}).join("");
           root.innerHTML='<div class="notification-toolbar"><div class="notification-chips"><button type="button" class="notification-chip '+(onlyUnread?'is-active':'')+'" id="showUnread">Непрочитанные ('+unread+')</button><button type="button" class="notification-chip '+(!onlyUnread?'is-active':'')+'" id="showAll">Все</button></div><button class="button button-secondary" id="readAll" type="button" '+(!unread?'disabled':'')+'>Прочитать все</button></div>'+html;
           wireToolbar();
@@ -2989,7 +3151,7 @@
         var root=document.getElementById("generalMineRoot"),form=document.getElementById("generalForm");
         function load(force){return ownCachedLoad(user,"generalRequestsMine",function(){return window.BR_API.generalRequestsMine(user.token);},function(result){
           var list=Array.isArray(result&&result.requests)?result.requests:[];
-          root.innerHTML=list.length?list.map(function(x){return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><b class="own-request-type">'+E(({question:"Вопрос",complaint:"Жалоба",suggestion:"Предложение"})[x.request_type]||x.request_type)+'</b>'+ownRequestStatus(x.status)+'</div><p class="own-request-message">'+E(x.message||"—")+'</p><small class="own-request-date">'+E(formatDateTime(x.created_at))+'</small>' + (x.management_comment ? '<div class="own-request-answer"><b>Ответ руководства</b><p>'+E(x.management_comment)+'</p></div>' : '<div class="own-request-answer"><b>Ожидает ответа</b></div>') + '</article>';}).join(""):'<div class="empty">Обращений пока нет.</div>';
+          root.innerHTML=list.length?list.map(function(x){return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><b class="own-request-type">'+E(({question:"Вопрос",complaint:"Жалоба",suggestion:"Предложение",admin_action_block:"Блокировка админ-действий"})[x.request_type]||x.request_type)+'</b>'+ownRequestStatus(x.status)+'</div><p class="own-request-message">'+E(x.message||"—")+'</p><small class="own-request-date">'+E(formatDateTime(x.created_at))+'</small>' + (x.management_comment ? '<div class="own-request-answer"><b>Ответ руководства</b><p>'+E(x.management_comment)+'</p></div>' : '<div class="own-request-answer"><b>Ожидает ответа</b></div>') + '</article>';}).join(""):'<div class="empty">Обращений пока нет.</div>';
         },force).catch(function(e){requestModal("Ошибка",e.message||"Не удалось загрузить обращения.");});}
         form.onsubmit=async function(e){e.preventDefault();var button=form.querySelector('[type="submit"]'),message=document.getElementById("generalMessage").value.trim();if(!message){await requestModal("Комментарий","Введите текст обращения.");return;}button.disabled=true;
           try{await window.BR_API.generalRequestCreate(user.token,document.getElementById("generalType").value,message);form.reset();await load(true);await requestModal("Готово","Обращение отправлено руководству.");}
