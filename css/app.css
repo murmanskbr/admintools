@@ -6276,3 +6276,42 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
+
+
+/* Preserve compact controls on tablet widths while keeping the registry scrollable. */
+@media (max-width: 1100px) {
+  body[data-page="access"] .access-registry {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+
+  body[data-page="access"] .access-registry-head {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  body[data-page="access"] .access-registry-toolbar {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  body[data-page="access"] .access-registry-toolbar > .form-input,
+  body[data-page="access"] .access-registry-toolbar > .form-select,
+  body[data-page="access"] .access-registry .access-sort-control {
+    grid-column: 1 !important;
+    width: 100% !important;
+  }
+
+  body[data-page="access"] .access-registry .access-sort-control .access-registry-sort {
+    width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+@media (min-width: 801px) and (max-width: 1100px) {
+  body[data-page="access"] #accessRegistryTable {
+    min-width: 900px !important;
+  }
+}
