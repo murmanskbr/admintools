@@ -3128,6 +3128,14 @@
     var v=String(status||"pending");
     return '<span class="badge own-request-status '+(v==="approved"||v==="answered"?"badge-green":v==="rejected"||v==="cancelled"?"badge-red":"badge-yellow")+'">'+E(({approved:"✓ Одобрено",answered:"✓ Отвечено",rejected:"✕ Отклонено",cancelled:"✕ Отозвано",pending:"⏳ На рассмотрении"})[v]||v)+'</span>';
   }
+  function responseAuthorLine(author, actorId, action) {
+    if (!author) return actorId ? '<small class="response-author-line is-legacy">Автор старой записи не сохранён</small>' : '';
+    var position=String(author.position||"").trim(), role=String(author.role||"").trim();
+    if (!position) position=role==="management"?"Руководство":role==="admin"?"Администратор":role;
+    var nickname=String(author.nickname||"").trim();
+    var label=[position,nickname].filter(Boolean).join(" — ");
+    return label?'<small class="response-author-line"><span>'+E(action||"Ответил")+':</span> <b>'+E(label)+'</b></small>':'';
+  }
   function requests(user) {
     return {
       title:"Мои обращения",subtitle:"Обращения к руководству",
@@ -3136,7 +3144,7 @@
         var root=document.getElementById("generalMineRoot"),form=document.getElementById("generalForm");
         function load(force){return ownCachedLoad(user,"generalRequestsMine",function(){return window.BR_API.generalRequestsMine(user.token);},function(result){
           var list=Array.isArray(result&&result.requests)?result.requests:[];
-          root.innerHTML=list.length?list.map(function(x){return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><b class="own-request-type">'+E(({question:"Вопрос",complaint:"Жалоба",suggestion:"Предложение",admin_action_block:"Блокировка админ-действий"})[x.request_type]||x.request_type)+'</b>'+ownRequestStatus(x.status)+'</div><p class="own-request-message">'+E(x.message||"—")+'</p><small class="own-request-date">'+E(formatDateTime(x.created_at))+'</small>' + (x.management_comment ? '<div class="own-request-answer"><b>Ответ руководства</b><p>'+E(x.management_comment)+'</p></div>' : '<div class="own-request-answer"><b>Ожидает ответа</b></div>') + '</article>';}).join(""):'<div class="empty">Обращений пока нет.</div>';
+          root.innerHTML=list.length?list.map(function(x){return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><b class="own-request-type">'+E(({question:"Вопрос",complaint:"Жалоба",suggestion:"Предложение",admin_action_block:"Блокировка админ-действий"})[x.request_type]||x.request_type)+'</b>'+ownRequestStatus(x.status)+'</div><p class="own-request-message">'+E(x.message||"—")+'</p><small class="own-request-date">'+E(formatDateTime(x.created_at))+'</small>' + (x.management_comment ? '<div class="own-request-answer"><b>Ответ руководства</b>'+responseAuthorLine(x.comment_author,x.commented_by,"Ответил")+'<p>'+E(x.management_comment)+'</p></div>' : '<div class="own-request-answer"><b>Ожидает ответа</b></div>') + '</article>';}).join(""):'<div class="empty">Обращений пока нет.</div>';
         },force).catch(function(e){requestModal("Ошибка",e.message||"Не удалось загрузить обращения.");});}
         form.onsubmit=async function(e){e.preventDefault();var button=form.querySelector('[type="submit"]'),message=document.getElementById("generalMessage").value.trim();if(!message){await requestModal("Комментарий","Введите текст обращения.");return;}button.disabled=true;
           try{await window.BR_API.generalRequestCreate(user.token,document.getElementById("generalType").value,message);form.reset();await load(true);await requestModal("Готово","Обращение отправлено руководству.");}
@@ -3393,7 +3401,7 @@
             var list=Array.isArray(result&&result.requests)?result.requests:[];
             document.getElementById("inactiveMineRoot").innerHTML=list.length?list.map(function(x){
               var a=String(x.start_date||""),b=String(x.end_date||a),days=Math.round((Date.parse(b+"T00:00:00Z")-Date.parse(a+"T00:00:00Z"))/86400000)+1;
-              return '<article class="box spaced-box"><b>'+E(formatDateNumeric(a))+(b!==a?' — '+E(formatDateNumeric(b)):'')+'</b> · '+E(days)+' дн. '+ownRequestStatus(x.status)+'<p><b>Причина:</b> '+E(x.reason||"—")+'</p><p><b>Комментарий руководства:</b> '+E(x.review_comment||"—")+'</p></article>';
+              return '<article class="box spaced-box"><b>'+E(formatDateNumeric(a))+(b!==a?' — '+E(formatDateNumeric(b)):'')+'</b> · '+E(days)+' дн. '+ownRequestStatus(x.status)+'<p><b>Причина:</b> '+E(x.reason||"—")+'</p><p><b>Комментарий руководства:</b> '+E(x.review_comment||"—")+'</p>'+responseAuthorLine(x.review_author,x.reviewed_by,"Рассмотрел")+'</article>';
             }).join(""):'<div class="empty">Заявок на неактив пока нет.</div>';
           },force).catch(function(e){requestModal("Ошибка",e.message||"Не удалось загрузить заявки.");});}
           inactiveForm.onsubmit=async function(event){event.preventDefault();var button=inactiveForm.querySelector('[type="submit"]'),a=start.value,b=type.value==="group"?end.value:a,reason=document.getElementById("inactiveReason").value.trim();
@@ -3482,7 +3490,7 @@
                   '<td>' + statusCell + '</td>' +
                   '<td>' + E(item.file_count || 0) + '</td>' +
                   '<td>' + E(formatDateTime(item.created_at)) + '</td>' +
-                  '<td>' + E(item.review_comment || "—") + '</td>' +
+                  '<td>' + E(item.review_comment || "—") + responseAuthorLine(item.review_author,item.reviewed_by,"Проверил") + '</td>' +
                   '<td>' + (
                     item.id
                       ? '<button class="small-button" data-own-norm="' + E(item.id) + '">Открыть</button>' +
@@ -3505,7 +3513,7 @@
                     '<div><small>Файлы</small><b>' + E(item.file_count || 0) + '</b></div>' +
                     '<div><small>Отправлен</small><b>' + E(formatDateTime(item.created_at)) + '</b></div>' +
                   '</div>' +
-                  '<div class="normative-mobile-comment"><small>Решение</small><p>' + E(item.review_comment || "—") + '</p></div>' +
+                  '<div class="normative-mobile-comment"><small>Решение</small>' + responseAuthorLine(item.review_author,item.reviewed_by,"Проверил") + '<p>' + E(item.review_comment || "—") + '</p></div>' +
                   (item.id ? '<div class="normative-history-actions"><button class="button button-secondary normative-mobile-open" data-own-norm="' + E(item.id) + '">Открыть</button>' + (!reviewed ? '<button class="button button-secondary" data-edit-norm="' + E(item.id) + '" data-edit-date="' + E(item.submission_date || "") + '" data-edit-position="' + E(item.position || "") + '" data-edit-comment="' + E(item.comment || "") + '">Редактировать</button>' : '') + '</div>' : '') +
                 '</article>';
               }).join("");
@@ -3584,7 +3592,7 @@
             '<td><button class="link-button" data-open-admin-norm="' + E(item.submission_id || 0) + '" data-admin-id="' + E(item.admin_id || 0) + '" data-admin-nickname="' + E(item.nickname) + '">' + E(item.nickname) + '</button></td>' +
             '<td>' + E(item.position || "—") + '</td><td>' + E(formatDateOnly(renderDate)) + '</td>' +
             '<td>' + E(Number(item.file_count || 0) > 0 && item.created_at ? formatDateTime(item.created_at) : "Нет отправки") + '</td><td>' + normativeStatus(item.status) + '</td>' +
-            '<td>' + E(item.file_count || 0) + '</td><td>' + E(item.review_comment || "—") + '</td><td>' + action + '</td></tr>';
+            '<td>' + E(item.file_count || 0) + '</td><td>' + E(item.review_comment || "—") + responseAuthorLine(item.review_author,item.reviewed_by,"Проверил") + '</td><td>' + action + '</td></tr>';
         }).join("");
         var mobileCards = list.map(function(item) {
           var key = normativeFilterKey(item);
@@ -3592,7 +3600,7 @@
           return '<article class="normative-admin-card" data-normative-status="' + E(key) + '" data-normative-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-normative-position="' + E(item.position || "") + '">' +
             '<div class="normative-admin-card-head"><div class="normative-admin-person"><b>' + E(item.nickname || "Без никнейма") + '</b><span>' + E(item.position || "Должность не указана") + '</span></div><div class="normative-admin-card-status">' + normativeStatus(item.status) + '</div></div>' +
             '<div class="normative-admin-card-meta"><div><small>Дата</small><b>' + E(formatDateOnly(renderDate)) + '</b></div><div><small>Отправлено</small><b>' + E(Number(item.file_count || 0) > 0 && item.created_at ? formatDateTime(item.created_at) : "Не отправлял") + '</b></div><div><small>Файлы</small><b>' + E(String(item.file_count || 0)) + '</b></div></div>' +
-            (item.review_comment ? '<div class="normative-admin-card-comment"><small>Комментарий руководства</small><p>' + E(item.review_comment) + '</p></div>' : '') + action + '</article>';
+            (item.review_comment ? '<div class="normative-admin-card-comment"><small>Комментарий руководства</small>' + responseAuthorLine(item.review_author,item.reviewed_by,"Проверил") + '<p>' + E(item.review_comment) + '</p></div>' : (item.reviewed_by ? responseAuthorLine(item.review_author,item.reviewed_by,"Проверил") : '')) + action + '</article>';
         }).join("");
 
         var statusButtons =
@@ -3808,7 +3816,7 @@
         var currentStatus = s && s.status ? s.status : (result.status || "pending");
         var controls = options.management
           ? '<div class="review-panel normative-decision-panel">' +
-              '<div class="review-current"><span>Текущий статус</span>' + normativeStatus(currentStatus) + '</div>' +
+              '<div class="review-current"><span>Текущий статус</span>' + normativeStatus(currentStatus) + '</div>' + (s && s.reviewed_at ? responseAuthorLine(s.review_author,s.reviewed_by,"Проверил") : '') +
               '<label class="normative-review-label" for="reviewStatusSelect">Выставить статус нормы</label>' +
               '<select id="reviewStatusSelect" class="form-select">' +
                 (["norm", "no_norm", "rework", "inactive"].indexOf(currentStatus) === -1 ? '<option value="" selected>Выберите статус…</option>' : '') +
@@ -3824,7 +3832,7 @@
                 '<button class="button button-primary" type="button" id="saveNormativeDecision">Сохранить статус</button>' +
               '</div>' +
             '</div>'
-          : '<div class="notice">Результат проверки: ' + normativeStatus(currentStatus) + (s && s.reviewed_at ? '<br><small>Проверено: ' + E(formatDateTime(s.reviewed_at)) + '</small>' : '') + '</div>';
+          : '<div class="notice">Результат проверки: ' + normativeStatus(currentStatus) + (s && s.reviewed_at ? '<br><small>Проверено: ' + E(formatDateTime(s.reviewed_at)) + '</small>' + responseAuthorLine(s.review_author,s.reviewed_by,"Проверил") : '') + '</div>';
 
         detailRoot.innerHTML =
           '<div class="detail-grid">' +
@@ -4032,7 +4040,7 @@
             var status = String(item.status || "pending");
             var canReview = status === "pending";
             var submitted = item.created_at || item.submitted_at || item.requested_at;
-            return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><div><b class="own-request-type">' + E(item.nickname || item.admin_nickname || "Администратор") + '</b><div class="muted">Период: ' + E(dateText) + '</div><small class="muted">Отправлено: ' + E(submitted ? formatDateTime(submitted) : "Дата подачи не указана") + '</small></div>' + ownRequestStatus(status) + '</div><p><b>Причина:</b> ' + E(item.reason || "—") + '</p><div class="own-request-answer"><b>Комментарий руководства</b><p>' + E(item.review_comment || "Пока нет комментария.") + '</p></div>' + (canReview ? '<div class="form-field"><label for="inactiveReviewComment' + E(id) + '">Комментарий к решению (необязательно)</label><textarea class="form-textarea" maxlength="1000" id="inactiveReviewComment' + E(id) + '" placeholder="Комментарий к решению"></textarea></div><div class="form-actions"><button class="button button-primary" type="button" data-inactive-review="approved" data-inactive-id="' + E(id) + '">Одобрить</button><button class="button button-danger" type="button" data-inactive-review="rejected" data-inactive-id="' + E(id) + '">Отклонить</button></div>' : (item.reviewed_at ? '<small class="muted">Рассмотрено: ' + E(formatDateTime(item.reviewed_at)) + '</small>' : '')) + '</article>';
+            return '<article class="box spaced-box own-request-card"><div class="own-request-card-head"><div><b class="own-request-type">' + E(item.nickname || item.admin_nickname || "Администратор") + '</b><div class="muted">Период: ' + E(dateText) + '</div><small class="muted">Отправлено: ' + E(submitted ? formatDateTime(submitted) : "Дата подачи не указана") + '</small></div>' + ownRequestStatus(status) + '</div><p><b>Причина:</b> ' + E(item.reason || "—") + '</p><div class="own-request-answer"><b>Комментарий руководства</b><p>' + E(item.review_comment || "Пока нет комментария.") + '</p>' + responseAuthorLine(item.review_author,item.reviewed_by,"Рассмотрел") + '</div>' + (canReview ? '<div class="form-field"><label for="inactiveReviewComment' + E(id) + '">Комментарий к решению (необязательно)</label><textarea class="form-textarea" maxlength="1000" id="inactiveReviewComment' + E(id) + '" placeholder="Комментарий к решению"></textarea></div><div class="form-actions"><button class="button button-primary" type="button" data-inactive-review="approved" data-inactive-id="' + E(id) + '">Одобрить</button><button class="button button-danger" type="button" data-inactive-review="rejected" data-inactive-id="' + E(id) + '">Отклонить</button></div>' : (item.reviewed_at ? '<small class="muted">Рассмотрено: ' + E(formatDateTime(item.reviewed_at)) + '</small>' : '')) + '</article>';
           }).join("") : '<div class="box"><div class="empty">Заявок по выбранному фильтру нет.</div></div>';
           inactiveManagementRoot.querySelectorAll("[data-inactive-review]").forEach(function (button) {
             button.onclick = async function () {
