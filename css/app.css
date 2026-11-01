@@ -6315,3 +6315,42 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
     min-width: 900px !important;
   }
 }
+
+
+/* Emergency contact panel and urgent request highlighting. */
+.emergency-contact-root{margin:0 0 18px}
+.emergency-contact-card{padding:16px 18px}
+.emergency-contact-header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.emergency-contact-header>div{display:grid;gap:5px;min-width:0}
+.emergency-contact-header small{color:var(--danger);font-size:9px;font-weight:850;letter-spacing:.13em}
+.emergency-contact-header b{font-size:14px}
+.emergency-contact-header span{color:var(--muted);font-size:11px;line-height:1.45}
+.emergency-contact-header .button{flex:0 0 auto;white-space:nowrap}
+.emergency-contact-panel{margin-top:15px;padding-top:14px;border-top:1px solid var(--line)}
+.emergency-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.emergency-choice{display:flex;align-items:center;gap:11px;min-width:0;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--text);text-align:left}
+.emergency-choice:hover{border-color:#596477;background:var(--surface3)}
+.emergency-choice-critical{border-color:rgba(239,68,68,.35)}
+.emergency-choice-icon{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,.1);font-size:19px}
+.emergency-choice>span:last-child{display:grid;gap:4px;min-width:0}
+.emergency-choice b{font-size:12px}
+.emergency-choice small{color:var(--muted);font-size:10px;line-height:1.4}
+.emergency-composer{display:grid;gap:12px;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.emergency-composer-title{font-size:12px;font-weight:750}
+.emergency-composer .form-field{min-width:0}
+.emergency-signal-status{min-height:18px;color:var(--muted);font-size:11px;line-height:1.5}
+.emergency-signal-status:empty{display:none}
+.emergency-composer-actions{margin-top:0}
+.emergency-composer-actions .button:disabled{opacity:.6;cursor:not-allowed}
+.notification-kind-emergency:before{background:#ef4444!important}
+.request-urgent td{background:rgba(239,68,68,.045)!important}
+.request-urgent td:first-child{box-shadow:inset 3px 0 #ef4444}
+.request-urgent:hover td{background:rgba(239,68,68,.08)!important}
+
+@media(max-width:700px){
+  .emergency-contact-header{align-items:flex-start;flex-direction:column}
+  .emergency-contact-header .button{width:100%}
+  .emergency-choice-grid{grid-template-columns:minmax(0,1fr)}
+  .emergency-composer-actions{flex-direction:column}
+  .emergency-composer-actions .button{width:100%}
+}
