@@ -6578,3 +6578,5 @@ body[data-page="normatives"] .stats-toolbar-actions #inactiveTab:not(.is-active)
   border-color: var(--line);
   color: var(--muted);
 }
+
+body[data-page="normatives"] #inactiveEndField[hidden]{display:none!important}
