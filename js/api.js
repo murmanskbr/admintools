@@ -14,6 +14,7 @@
     // Успешные изменения сообщаем другим вкладкам этого же сайта.
     // Данные администратора и содержимое запросов в событие не попадают.
     var MUTATING_ACTIONS = {
+        admin_alert_create: true,
         access_grant: true,
         access_manage: true,
         admin_add: true,
@@ -1342,6 +1343,18 @@
                 return request({ action: "management_pending_counts" }, token);
             },
 
+
+        adminAlertCreate:
+            function (token, alertType, message) {
+                return request(
+                    {
+                        action: "admin_alert_create",
+                        alert_type: alertType,
+                        message: message
+                    },
+                    token
+                );
+            },
 
         notificationCreate:
             function (
