@@ -6580,3 +6580,7 @@ body[data-page="normatives"] .stats-toolbar-actions #inactiveTab:not(.is-active)
 }
 
 body[data-page="normatives"] #inactiveEndField[hidden]{display:none!important}
+
+.response-author-line{display:block;margin:5px 0 7px;color:var(--muted);font-size:11px;line-height:1.4;font-weight:500}
+.response-author-line b{color:var(--text);font-weight:750}
+.response-author-line.is-legacy{color:var(--muted);font-style:italic}
