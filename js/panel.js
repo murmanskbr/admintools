@@ -2868,7 +2868,7 @@
       if(user.role!=="management")return;
       var root=document.getElementById("managementQueueRoot");if(!root)return;
       return cachedLoad("managementQueueCounts",function(){return window.BR_API.managementPendingCounts(user.token);},function(data){
-        root.innerHTML='<div class="box management-queue"><h2>Требует проверки</h2><a href="../pages/normatives-all.html"><span>Заявки на неактив</span><b>'+E(data.inactive_requests||0)+'</b></a><a href="../pages/requests-all.html"><span>Обращения без ответа</span><b>'+E(data.unanswered_requests||0)+'</b></a><a href="../pages/normatives-all.html"><span>Нормативы на проверке</span><b>'+E(data.normatives_pending||0)+'</b></a></div>';
+        root.innerHTML='<div class="box management-queue"><h2>Требует проверки</h2><a href="../pages/requests-all.html" class="management-queue-urgent"><span>Срочные обращения</span><b>'+E(data.urgent_requests||0)+'</b></a><a href="../pages/normatives-all.html"><span>Заявки на неактив</span><b>'+E(data.inactive_requests||0)+'</b></a><a href="../pages/requests-all.html"><span>Обращения без ответа</span><b>'+E(data.unanswered_requests||0)+'</b></a><a href="../pages/normatives-all.html"><span>Нормативы на проверке</span><b>'+E(data.normatives_pending||0)+'</b></a></div>';
       },{root:"managementQueueRoot",force:!!force,alwaysFetch:true});
     }
 
@@ -4465,6 +4465,8 @@
       push_status_all: "Просмотр push-подписок",
       access_reset_sessions: "Сброс сессий администратора",
       admin_request_created: "Создание обращения",
+      admin_emergency_signal: "Экстренный сигнал администрации",
+      admin_action_block_reported: "Срочное обращение о блокировке админ-действий",
       admin_request_replied: "Ответ на обращение",
       game_enter: "Вход в игру",
       game_exit: "Выход из игры",
