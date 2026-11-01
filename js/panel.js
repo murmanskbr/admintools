@@ -1263,6 +1263,27 @@
       return value == null ? "" : String(value);
     }
 
+    function statCellHtml(value) {
+      var text = rawCellValue(value);
+      if (!text) return "";
+      var pattern = /https?:\/\/[^\s<>"']+/gi;
+      var output = "";
+      var cursor = 0;
+      var match;
+      while ((match = pattern.exec(text))) {
+        var matchedUrl = match[0];
+        var url = matchedUrl.replace(/[),.;!?]+$/, "");
+        if (!url) continue;
+        var trailing = matchedUrl.slice(url.length);
+        output += E(text.slice(cursor, match.index));
+        output += '<a class="stats-value-link" href="' + E(url) + '" target="_blank" rel="noopener noreferrer">Открыть ссылку</a>';
+        output += E(trailing);
+        cursor = match.index + matchedUrl.length;
+      }
+      output += E(text.slice(cursor));
+      return output.replace(/\r?\n/g, "<br>");
+    }
+
     function isSectionSourceRow(row, headers) {
       if (!Array.isArray(row) || !Array.isArray(headers)) return false;
 
@@ -1462,7 +1483,7 @@
 
         var cells = lastHeaders.map(function (_, columnIndex) {
           var value = rawCellValue(row[columnIndex]);
-          return '<td data-stat-column="' + columnIndex + '" data-mobile-label="' + E(lastHeaders[columnIndex] || '') + '"' + (columnIndex === lastNicknameIndex ? ' class="stats-nickname-sticky"' : '') + '>' + E(value) + '</td>';
+          return '<td data-stat-column="' + columnIndex + '" data-mobile-label="' + E(lastHeaders[columnIndex] || '') + '"' + (columnIndex === lastNicknameIndex ? ' class="stats-nickname-sticky"' : '') + '>' + statCellHtml(value) + '</td>';
         }).join("");
 
         var nickname = lastNicknameIndex >= 0
@@ -1525,6 +1546,17 @@
           "баллы", "последнее повышение"
         ];
         var fullWidthFields = ["должность", "норматив", "действия"];
+
+        function summaryMetricPriority(label) {
+          if (/балл.*повыш|очк.*повыш/.test(label)) return 1;
+          if (/балл|очк/.test(label)) return 2;
+          if (/страйк/.test(label)) return 3;
+          if (/предупреж|преды/.test(label)) return 4;
+          if (/неактив/.test(label)) return 5;
+          if (/(дни|дней|день).*(пост|уровн)|(пост|уровн).*(дни|дней|день)/.test(label)) return 6;
+          if (/доступ с пк/.test(label)) return 7;
+          return 0;
+        }
         var list = document.createElement("div");
         list.className = "stats-mobile-list";
 
@@ -1569,7 +1601,11 @@
             var field = document.createElement("div");
             field.className = "stats-mobile-card-field";
             if (compactFields.indexOf(labelNorm) !== -1) field.classList.add("is-compact");
-            if (fullWidthFields.indexOf(labelNorm) !== -1) field.classList.add("is-full");
+            if (
+              fullWidthFields.indexOf(labelNorm) !== -1 ||
+              /(ссылк|аккаунт|профил|стать|форум|описан|комментар)/.test(labelNorm)
+            ) field.classList.add("is-full");
+            if (summaryMetricPriority(labelNorm)) field.classList.add("is-summary-metric");
             if (labelNorm === "должность") positionValue = valueText;
             if (labelNorm === "норматив") normativeValue = valueText;
             var label = document.createElement("span");
@@ -1588,14 +1624,24 @@
           card.dataset.position = positionValue;
           card.dataset.normative = normativeValue;
           function applyCollapsedSummary() {
-            details.querySelectorAll(".stats-mobile-card-field").forEach(function (field) {
+            var collapsed = card.classList.contains("is-collapsed");
+            var fields = Array.prototype.slice.call(details.querySelectorAll(".stats-mobile-card-field"));
+            var metrics = fields.map(function (field) {
               var label = norm(field.querySelector(".stats-mobile-card-label") && field.querySelector(".stats-mobile-card-label").textContent);
-              field.hidden = card.classList.contains("is-collapsed") &&
-                label !== "должность" && label !== "норматив";
+              return { field: field, priority: summaryMetricPriority(label) };
+            }).filter(function (item) { return item.priority > 0; });
+            metrics.sort(function (a, b) { return a.priority - b.priority; });
+            var visibleMetrics = metrics.slice(0, 4).map(function (item) { return item.field; });
+
+            fields.forEach(function (field) {
+              var label = norm(field.querySelector(".stats-mobile-card-label") && field.querySelector(".stats-mobile-card-label").textContent);
+              var isIdentity = label === "должность" || label === "норматив";
+              var isMetric = visibleMetrics.indexOf(field) !== -1;
+              field.hidden = collapsed && !isIdentity && !isMetric;
             });
-            title.setAttribute("aria-expanded", card.classList.contains("is-collapsed") ? "false" : "true");
+            title.setAttribute("aria-expanded", collapsed ? "false" : "true");
             var chevron = title.querySelector(".stats-mobile-chevron");
-            if (chevron) chevron.textContent = card.classList.contains("is-collapsed") ? "⌄" : "⌃";
+            if (chevron) chevron.textContent = collapsed ? "⌄" : "⌃";
           }
           title.addEventListener("click", function () {
             card.classList.toggle("is-collapsed");
