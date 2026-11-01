@@ -2,7 +2,7 @@
   "use strict";
 
   var COOKIE = "br_session";
-  var REMEMBER_DAYS = 0.5;
+  var REMEMBER_DAYS = 30;
   var STATS_CACHE_KEY = "br_all_stats_cache_v1";
   var PAGE_REFRESH_MIN_INTERVAL_MS = 15000;
 
@@ -95,11 +95,18 @@
     try {
       var session = JSON.parse(raw);
       var expires = Number(session.expires);
-      if (!session.user || !session.user.token || !Number.isFinite(expires) || expires <= Date.now()) {
+      if (!session.user || !session.user.token) {
         clearStorage();
         return null;
       }
 
+      // Срок cookie обновляется серверно при каждом успешном запросе.
+      // Здесь продлеваем локальную запись при открытии старой активной сессии;
+      // окончательное решение о действительности токена всегда принимает сервер.
+      if (!Number.isFinite(expires) || expires <= Date.now() + 24 * 60 * 60 * 1000) {
+        session.expires = Date.now() + REMEMBER_DAYS * 86400000;
+        persistSession(session);
+      }
 
       return session;
     } catch (_) {
@@ -136,6 +143,17 @@
     try { sessionStorage.removeItem("br_session"); } catch (_) {}
 
     persistSession(session);
+  } 
+
+  function touchSession(token) {
+    var session = getSession();
+    if (!session || !session.user || !session.user.token) return false;
+    if (token && session.user.token !== token) return false;
+
+    session.expires = Date.now() + REMEMBER_DAYS * 86400000;
+    session.remember = true;
+    persistSession(session);
+    return true;
   }
 
 
@@ -893,6 +911,7 @@
     comparePositions: comparePositions,
     getSession: getSession,
     saveSession: saveSession,
+    touchSession: touchSession,
     clearSession: clearStorage,
     logout: logout,
     isManagement: management,
