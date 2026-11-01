@@ -2634,7 +2634,10 @@
              if (emergencyComposer) emergencyComposer.hidden = false;
 
              var isCritical = selectedEmergencyType === "critical_server";
-             if (emergencyReasonField) emergencyReasonField.hidden = !isCritical;
+             if (emergencyReasonField) {
+               emergencyReasonField.hidden = !isCritical;
+               emergencyReasonField.style.display = isCritical ? "grid" : "none";
+             }
 
              var detailsLabel = document.getElementById("emergencyDetailsLabel");
              if (detailsLabel) {
