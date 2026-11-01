@@ -134,9 +134,9 @@
         statusText.textContent = "Не удалось проверить состояние Push";
         badge.textContent = "Ошибка";
         badge.className = "badge badge-red";
-        button.disabled = false;
-        button.textContent = "Повторить";
-        statusMessage(error.message || "Не удалось загрузить состояние Push.", false);
+        button.disabled = true;
+        button.textContent = "Состояние недоступно";
+        statusMessage(error.message || "Не удалось загрузить состояние Push. Нажмите «Обновить».", false);
       } finally {
         busy = false;
         refresh.disabled = false;
