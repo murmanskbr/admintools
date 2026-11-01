@@ -6357,3 +6357,15 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
 
 .management-queue>a.management-queue-urgent{color:#ff8a96}
 .management-queue>a.management-queue-urgent b{background:rgba(239,68,68,.16);color:#ff6979}
+
+
+/* Selected emergency type: exactly one option is highlighted at a time. */
+.emergency-choice.emergency-choice-critical{border-color:var(--line)!important;box-shadow:none}
+.emergency-choice.is-selected,
+.emergency-choice.is-selected:hover{
+  border-color:#ef3349!important;
+  background:rgba(239,51,73,.09)!important;
+  box-shadow:0 0 0 1px rgba(239,51,73,.9),0 0 0 3px rgba(239,51,73,.12)!important;
+}
+.emergency-choice.is-selected .emergency-choice-icon{background:rgba(239,51,73,.18)}
+.emergency-choice[aria-pressed="true"] b{color:var(--text)}
