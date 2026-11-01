@@ -67,3 +67,160 @@ body[data-page="statistics-all"] #allStatsRefresh:disabled {
     min-width: 132px !important;
   }
 }
+
+
+/* Administration statistics: expandable cards on every screen size. */
+body[data-page="statistics-all"] #allStatsRoot .table-box {
+  display:flex!important;
+  flex-direction:column!important;
+  gap:14px!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:visible!important;
+  padding:16px!important;
+}
+body[data-page="statistics-all"] #allStatsRoot #allStatsTable {
+  display:none!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-list {
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:start!important;
+  gap:12px!important;
+  width:100%!important;
+  min-width:0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-section {
+  grid-column:1/-1!important;
+  padding:10px 13px!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+  background:var(--surface2)!important;
+  color:var(--text)!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  letter-spacing:.04em!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card {
+  display:block!important;
+  min-width:0!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  padding:15px!important;
+  border:1px solid var(--line)!important;
+  border-radius:14px!important;
+  background:var(--surface)!important;
+  overflow:hidden!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card.card-ok {
+  border-left:3px solid var(--green)!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card.card-wait {
+  border-left:3px solid var(--yellow)!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card.card-bad {
+  border-left:3px solid var(--danger)!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-title {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:var(--text)!important;
+  text-align:left!important;
+  font:inherit!important;
+  font-size:16px!important;
+  font-weight:800!important;
+  line-height:1.35!important;
+  cursor:pointer!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-title-text {
+  min-width:0!important;
+  overflow-wrap:anywhere!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-chevron {
+  flex:0 0 auto!important;
+  color:var(--muted)!important;
+  font-size:20px!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-details {
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:stretch!important;
+  gap:9px!important;
+  margin-top:13px!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-field {
+  min-width:0!important;
+  padding:10px!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+  background:var(--surface2)!important;
+  box-sizing:border-box!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-field.is-full {
+  grid-column:1/-1!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-field[hidden] {
+  display:none!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-label {
+  display:block!important;
+  margin:0 0 5px!important;
+  color:var(--muted)!important;
+  font-size:10px!important;
+  font-weight:750!important;
+  line-height:1.35!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-value {
+  min-width:0!important;
+  color:var(--text)!important;
+  font-size:13px!important;
+  line-height:1.45!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-field.is-compact {
+  background:var(--surface)!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-value .admin-edit-inline {
+  min-height:36px!important;
+  padding:7px 12px!important;
+}
+body[data-page="statistics-all"] #allStatsRoot .stats-value-link {
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  color:var(--blue)!important;
+  font-weight:750!important;
+  text-decoration:underline!important;
+  text-underline-offset:3px!important;
+}
+@media(max-width:900px) {
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-list {
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+}
+@media(max-width:600px) {
+  body[data-page="statistics-all"] #allStatsRoot .table-box {
+    padding:12px!important;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card {
+    padding:12px!important;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-details {
+    gap:7px!important;
+  }
+  body[data-page="statistics-all"] #allStatsRoot .stats-mobile-card-field {
+    padding:9px!important;
+  }
+}
