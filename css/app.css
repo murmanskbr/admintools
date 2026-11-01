@@ -6369,3 +6369,111 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
 }
 .emergency-choice.is-selected .emergency-choice-icon{background:rgba(239,51,73,.18)}
 .emergency-choice[aria-pressed="true"] b{color:var(--text)}
+
+
+/* Emergency contact is accessed from the notifications title, not as a separate card. */
+body[data-page="notifications"] .notification-page-toolbar {
+  position: relative;
+  z-index: 30;
+  overflow: visible;
+}
+body[data-page="notifications"] .notification-page-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+body[data-page="notifications"] .notification-emergency-root {
+  position: relative;
+  z-index: 31;
+  flex: 0 0 auto;
+  margin: 0;
+}
+body[data-page="notifications"] .notification-emergency-toggle {
+  min-height: 34px;
+  padding: 8px 12px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+body[data-page="notifications"] .notification-emergency-panel {
+  position: absolute;
+  z-index: 120;
+  top: calc(100% + 10px);
+  left: 0;
+  width: min(420px, calc(100vw - 48px));
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgba(0,0,0,.36);
+}
+body[data-page="notifications"] .notification-emergency-panel[hidden] {
+  display: none !important;
+}
+body[data-page="notifications"] .emergency-contact-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+body[data-page="notifications"] .emergency-contact-panel-head>div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+body[data-page="notifications"] .emergency-contact-panel-head small {
+  color: var(--danger);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .13em;
+}
+body[data-page="notifications"] .emergency-contact-panel-head b {
+  font-size: 13px;
+}
+body[data-page="notifications"] .emergency-contact-panel-head span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+body[data-page="notifications"] .emergency-panel-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+body[data-page="notifications"] .emergency-panel-close:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+body[data-page="notifications"] .notification-emergency-panel .emergency-contact-panel {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+body[data-page="notifications"] .notification-emergency-panel .emergency-choice-grid {
+  grid-template-columns: minmax(0,1fr);
+}
+@media (max-width: 700px) {
+  body[data-page="notifications"] .notification-page-toolbar {
+    align-items: flex-start;
+  }
+  body[data-page="notifications"] .notification-page-heading {
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+  }
+  body[data-page="notifications"] .notification-emergency-panel {
+    width: min(390px, calc(100vw - 32px));
+  }
+}
