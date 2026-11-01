@@ -1875,6 +1875,11 @@
                                 options.action || ""
                             ).trim(),
 
+                        criticality:
+                            String(
+                                options.criticality || ""
+                            ).trim(),
+
                         created_from:
                             String(
                                 options.created_from || ""
