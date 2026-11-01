@@ -3221,7 +3221,9 @@
 
   function inactivePaneMarkup() {
     return '<section id="inactivePane" hidden><div class="box"><form id="inactiveForm"><div class="form-grid">'+
-      '<div class="form-field"><label>Дата неактива</label><input id="inactiveStart" class="form-input" type="date" required></div>'+
+      '<div class="form-field"><label>Тип неактива</label><select id="inactiveType" class="form-select"><option value="single">Один день</option><option value="group">Длительный неактив</option></select></div>'+
+      '<div class="form-field"><label id="inactiveStartLabel">День неактива</label><input id="inactiveStart" class="form-input" type="date" required></div>'+
+      '<div class="form-field" id="inactiveEndField" hidden><label>Дата окончания</label><input id="inactiveEnd" class="form-input" type="date"></div>'+
       '<div class="form-field form-full"><label>Причина</label><textarea id="inactiveReason" class="form-textarea" maxlength="500"></textarea></div></div>'+
       '<button class="button button-primary" type="submit">Отправить руководству</button></form></div>'+
       '<div class="box spaced-box"><h2>Мои неактивы</h2><div id="inactiveMineRoot">Загрузка...</div></div></section>';
@@ -3337,8 +3339,10 @@
           var normTab=document.getElementById("normTab"),inactiveTab=document.getElementById("inactiveTab");
           function showInactive(active){document.getElementById("normPane").hidden=active;document.getElementById("inactivePane").hidden=!active;normTab.classList.toggle("is-active",!active);inactiveTab.classList.toggle("is-active",active);}
           normTab.onclick=function(){showInactive(false);};inactiveTab.onclick=function(){showInactive(true);};
-          var inactiveForm=document.getElementById("inactiveForm"),start=document.getElementById("inactiveStart");
-          start.min=dateIso(0);
+          var inactiveForm=document.getElementById("inactiveForm"),type=document.getElementById("inactiveType"),start=document.getElementById("inactiveStart"),end=document.getElementById("inactiveEnd");
+          start.min=dateIso(0);end.min=dateIso(0);
+          type.onchange=function(){var long=type.value==="group";document.getElementById("inactiveStartLabel").textContent=long?"Дата начала":"День неактива";document.getElementById("inactiveEndField").hidden=!long;end.required=long;end.min=start.value||dateIso(0);if(!long)end.value="";};
+          start.onchange=function(){end.min=start.value||dateIso(0);if(end.value&&end.value<start.value)end.value="";};
           function loadInactiveRequests(force){return ownCachedLoad(user,"inactiveRequestsMine",function(){return window.BR_API.inactiveRequestsMine(user.token);},function(result){
             var list=Array.isArray(result&&result.requests)?result.requests:[];
             document.getElementById("inactiveMineRoot").innerHTML=list.length?list.map(function(x){
@@ -3346,10 +3350,10 @@
               return '<article class="box spaced-box"><b>'+E(formatDateNumeric(a))+(b!==a?' — '+E(formatDateNumeric(b)):'')+'</b> · '+E(days)+' дн. '+ownRequestStatus(x.status)+'<p><b>Причина:</b> '+E(x.reason||"—")+'</p><p><b>Комментарий руководства:</b> '+E(x.review_comment||"—")+'</p></article>';
             }).join(""):'<div class="empty">Заявок на неактив пока нет.</div>';
           },force).catch(function(e){requestModal("Ошибка",e.message||"Не удалось загрузить заявки.");});}
-          inactiveForm.onsubmit=async function(event){event.preventDefault();var button=inactiveForm.querySelector('[type="submit"]'),a=start.value,b=a,reason=document.getElementById("inactiveReason").value.trim();
-            if(!a||a<dateIso(0)){await requestModal("Проверьте дату","Укажите корректную дату неактива.");return;}button.disabled=true;
-            try{var overlap=await window.BR_API.inactiveRequestOverlapCheck(user.token,a,b);if(overlap&&overlap.has_overlap){await requestModal("Пересечение дат","На выбранную дату уже есть одобренный неактив.");return;}
-              await window.BR_API.inactiveRequestCreate(user.token,"single",a,b,reason);inactiveForm.reset();start.min=dateIso(0);await loadInactiveRequests(true);await requestModal("Готово","Заявка отправлена руководству.");
+          inactiveForm.onsubmit=async function(event){event.preventDefault();var button=inactiveForm.querySelector('[type="submit"]'),a=start.value,b=type.value==="group"?end.value:a,reason=document.getElementById("inactiveReason").value.trim();
+            if(!a||a<dateIso(0)||!b||b<a){await requestModal("Проверьте даты","Укажите корректную дату или период неактива.");return;}button.disabled=true;
+            try{var overlap=await window.BR_API.inactiveRequestOverlapCheck(user.token,a,b);if(overlap&&overlap.has_overlap){await requestModal("Пересечение дат","На выбранный период уже есть одобренный неактив.");return;}
+              await window.BR_API.inactiveRequestCreate(user.token,type.value,a,b,reason);inactiveForm.reset();start.min=dateIso(0);end.min=dateIso(0);type.onchange();await loadInactiveRequests(true);await requestModal("Готово","Заявка отправлена руководству.");
             }catch(e){await requestModal("Ошибка",e.message||"Не удалось отправить заявку.");}finally{button.disabled=false;}
           };
           loadInactiveRequests(false);
