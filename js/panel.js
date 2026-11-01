@@ -2359,14 +2359,14 @@
       });
     }
     async function refreshAll(force) {
-      if (activeTab === "push") return loadPushStatusAll(force);
+
       if (activeTab === "events" && user.role === "management") return loadEvents(force);
       var jobs = [loadNotifications(force)];
       if (user.role === "management") jobs.push(loadManagementQueue(force));
       return Promise.all(jobs);
     }
     function setActiveTab(tab, force) {
-      var allowed = user.role === "management" ? ["notifications","events","push"] : ["notifications","push"];
+      var allowed = user.role === "management" ? ["notifications","events"] : ["notifications"];
       if (allowed.indexOf(tab) < 0) tab = "notifications";
       activeTab = tab;
       try { sessionStorage.setItem("br_notifications_tab", tab); } catch (_) {}
@@ -2383,7 +2383,6 @@
       show("emergencyContactRoot", tab==="notifications" && user.role!=="management");
       show("managementQueueRoot", tab==="notifications" && user.role==="management");
       show("eventsRoot", tab==="events");
-      show("pushStatusRoot", tab==="push");
       var createN=document.getElementById("openNotificationForm"), createE=document.getElementById("openEventForm");
       if(createN)createN.hidden=tab!=="notifications" || !!document.getElementById("notificationCreateRoot")?.dataset.open;
       if(createE)createE.hidden=tab!=="events" || !!document.getElementById("eventCreateRoot")?.dataset.open;
@@ -2936,143 +2935,6 @@
       return cachedLoad("managementQueueCounts",function(){return window.BR_API.managementPendingCounts(user.token);},function(data){
         root.innerHTML='<div class="box management-queue"><h2>Требует проверки</h2><a href="../pages/requests-all.html" class="management-queue-urgent"><span>Срочные обращения</span><b>'+E(data.urgent_requests||0)+'</b></a><a href="../pages/normatives-all.html"><span>Заявки на неактив</span><b>'+E(data.inactive_requests||0)+'</b></a><a href="../pages/requests-all.html"><span>Обращения без ответа</span><b>'+E(data.unanswered_requests||0)+'</b></a><a href="../pages/normatives-all.html"><span>Нормативы на проверке</span><b>'+E(data.normatives_pending||0)+'</b></a></div>';
       },{root:"managementQueueRoot",force:!!force,alwaysFetch:true});
-    }
-
-    async function loadPushStatusAll(force) {
-      var root = document.getElementById("pushStatusRoot");
-      if (!root) return;
-      if (user.role !== "management") {
-        var permission = ("Notification" in window) ? Notification.permission : "unsupported";
-        var registration = null, subscription = null;
-        try { if ("serviceWorker" in navigator) { registration = await navigator.serviceWorker.getRegistration("../sw.js"); subscription = registration && registration.pushManager ? await registration.pushManager.getSubscription() : null; } } catch (_) {}
-        var enabled = !!subscription;
-        var status = permission === "denied" ? '<span class="badge badge-red">Нет разрешения</span>' : enabled ? '<span class="badge badge-green">✓ Включены</span>' : '<span class="badge badge-gray">Выключены</span>';
-        root.innerHTML = '<div class="box personal-push-settings"><div class="push-personal-head"><div><small>НА ЭТОМ УСТРОЙСТВЕ</small><h2>Push-уведомления</h2></div>'+status+'</div><p class="muted">'+(permission==="denied"?"Разрешение заблокировано в браузере. Откройте настройки сайта в браузере и разрешите уведомления.":permission==="unsupported"?"Этот браузер не поддерживает push-уведомления.":"Получайте важные уведомления администрации даже когда сайт закрыт.")+'</p><button class="button '+(enabled?'button-secondary':'button-primary')+'" id="togglePersonalPush" type="button" '+(permission==="denied"||permission==="unsupported"?'disabled':'')+'>'+(enabled?'Выключить':'Включить')+'</button><div id="personalPushMessage" class="field-hint"></div></div>';
-        var button=document.getElementById("togglePersonalPush"), message=document.getElementById("personalPushMessage");
-        if(button)button.onclick=async function(){
-          button.disabled=true;button.textContent="Обновление…";
-          try{
-            if(enabled){await window.BR_API.pushUnsubscribe(user.token,subscription.endpoint);try{await subscription.unsubscribe();}catch(_){}}
-            else{
-              if(!("serviceWorker" in navigator)||!("PushManager" in window))throw new Error("Этот браузер не поддерживает push.");
-              var permissionNow=permission==="granted"?"granted":await Notification.requestPermission();
-              if(permissionNow!=="granted")throw new Error(permissionNow==="denied"?"Разрешение заблокировано в настройках браузера.":"Разрешите уведомления в браузере.");
-              var reg=await navigator.serviceWorker.register("../sw.js",{updateViaCache:"none"});
-              var sub=await reg.pushManager.subscribe({userVisibleOnly:true});
-              await window.BR_API.pushSubscribe(user.token,sub.toJSON());
-            }
-            await loadPushStatusAll(true);
-          }catch(e){if(message)message.textContent=e.message||"Не удалось изменить настройку push.";button.disabled=false;button.textContent=enabled?"Выключить":"Включить";}
-        };
-        return;
-      }
-
-      function renderResult(result) {
-        var list = Array.isArray(result.administrators)
-          ? result.administrators
-          : [];
-
-        var enabled = list.filter(function (item) {
-          return !!item.enabled;
-        }).length;
-
-        list.sort(function (a, b) {
-          var ar = positionRank(String(a.position || "").trim());
-          var br = positionRank(String(b.position || "").trim());
-          return (ar < 0 ? 999 : ar) - (br < 0 ? 999 : br) ||
-            String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
-        });
-
-        var rows = list.length
-          ? list.map(function (item) {
-              var devices = Array.isArray(item.devices)
-                ? item.devices.map(function (device) {
-                    return device === "phone"
-                      ? "Android"
-                      : device === "computer"
-                        ? "Windows / ПК"
-                        : device;
-                  })
-                : [];
-
-              var status = (item.permission === "denied" || item.permission_granted === false)
-                ? '<span class="badge badge-red">Нет разрешения</span>'
-                : item.enabled
-                  ? '<span class="badge badge-green">✓ Включены</span>'
-                  : '<span class="badge badge-gray">Выключены</span>';
-
-              return '<tr data-push-nickname="' + E(String(item.nickname || "").toLowerCase()) + '" data-push-position="' + E(item.position || "") + '" data-push-enabled="' + (item.enabled ? 'yes' : 'no') + '">' +
-                '<td><b>' + E(item.nickname) + '</b></td>' +
-                '<td>' + E(item.position || "—") + '</td>' +
-                '<td>' + status + '</td>' +
-                '<td>' + E(String(devices.length)) + '</td>' +
-              '</tr>';
-            }).join("")
-          : '<tr><td colspan="4">Активных аккаунтов нет.</td></tr>';
-
-        root.innerHTML =
-          '<div class="page-toolbar push-status-head">' +
-            '<div><small>СОСТОЯНИЕ PUSH</small><b>Подписки администрации</b><span class="muted">Подписка хранится отдельно для каждого устройства.</span></div>' +
-            '<div class="push-status-head-actions">' +
-              '<span class="badge badge-blue">Включено ' + E(String(enabled)) + ' из ' + E(String(list.length)) + '</span>' +
-              '<button class="button button-secondary" id="refreshPushStatus" type="button">Обновить</button>' +
-            '</div>' +
-          '</div>' +
-          '<div class="box table-box push-status-table-box">' +
-            '<div class="push-roster-filters">' +
-              '<input id="pushRosterSearch" class="form-input" type="search" placeholder="Поиск по никнейму" aria-label="Поиск по никнейму">' +
-              '<select id="pushRosterPosition" class="form-select" aria-label="Должность"><option value="">Все должности</option>' + Array.from(new Set(list.map(function (item) { return String(item.position || "").trim(); }).filter(Boolean))).map(function (position) { return '<option value="' + E(position) + '">' + E(position) + '</option>'; }).join('') + '</select>' +
-              '<div class="push-status-chips" role="group" aria-label="Push-статус"><button type="button" class="notification-chip is-active" data-push-filter="">Все</button><button type="button" class="notification-chip" data-push-filter="yes">Включены</button><button type="button" class="notification-chip" data-push-filter="no">Выключены</button></div>' +
-              '<select id="pushRosterSort" class="form-select" aria-label="Сортировка"><option value="position">Должность: старшие сначала</option><option value="nickname">Никнейм: А–Я</option><option value="nickname_desc">Никнейм: Я–А</option></select>' +
-            '</div>' +
-            '<table id="pushRosterTable">' +
-              '<thead><tr><th>Никнейм</th><th>Должность</th><th>Push</th><th>Устройства</th></tr></thead>' +
-              '<tbody>' + rows + '</tbody>' +
-            '</table>' +
-          '</div>';
-
-        function applyPushRoster() {
-          var query = document.getElementById("pushRosterSearch").value.trim().toLowerCase();
-          var position = document.getElementById("pushRosterPosition").value;
-          var status = root.querySelector("[data-push-filter].is-active")?.dataset.pushFilter || "";
-          document.querySelectorAll("#pushRosterTable tbody tr[data-push-nickname]").forEach(function (row) {
-            row.style.display = (!query || row.dataset.pushNickname.indexOf(query) !== -1) &&
-              (!position || row.dataset.pushPosition === position) &&
-              (!status || row.dataset.pushEnabled === status) ? "" : "none";
-          });
-        }
-        ["pushRosterSearch", "pushRosterPosition"].forEach(function (id) { document.getElementById(id).addEventListener(id === "pushRosterSearch" ? "input" : "change", applyPushRoster); });
-        root.querySelectorAll("[data-push-filter]").forEach(function(chip){chip.onclick=function(){root.querySelectorAll("[data-push-filter]").forEach(function(x){x.classList.toggle("is-active",x===chip);});applyPushRoster();};});
-        document.getElementById("pushRosterSort").onchange = function () {
-          var mode = this.value;
-          var tbody = document.querySelector("#pushRosterTable tbody");
-          var rows = Array.from(tbody.querySelectorAll("tr[data-push-nickname]"));
-          rows.sort(function (a, b) {
-            if (mode === "nickname" || mode === "nickname_desc") {
-              var nameDiff = a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
-              return mode === "nickname_desc" ? -nameDiff : nameDiff;
-            }
-            var ar = positionRank(a.dataset.pushPosition);
-            var br = positionRank(b.dataset.pushPosition);
-            return ar - br || a.dataset.pushNickname.localeCompare(b.dataset.pushNickname, "ru");
-          });
-          rows.forEach(function (row) { tbody.appendChild(row); });
-        };
-
-        var refresh = document.getElementById("refreshPushStatus");
-        if (refresh) {
-          refresh.onclick = async function () {
-            refresh.disabled = true;
-            refresh.textContent = "Обновление…";
-            try {
-              await loadPushStatusAll(true);
-            } finally {
-              refresh.disabled = false;
-            }
-          };
-        }
-      }
-      return cachedLoad('pushStatusAll', function () { return window.BR_API.pushStatusAll(user.token); }, renderResult, {root:'pushStatusRoot',force:!!force});
     }
 
     async function loadNotifications(force) {
