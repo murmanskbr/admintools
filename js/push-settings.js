@@ -31,17 +31,159 @@
     root.textContent = message;
   }
 
+
+  function insertPersonalCard(user) {
+    if (!user) return;
+    if (document.getElementById("pushPersonalSettingsCard")) return;
+
+    var grid = document.querySelector(".settings-grid");
+    if (!grid) return;
+
+    var card = document.createElement("section");
+    card.className = "box settings-card personal-push-settings";
+    card.id = "pushPersonalSettingsCard";
+    card.innerHTML =
+      '<div class="settings-card-head">' +
+        '<div><small>УВЕДОМЛЕНИЯ</small><h2>Push-уведомления</h2></div>' +
+        '<span>Настройка действует только на этом устройстве.</span>' +
+      '</div>' +
+      '<p class="muted">Включите Push, чтобы получать важные уведомления администрации, даже когда сайт закрыт. Для телефона и компьютера настройка выполняется отдельно.</p>' +
+      '<div class="push-personal-head">' +
+        '<div><b id="pushPersonalStatusText">Проверка состояния…</b><small id="pushPersonalDeviceText" class="muted"></small></div>' +
+        '<span id="pushPersonalStatusBadge" class="badge badge-gray">Проверка</span>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="button button-primary" id="togglePersonalPush" type="button" disabled>Проверка…</button>' +
+        '<button class="button button-secondary" id="refreshPersonalPush" type="button">Обновить</button>' +
+      '</div>' +
+      '<div id="personalPushMessage" class="settings-status" hidden></div>';
+
+    grid.appendChild(card);
+
+    var button = document.getElementById("togglePersonalPush");
+    var refresh = document.getElementById("refreshPersonalPush");
+    var statusText = document.getElementById("pushPersonalStatusText");
+    var deviceText = document.getElementById("pushPersonalDeviceText");
+    var badge = document.getElementById("pushPersonalStatusBadge");
+    var message = document.getElementById("personalPushMessage");
+    var currentStatus = null;
+    var busy = false;
+
+    function statusMessage(text, ok) {
+      if (!message) return;
+      message.hidden = !text;
+      message.className = "settings-status " + (ok ? "settings-status-ok" : "settings-status-error");
+      message.textContent = text || "";
+    }
+
+    function renderStatus(value) {
+      currentStatus = value || {};
+      var supported = !!currentStatus.supported;
+      var permission = String(currentStatus.permission || "unsupported");
+      var enabled = !!currentStatus.localEnabled;
+      var browserSubscribed = !!currentStatus.browserSubscribed;
+
+      if (!supported || permission === "unsupported") {
+        statusText.textContent = "Этот браузер не поддерживает Push";
+        badge.textContent = "Недоступно";
+        badge.className = "badge badge-gray";
+        button.disabled = true;
+        button.textContent = "Недоступно";
+      } else if (permission === "denied") {
+        statusText.textContent = "Разрешение запрещено в браузере";
+        badge.textContent = "Нет разрешения";
+        badge.className = "badge badge-red";
+        button.disabled = true;
+        button.textContent = "Разрешить в браузере";
+      } else if (enabled) {
+        statusText.textContent = "Push включены на этом устройстве";
+        badge.textContent = "✓ Включены";
+        badge.className = "badge badge-green";
+        button.disabled = false;
+        button.textContent = "Выключить Push";
+      } else {
+        statusText.textContent = browserSubscribed
+          ? "Подписка найдена — требуется синхронизация"
+          : "Push выключены на этом устройстве";
+        badge.textContent = browserSubscribed ? "Требуется синхронизация" : "Выключены";
+        badge.className = "badge badge-gray";
+        button.disabled = false;
+        button.textContent = "Включить Push";
+      }
+
+      deviceText.textContent = currentStatus.serverCount
+        ? "Активных устройств в аккаунте: " + currentStatus.serverCount
+        : "Подписка будет сохранена отдельно для этого устройства.";
+    }
+
+    async function loadStatus() {
+      if (busy) return;
+      busy = true;
+      button.disabled = true;
+      refresh.disabled = true;
+      button.textContent = "Проверка…";
+      statusMessage("", true);
+
+      try {
+        if (!window.BRPush || typeof window.BRPush.status !== "function") {
+          throw new Error("Модуль Push не загрузился. Обновите страницу.");
+        }
+        var value = await window.BRPush.status(user.token);
+        renderStatus(value);
+      } catch (error) {
+        statusText.textContent = "Не удалось проверить состояние Push";
+        badge.textContent = "Ошибка";
+        badge.className = "badge badge-red";
+        button.disabled = false;
+        button.textContent = "Повторить";
+        statusMessage(error.message || "Не удалось загрузить состояние Push.", false);
+      } finally {
+        busy = false;
+        refresh.disabled = false;
+      }
+    }
+
+    button.onclick = async function () {
+      if (busy) return;
+      busy = true;
+      button.disabled = true;
+      refresh.disabled = true;
+      button.textContent = "Обновление…";
+      statusMessage("", true);
+
+      try {
+        if (!window.BRPush) throw new Error("Модуль Push не загрузился. Обновите страницу.");
+        if (currentStatus && currentStatus.localEnabled) {
+          await window.BRPush.disable(user.token);
+          statusMessage("Push отключены на этом устройстве.", true);
+        } else {
+          await window.BRPush.enable(user.token);
+          statusMessage("Push успешно включены на этом устройстве.", true);
+        }
+        var value = await window.BRPush.status(user.token);
+        renderStatus(value);
+      } catch (error) {
+        statusMessage(error.message || "Не удалось изменить настройку Push.", false);
+        button.disabled = false;
+        button.textContent = currentStatus && currentStatus.localEnabled
+          ? "Выключить Push"
+          : "Повторить";
+      } finally {
+        busy = false;
+        refresh.disabled = false;
+      }
+    };
+
+    refresh.onclick = loadStatus;
+    loadStatus();
+  }
+
   function insertCard(user) {
     if (!user || user.role !== "management") return;
     if (document.getElementById("pushProjectConfigCard")) return;
 
     var grid = document.querySelector(".settings-grid");
     if (!grid) return;
-
-    var cards = grid.querySelectorAll(".settings-card");
-    var anchor = cards.length > 1
-      ? cards[1]
-      : cards[0];
 
     var card = document.createElement("section");
     card.className =
@@ -79,11 +221,7 @@
       '</form>' +
       '<div id="pushProjectConfigStatus" class="settings-status" hidden></div>';
 
-    if (anchor && anchor.nextSibling) {
-      grid.insertBefore(card, anchor.nextSibling);
-    } else {
-      grid.appendChild(card);
-    }
+    grid.appendChild(card);
 
     var form = document.getElementById("pushProjectConfigForm");
     var publicKey = document.getElementById("pushProjectPublicKey");
@@ -172,14 +310,112 @@
     load();
   }
 
+
+  function insertManagementRosterCard(user) {
+    if (!user || user.role !== "management") return;
+    if (document.getElementById("pushManagementRosterCard")) return;
+
+    var grid = document.querySelector(".settings-grid");
+    if (!grid) return;
+
+    var card = document.createElement("section");
+    card.className = "box settings-card settings-push-roster-card";
+    card.id = "pushManagementRosterCard";
+    card.innerHTML =
+      '<div class="settings-card-head"><div><small>СОСТОЯНИЕ PUSH</small><h2>Подписки администрации</h2></div><span>Статус Push на устройствах администраторов.</span></div>' +
+      '<div id="pushManagementRosterRoot"><div class="empty">Загрузка подписок…</div></div>';
+    grid.appendChild(card);
+
+    var root = document.getElementById("pushManagementRosterRoot");
+
+    function render(result) {
+      var list = Array.isArray(result && result.administrators) ? result.administrators.slice() : [];
+      var enabled = list.filter(function (item) { return !!item.enabled; }).length;
+      list.sort(function (a, b) {
+        return String(a.nickname || "").localeCompare(String(b.nickname || ""), "ru");
+      });
+
+      var rows = list.length ? list.map(function (item) {
+        var devices = Array.isArray(item.devices) ? item.devices.map(function (device) {
+          return device === "phone" ? "Android" : device === "computer" ? "Windows / ПК" : device;
+        }) : [];
+        var status = (item.permission === "denied" || item.permission_granted === false)
+          ? '<span class="badge badge-red">Нет разрешения</span>'
+          : item.enabled
+            ? '<span class="badge badge-green">✓ Включены</span>'
+            : '<span class="badge badge-gray">Выключены</span>';
+        return '<tr data-push-nickname="' + esc(String(item.nickname || "").toLowerCase()) + '" data-push-enabled="' + (item.enabled ? "yes" : "no") + '">' +
+          '<td><b>' + esc(item.nickname || "—") + '</b></td>' +
+          '<td>' + esc(item.position || "—") + '</td>' +
+          '<td>' + status + '</td>' +
+          '<td>' + esc(String(devices.length)) + '</td></tr>';
+      }).join("") : '<tr><td colspan="4">Активных аккаунтов нет.</td></tr>';
+
+      root.innerHTML =
+        '<div class="page-toolbar push-status-head"><div><span class="badge badge-blue">Включено ' + esc(String(enabled)) + ' из ' + esc(String(list.length)) + '</span></div>' +
+        '<button class="button button-secondary" id="refreshPushRoster" type="button">Обновить</button></div>' +
+        '<div class="push-roster-filters"><input id="pushRosterSearch" class="form-input" type="search" placeholder="Поиск по никнейму" aria-label="Поиск по никнейму">' +
+        '<div class="push-status-chips" role="group" aria-label="Push-статус"><button type="button" class="notification-chip is-active" data-push-filter="">Все</button><button type="button" class="notification-chip" data-push-filter="yes">Включены</button><button type="button" class="notification-chip" data-push-filter="no">Выключены</button></div></div>' +
+        '<div class="table-box push-status-table-box"><table id="pushRosterTable"><thead><tr><th>Никнейм</th><th>Должность</th><th>Push</th><th>Устройства</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+      function applyFilter() {
+        var query = document.getElementById("pushRosterSearch").value.trim().toLowerCase();
+        var selected = root.querySelector("[data-push-filter].is-active");
+        var status = selected ? selected.dataset.pushFilter : "";
+        root.querySelectorAll("#pushRosterTable tbody tr[data-push-nickname]").forEach(function (row) {
+          row.style.display = (!query || row.dataset.pushNickname.indexOf(query) !== -1) &&
+            (!status || row.dataset.pushEnabled === status) ? "" : "none";
+        });
+      }
+
+      document.getElementById("pushRosterSearch").addEventListener("input", applyFilter);
+      root.querySelectorAll("[data-push-filter]").forEach(function (chip) {
+        chip.onclick = function () {
+          root.querySelectorAll("[data-push-filter]").forEach(function (item) {
+            item.classList.toggle("is-active", item === chip);
+          });
+          applyFilter();
+        };
+      });
+
+      var refresh = document.getElementById("refreshPushRoster");
+      if (refresh) refresh.onclick = load;
+    }
+
+    async function load() {
+      var refresh = document.getElementById("refreshPushRoster");
+      if (refresh) {
+        refresh.disabled = true;
+        refresh.textContent = "Обновление…";
+      }
+      try {
+        var result = await window.BR_API.pushStatusAll(user.token);
+        render(result || {});
+      } catch (error) {
+        root.innerHTML = '<div class="empty">' + esc(error.message || "Не удалось загрузить подписки администрации.") + '</div>';
+      } finally {
+        refresh = document.getElementById("refreshPushRoster");
+        if (refresh) {
+          refresh.disabled = false;
+          refresh.textContent = "Обновить";
+        }
+      }
+    }
+
+    load();
+  }
+
   function boot() {
     var user = sessionUser();
+    if (!user) return;
 
-    if (user && user.role === "management") {
-      window.setTimeout(function () {
+    window.setTimeout(function () {
+      insertPersonalCard(user);
+      if (user.role === "management") {
         insertCard(user);
-      }, 0);
-    }
+        insertManagementRosterCard(user);
+      }
+    }, 0);
   }
 
   if (document.readyState === "loading") {
