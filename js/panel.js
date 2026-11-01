@@ -2519,12 +2519,11 @@
          var initial = (location.hash || "").replace("#","") || (function(){try{return sessionStorage.getItem("br_notifications_tab")||"notifications";}catch(_){return "notifications";}})();
         var tabs = '<div class="notification-segmented" role="tablist" aria-label="Раздел уведомлений"><button type="button" role="tab" data-notification-tab="notifications" aria-selected="true" class="is-active">Уведомления <span id="notificationTabCount"></span></button>' +
           (user.role==="management" ? '<button type="button" role="tab" data-notification-tab="events" aria-selected="false">Сборы</button>' : '') +
-          '<button type="button" role="tab" data-notification-tab="push" aria-selected="false">Push</button></div>';
+          '</div>';
         return '<div class="page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + tabs + emergencyControls + createControls +
           (user.role === "management" ? '<div id="managementQueueRoot" class="management-queue-root"><div class="box"><div class="empty">Загрузка очереди проверки...</div></div></div>' : '') +
           '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>' +
           '<div id="eventsRoot" class="events-root" hidden><div class="box"><div class="empty">Загрузка мероприятий...</div></div></div>' +
-          '<div id="pushStatusRoot" class="push-status-root" hidden><div class="box"><div class="empty">Загрузка статуса push...</div></div></div>' +
           '<input type="hidden" id="initialNotificationTab" value="' + E(initial) + '">';
       },
       bind: function () {
@@ -4115,7 +4114,7 @@
 
     return {
       title: "Настройки",
-      subtitle: "Безопасность, внешний вид и системные параметры аккаунта",
+      subtitle: "Безопасность, внешний вид, уведомления и системные параметры аккаунта",
       render: render,
       bind: function () {
         var passwordForm = document.getElementById("passwordSettingsForm");
