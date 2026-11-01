@@ -3244,7 +3244,7 @@
                   '<div id="normPreview" class="norm-preview"></div>' +
                 '</div>' +
                 '<div class="form-field"><label>Дата норматива</label><input id="normDate" class="form-input" type="date" value="' + E(dateIso(0)) + '" required></div>' +
-                '<div class="form-field"><label>Должность из таблицы статистики</label><input id="normPosition" type="hidden" value=""><div id="normPositionDisplay" class="normative-position-display" role="status">Получаем должность из таблицы…</div></div>' +
+                '<div class="form-field"><label>Должность из выданного доступа</label><input id="normPosition" type="hidden" value=""><div id="normPositionDisplay" class="normative-position-display" role="status">Получаем должность из таблицы…</div></div>' +
                 '<div class="form-field form-full"><label>Комментарий / что выполнено</label><textarea id="normComment" class="form-textarea" placeholder="Например: недельная норма, вечерняя смена и т. п."></textarea></div>' +
               '</div>' +
               '<div id="normEditHint" class="field-hint" hidden></div>' +
@@ -3266,39 +3266,27 @@
           normativeEdit.date = "";
 
           async function loadNormativePosition() {
-            if (positionDisplay) positionDisplay.textContent = "Получаем должность из таблицы статистики…";
+            if (positionDisplay) positionDisplay.textContent = "Получаем должность из профиля доступа…";
             if (normativeSubmitButton) {
               normativeSubmitButton.disabled = true;
               normativeSubmitButton.textContent = "Загрузка должности…";
             }
 
             try {
-              var rowResult = await window.BR_API.getStatisticsAdmin(user.token, user.nickname);
-              var rowData = googleRowPayload(rowResult);
-              var positionIndex = -1;
-
-              for (var i = 0; i < rowData.headers.length; i += 1) {
-                var header = String(rowData.headers[i] || "")
-                  .trim()
-                  .toLowerCase()
-                  .replace(/ё/g, "е")
-                  .replace(/[^a-zа-я0-9]+/g, "");
-                if (header === "должность" || header === "position" || header === "adminposition") {
-                  positionIndex = i;
-                  break;
-                }
-              }
-
-              var position = positionIndex >= 0
-                ? String(rowData.raw[positionIndex] == null ? "" : rowData.raw[positionIndex]).trim()
-                : "";
+              var profileResult = await window.BR_API.me(user.token);
+              var profile = profileResult && profileResult.admin ? profileResult.admin : null;
+              var position = String(profile && profile.position != null ? profile.position : "").trim();
 
               if (!position) {
-                throw new Error("В строке администратора не найдена должность.");
+                throw new Error("В выданном доступе не указана должность. Обратитесь к руководству для её заполнения.");
               }
 
               loadedNormativePosition = position;
               normativePositionLoaded = true;
+              user.position = position;
+              if (window.BRApp && typeof window.BRApp.updateSessionUser === "function") {
+                window.BRApp.updateSessionUser({ position: position });
+              }
               if (positionInput) positionInput.value = position;
               if (positionDisplay) {
                 positionDisplay.textContent = position;
@@ -3313,14 +3301,14 @@
               loadedNormativePosition = "";
               if (positionInput) positionInput.value = "";
               if (positionDisplay) {
-                positionDisplay.textContent = "Не удалось получить должность из таблицы. Обновите страницу или обратитесь к руководству.";
+                positionDisplay.textContent = "Не удалось получить должность из профиля доступа. Обновите страницу или обратитесь к руководству.";
                 positionDisplay.classList.add("is-error");
               }
               if (normativeSubmitButton) {
                 normativeSubmitButton.disabled = true;
                 normativeSubmitButton.textContent = "Должность не определена";
               }
-              console.error("[BR AdminTools] Не удалось определить должность для норматива:", error);
+              console.error("[BR AdminTools] Не удалось определить должность из выданного доступа для норматива:", error);
             }
           }
 
@@ -3510,7 +3498,7 @@
                 var hint = document.getElementById("normEditHint");
                 if (hint) {
                   hint.hidden = false;
-                  hint.textContent = "Редактируется норматив за " + date + ". Должность автоматически берётся из актуальной строки администратора в таблице статистики. Если выберете новые файлы, прежние файлы будут заменены.";
+                  hint.textContent = "Редактируется норматив за " + date + ". Должность автоматически берётся из выданного доступа администратора. Если выберете новые файлы, прежние файлы будут заменены.";
                 }
                 if (normativeEdit.form) normativeEdit.form.scrollIntoView({ behavior: "smooth", block: "start" });
               };
