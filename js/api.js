@@ -269,6 +269,22 @@
         return text || "Ошибка при получении данных.";
     }
 
+    function touchRememberedSession(token) {
+        if (
+            !token ||
+            !window.BRApp ||
+            typeof window.BRApp.touchSession !== "function"
+        ) {
+            return;
+        }
+
+        try {
+            window.BRApp.touchSession(token);
+        } catch (error) {
+            console.warn("[BR AdminTools] Не удалось продлить cookie сессии:", error);
+        }
+    }
+
     function notifySessionExpired(code) {
         if (
             [
@@ -562,6 +578,7 @@
             throw serverError;
         }
 
+        touchRememberedSession(token);
         notifySuccessfulMutation(payload);
         return data;
     }
@@ -770,6 +787,7 @@
             throw error;
         }
 
+        touchRememberedSession(token);
         notifySuccessfulMutation(payload);
         return data;
     }
