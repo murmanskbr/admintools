@@ -19,6 +19,7 @@
     var v = String(value || "").toLowerCase();
     if (v === "complaint") return "Жалоба";
     if (v === "suggestion") return "Предложение";
+    if (v === "admin_action_block") return "Блокировка админ-действий";
     return v === "question" ? "Вопрос" : "Обращение";
   }
 
@@ -33,7 +34,7 @@
     window.BRApp.init({
       managementOnly: true,
       title: "Обращения администрации",
-      subtitle: "Вопросы, жалобы и предложения состава",
+      subtitle: "Вопросы, жалобы, предложения и срочные обращения состава",
 
       render: function () {
         return '<div class="page-toolbar">' +
@@ -82,7 +83,8 @@
             ? generalList.filter(function (x) { return x.status === generalFilter; })
             : generalList.slice();
           filtered.sort(function (a, b) {
-            return Number(b.status === "pending") - Number(a.status === "pending");
+            return Number(!!b.urgent) - Number(!!a.urgent) ||
+              Number(b.status === "pending") - Number(a.status === "pending");
           });
 
           if (!filtered.length) {
@@ -96,9 +98,9 @@
               ? '<div class="form-field"><label for="generalReply' + E(id) + '">Ответ руководства</label><textarea class="form-textarea" id="generalReply' + E(id) + '" maxlength="1000" placeholder="Напишите ответ администратору">' + E(item.management_comment || "") + '</textarea></div><button class="button button-primary" type="button" data-general-reply="' + E(id) + '">Отправить ответ</button>'
               : '<span class="muted">' + E("Рассмотрено" + (item.commented_at ? " · " + dateTime(item.commented_at) : "")) + '</span>';
 
-            return '<tr class="' + (String(item.status || "") === "answered" ? "card-ok" : "card-wait") + '">' +
+            return '<tr class="' + (String(item.status || "") === "answered" ? "card-ok" : "card-wait") + (item.urgent ? " request-urgent" : "") + '">' +
               '<td><span class="request-card-title">' + E(item.nickname || item.admin_nickname || "—") + '</span></td>' +
-              '<td>' + E(typeLabel(item.request_type)) + '</td>' +
+              '<td>' + E(typeLabel(item.request_type)) + (item.urgent ? ' <span class="badge badge-red">Срочно</span>' : '') + '</td>' +
               '<td><div>' + E(item.message || "—") + '</div><small class="muted">' + E(dateTime(item.created_at)) + '</small></td>' +
               '<td>' + generalStatus(item.status) + '</td>' +
               '<td>' + E(item.management_comment || "—") + '</td>' +
@@ -201,7 +203,7 @@
 
         window.addEventListener("br:remote-data-changed", function (event) {
           var action = event && event.detail ? event.detail.action : "";
-          if (["general_request_create", "general_request_reply", "access_manage"].indexOf(action) === -1) return;
+          if (["general_request_create", "general_request_reply", "admin_alert_create", "access_manage"].indexOf(action) === -1) return;
           load(true);
         });
 
