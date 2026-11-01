@@ -6477,3 +6477,31 @@ body[data-page="notifications"] .notification-emergency-panel .emergency-choice-
     width: min(390px, calc(100vw - 32px));
   }
 }
+
+
+/* Place emergency contact directly inside the notifications tab strip. */
+body[data-page="notifications"] .notification-page-toolbar {
+  z-index: 20;
+}
+body[data-page="notifications"] .notification-segmented-emergency {
+  position: relative;
+  z-index: 25;
+  overflow: visible;
+}
+body[data-page="notifications"] .notification-segmented-emergency .notification-emergency-root {
+  margin-left: auto;
+}
+body[data-page="notifications"] .notification-segmented-emergency .notification-emergency-panel {
+  right: 0;
+  left: auto;
+  width: min(420px, calc(100vw - 32px));
+}
+@media (max-width: 640px) {
+  body[data-page="notifications"] .notification-segmented-emergency {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  body[data-page="notifications"] .notification-segmented-emergency .notification-emergency-root {
+    margin-left: auto;
+  }
+}
