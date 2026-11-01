@@ -4569,18 +4569,18 @@
 
     function formatAuditDetails(value) {
       var raw = String(value == null ? "" : value).trim();
-      var accessUpdate = raw.match(/^измен[её]н\\s+доступ\\s*:?\\s*(.+)$/i);
+      var accessUpdate = raw.match(/^измен[её]н\s+доступ\s*:?\s*(.+)$/i);
 
       if (accessUpdate && accessUpdate[1]) {
         return "Доступ изменён: " + accessUpdate[1].trim();
       }
 
-      var successAction = raw.match(/^Успешное действие:\\s*([a-z0-9_]+)$/i);
+      var successAction = raw.match(/^Успешное действие:\s*([a-z0-9_]+)$/i);
       if (successAction && actions[successAction[1].toLowerCase()]) {
         return actions[successAction[1].toLowerCase()];
       }
 
-      var openedSection = raw.match(/^Открыт раздел:\\s*([a-z0-9_-]+)$/i);
+      var openedSection = raw.match(/^Открыт раздел:\s*([a-z0-9_-]+)$/i);
       if (openedSection) {
         var sectionKey = openedSection[1].toLowerCase();
         return "Открыт раздел: " + (pages[sectionKey] || sectionKey.replace(/-/g, " "));
@@ -4595,7 +4595,7 @@
       };
       if (settingNames[raw]) return "Изменена настройка: " + settingNames[raw];
 
-      var normativeStatus = raw.match(/^(.*?статус:\\s*)(norm|rework|no_norm|inactive|not_submitted|pending)(.*)$/i);
+      var normativeStatus = raw.match(/^(.*?статус:\s*)(norm|rework|no_norm|inactive|not_submitted|pending)(.*)$/i);
       if (normativeStatus) {
         var statusNames = {
           norm: "Принят",
@@ -4652,7 +4652,7 @@
 
     function rangeForDate(value) {
       var text = String(value || "").trim();
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
         return { from: "", to: "" };
       }
 
@@ -4933,7 +4933,7 @@
             };
             var confirmed = window.confirm(
               "Внимание! Будут удалены " + (labels[period] || "выбранные записи") +
-              ".\\n\\nПродолжить?"
+              ".\n\nПродолжить?"
             );
             if (!confirmed) return;
 
