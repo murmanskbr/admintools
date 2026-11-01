@@ -6545,3 +6545,36 @@ body[data-page="notifications"] .notification-segmented-emergency .notification-
     font-size: 14px;
   }
 }
+
+
+/* Normative form: make the Google Sheets position visible as a read-only value. */
+body[data-page="normatives"] .normative-position-display {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 750;
+}
+body[data-page="normatives"] .normative-position-display.is-error {
+  border-color: rgba(239,68,68,.45);
+  color: #f87171;
+  font-weight: 600;
+}
+body[data-page="normatives"] .stats-toolbar-actions #normTab.is-active,
+body[data-page="normatives"] .stats-toolbar-actions #inactiveTab.is-active {
+  background: #ef3349 !important;
+  border-color: #ef3349 !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 1px rgba(239,51,73,.22), 0 4px 12px rgba(239,51,73,.18) !important;
+}
+body[data-page="normatives"] .stats-toolbar-actions #normTab:not(.is-active),
+body[data-page="normatives"] .stats-toolbar-actions #inactiveTab:not(.is-active) {
+  background: var(--surface2);
+  border-color: var(--line);
+  color: var(--muted);
+}
