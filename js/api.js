@@ -1880,6 +1880,16 @@
                                 options.criticality || ""
                             ).trim(),
 
+                        sort_by:
+                            String(
+                                options.sort_by || "created_at"
+                            ).trim(),
+
+                        sort_direction:
+                            String(
+                                options.sort_direction || "desc"
+                            ).trim(),
+
                         created_from:
                             String(
                                 options.created_from || ""
