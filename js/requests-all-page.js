@@ -15,6 +15,15 @@
       : '<span class="badge badge-yellow">⏳ На рассмотрении</span>';
   }
 
+  function authorLine(author, actorId) {
+    if (!author) return actorId ? '<small class="response-author-line is-legacy">Автор старой записи не сохранён</small>' : '';
+    var position=String(author.position||"").trim(), role=String(author.role||"").trim();
+    if (!position) position=role==="management"?"Руководство":role==="admin"?"Администратор":role;
+    var nickname=String(author.nickname||"").trim();
+    var label=[position,nickname].filter(Boolean).join(" — ");
+    return label?'<small class="response-author-line"><span>Ответил:</span> <b>'+E(label)+'</b></small>':'';
+  }
+
   function typeLabel(value) {
     var v = String(value || "").toLowerCase();
     if (v === "complaint") return "Жалоба";
@@ -103,7 +112,7 @@
               '<td>' + E(typeLabel(item.request_type)) + (item.urgent ? ' <span class="badge badge-red">Срочно</span>' : '') + '</td>' +
               '<td><div>' + E(item.message || "—") + '</div><small class="muted">' + E(dateTime(item.created_at)) + '</small></td>' +
               '<td>' + generalStatus(item.status) + '</td>' +
-              '<td>' + E(item.management_comment || "—") + '</td>' +
+              '<td>' + E(item.management_comment || "—") + authorLine(item.comment_author,item.commented_by) + '</td>' +
               '<td>' + action + '</td>' +
             '</tr>';
           }).join("");
