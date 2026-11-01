@@ -2571,7 +2571,7 @@
          function emergencyCooldownUntil(type) {
            try {
              var value = Number(localStorage.getItem(emergencyCooldownKey(type)) || 0);
-             return Number.isFinite(value) && value > Date.now() ? value : 0;
+             return Number.isFinite(value) ? value : 0;
            } catch (_) {
              return 0;
            }
@@ -2587,16 +2587,22 @@
          function updateEmergencyCooldown() {
            if (!emergencySubmit || !selectedEmergencyType) return;
            var until = emergencyCooldownUntil(selectedEmergencyType);
-           emergencySubmit.disabled = !!until;
-           emergencySubmit.textContent = until
+           var active = until > Date.now();
+           emergencySubmit.disabled = active;
+           emergencySubmit.textContent = active
              ? "Доступно после " + emergencyTimeLabel(until)
              : "Отправить сигнал";
-           if (until && emergencyStatus && !emergencyStatus.textContent) {
+           if (active && emergencyStatus && !emergencyStatus.textContent) {
              emergencyStatus.textContent =
                "Этот тип сигнала уже отправлялся. Повторить можно после " +
                emergencyTimeLabel(until) + ".";
+           } else if (!active && until && emergencyStatus && emergencyStatus.dataset.cooldownActive === "1") {
+             emergencyStatus.textContent = "Период ожидания завершён. Сигнал можно отправить повторно.";
+             delete emergencyStatus.dataset.cooldownActive;
            }
          }
+
+         window.setInterval(updateEmergencyCooldown, 5000);
 
          if (emergencyToggle && emergencyPanel) {
            emergencyToggle.onclick = function () {
@@ -2622,7 +2628,10 @@
                  : "Срочное обращение увидит только руководство.";
              }
              if (emergencyDetails) emergencyDetails.value = "";
-             if (emergencyStatus) emergencyStatus.textContent = "";
+             if (emergencyStatus) {
+               emergencyStatus.textContent = "";
+               delete emergencyStatus.dataset.cooldownActive;
+             }
              updateEmergencyCooldown();
              if (emergencyDetails) emergencyDetails.focus();
            };
@@ -2672,6 +2681,7 @@
                  localStorage.setItem(emergencyCooldownKey(selectedEmergencyType), String(nextAllowed));
                } catch (_) {}
                if (emergencyStatus) {
+                 emergencyStatus.dataset.cooldownActive = "1";
                  emergencyStatus.textContent = selectedEmergencyType === "critical_server"
                    ? "Экстренное уведомление отправлено всей администрации. Повторная отправка доступна после " + emergencyTimeLabel(nextAllowed) + "."
                    : "Срочное обращение отправлено руководству. Повторная отправка доступна после " + emergencyTimeLabel(nextAllowed) + ".";
@@ -2683,9 +2693,19 @@
                  await loadNotifications(true);
                }
              } catch (error) {
-               if (emergencyStatus) emergencyStatus.textContent = error.message || "Не удалось отправить сигнал.";
-               emergencySubmit.disabled = false;
-               emergencySubmit.textContent = "Повторить отправку";
+               if (error && error.code === "ADMIN_ALERT_COOLDOWN") {
+                 var blockedUntil = Date.now() + 300000;
+                 try { localStorage.setItem(emergencyCooldownKey(selectedEmergencyType), String(blockedUntil)); } catch (_) {}
+                 if (emergencyStatus) {
+                   emergencyStatus.dataset.cooldownActive = "1";
+                   emergencyStatus.textContent = "Этот тип сигнала уже отправлялся. Повторить можно после " + emergencyTimeLabel(blockedUntil) + ".";
+                 }
+                 updateEmergencyCooldown();
+               } else {
+                 if (emergencyStatus) emergencyStatus.textContent = error.message || "Не удалось отправить сигнал.";
+                 emergencySubmit.disabled = false;
+                 emergencySubmit.textContent = "Повторить отправку";
+               }
              }
            };
          }
