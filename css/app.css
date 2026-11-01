@@ -6354,3 +6354,6 @@ body[data-page="requests"] #generalMineRoot .own-request-card p,body[data-page="
   .emergency-composer-actions{flex-direction:column}
   .emergency-composer-actions .button{width:100%}
 }
+
+.management-queue>a.management-queue-urgent{color:#ff8a96}
+.management-queue>a.management-queue-urgent b{background:rgba(239,68,68,.16);color:#ff6979}
