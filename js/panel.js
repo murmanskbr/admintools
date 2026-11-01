@@ -4450,7 +4450,9 @@
       action: "",
       date: "",
       severity: "all",
-      visible: 20
+      visible: 20,
+      sortKey: "created_at",
+      sortDirection: "desc"
     };
 
     var actions = {
@@ -4474,37 +4476,18 @@
       normatives_mine: "Просмотр своих нормативов",
       normative_detail: "Просмотр деталей норматива",
       normative_url: "Получение ссылки на норматив",
-      game_presence_mine: "Просмотр своего статуса в игре",
-      game_presence_control: "Проверка статуса в игре",
+      game_presence_set: "Изменение статуса входа в игру",
+      game_presence_mine: "Просмотр своего статуса входа в игру",
+      game_presence_control: "Контроль входов в игру",
       server_stats: "Просмотр статистики сервера",
-      me: "Просмотр данных аккаунта",
-      legacy_sessions_cleanup: "Очистка устаревших сессий",
-      page_view: "Открытие раздела",
       login: "Вход в систему",
       logout: "Выход из системы",
-      auth: "Авторизация",
-      access: "Доступ",
-      grant: "Выдача доступа",
-      revoke: "Отзыв доступа",
       access_grant: "Выдача доступа",
       access_update: "Изменение доступа",
-      access_unbind: "Сброс привязки",
+      access_unbind: "Сброс привязки устройства",
       access_block: "Блокировка доступа",
       access_unblock: "Разблокировка доступа",
       access_remove: "Удаление доступа",
-      remove: "Удаление",
-      update: "Изменение",
-      edit: "Редактирование",
-      create: "Создание",
-      delete: "Удаление",
-      block: "Блокировка",
-      unblock: "Разблокировка",
-      unbind: "Сброс привязки",
-      game_login: "Вход в игру",
-      game_logout: "Выход из игры",
-      game_enter: "Вход в игру",
-      game_exit: "Выход из игры",
-      admins_list: "Просмотр администрации",
       create_admins: "Создание аккаунтов",
       settings_update: "Изменение настроек",
       normative_created: "Отправка норматива",
@@ -4518,8 +4501,6 @@
       push_config_updated: "Изменение настроек push",
       push_subscribed: "Подключение push-уведомлений",
       push_unsubscribed: "Отключение push-уведомлений",
-      push_status: "Проверка push-подписки",
-      push_status_all: "Просмотр push-подписок",
       access_reset_sessions: "Сброс сессий администратора",
       admin_request_created: "Создание обращения",
       admin_emergency_signal: "Экстренный сигнал администрации",
@@ -4567,20 +4548,18 @@
 
     function formatAuditDetails(value) {
       var raw = String(value == null ? "" : value).trim();
-      var accessUpdate = raw.match(/^измен[её]н\s+доступ\s*:?\s*(.+)$/i);
+      var accessUpdate = raw.match(/^измен[её]н\\s+доступ\\s*:?\\s*(.+)$/i);
 
       if (accessUpdate && accessUpdate[1]) {
-        // Никнейм выводится целиком, без удаления символов или пробелов из имени.
-        var nickname = accessUpdate[1].trim();
-        return "Доступ изменён: " + nickname;
+        return "Доступ изменён: " + accessUpdate[1].trim();
       }
 
-      var successAction = raw.match(/^Успешное действие:\s*([a-z0-9_]+)$/i);
+      var successAction = raw.match(/^Успешное действие:\\s*([a-z0-9_]+)$/i);
       if (successAction && actions[successAction[1].toLowerCase()]) {
         return actions[successAction[1].toLowerCase()];
       }
 
-      var openedSection = raw.match(/^Открыт раздел:\s*([a-z0-9_-]+)$/i);
+      var openedSection = raw.match(/^Открыт раздел:\\s*([a-z0-9_-]+)$/i);
       if (openedSection) {
         var sectionKey = openedSection[1].toLowerCase();
         return "Открыт раздел: " + (pages[sectionKey] || sectionKey.replace(/-/g, " "));
@@ -4595,7 +4574,7 @@
       };
       if (settingNames[raw]) return "Изменена настройка: " + settingNames[raw];
 
-      var normativeStatus = raw.match(/^(.*?статус:\s*)(norm|rework|no_norm|inactive|not_submitted|pending)(.*)$/i);
+      var normativeStatus = raw.match(/^(.*?статус:\\s*)(norm|rework|no_norm|inactive|not_submitted|pending)(.*)$/i);
       if (normativeStatus) {
         var statusNames = {
           norm: "Принят",
@@ -4628,11 +4607,7 @@
         "settings_update",
         "create_admins"
       ].indexOf(key) !== -1) {
-        return {
-          key: "critical",
-          label: "Критическая",
-          className: "badge-red"
-        };
+        return { key: "critical", label: "Критическая", className: "badge-red" };
       }
 
       if ([
@@ -4648,36 +4623,21 @@
         "notification_created",
         "notification_deleted"
       ].indexOf(key) !== -1) {
-        return {
-          key: "important",
-          label: "Важная",
-          className: "badge-yellow"
-        };
+        return { key: "important", label: "Важная", className: "badge-yellow" };
       }
 
-      return {
-        key: "normal",
-        label: "Обычная",
-        className: "badge-gray"
-      };
+      return { key: "normal", label: "Обычная", className: "badge-gray" };
     }
 
     function rangeForDate(value) {
       var text = String(value || "").trim();
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
-        return {
-          from: "",
-          to: ""
-        };
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) {
+        return { from: "", to: "" };
       }
 
       var start = new Date(text + "T00:00:00");
       var end = new Date(start.getTime() + 86400000);
-
-      return {
-        from: start.toISOString(),
-        to: end.toISOString()
-      };
+      return { from: start.toISOString(), to: end.toISOString() };
     }
 
     function localDateKey(value) {
@@ -4686,6 +4646,24 @@
       return date.getFullYear() + "-" +
         String(date.getMonth() + 1).padStart(2, "0") + "-" +
         String(date.getDate()).padStart(2, "0");
+    }
+
+    function sortValue(item, key) {
+      if (key === "created_at") return new Date(item.created_at || item.time || 0).getTime() || 0;
+      if (key === "nickname") return String(item.nickname || "");
+      if (key === "action") {
+        var actionKey = String(item.action || "").toLowerCase();
+        return actions[actionKey] || item.action || "";
+      }
+      if (key === "criticality") {
+        var severity = item.criticality || criticality(item.action).key;
+        return ({ normal: 1, important: 2, critical: 3 })[severity] || 0;
+      }
+      if (key === "page") {
+        var pageKey = String(item.page || "").toLowerCase();
+        return pages[pageKey] || item.page || "";
+      }
+      return formatAuditDetails(item.details);
     }
 
     function renderTable(root, list) {
@@ -4702,11 +4680,28 @@
           (!dateFilter || localDateKey(item.created_at || item.time) === dateFilter) &&
           (state.severity === "all" || itemSeverity === state.severity);
       });
+
+      filtered.sort(function (a, b) {
+        var av = sortValue(a, state.sortKey);
+        var bv = sortValue(b, state.sortKey);
+        var comparison;
+
+        if (typeof av === "number" && typeof bv === "number") {
+          comparison = av - bv;
+        } else {
+          comparison = String(av).localeCompare(String(bv), "ru", {
+            numeric: true,
+            sensitivity: "base"
+          });
+        }
+
+        return state.sortDirection === "asc" ? comparison : -comparison;
+      });
+
       var rows = filtered.length
         ? filtered.slice(0, state.visible).map(function (x) {
             var actionKey = String(x.action || "").toLowerCase();
             var pageKey = String(x.page || "").toLowerCase();
-            var detailKey = String(x.details || "");
             var level = criticality(actionKey);
 
             if (
@@ -4729,51 +4724,116 @@
               }
             }
 
-            return '<tr><td>' +
+            return "<tr><td>" +
               E(formatDateTime(x.created_at || x.time)) +
-              '</td><td>' +
+              "</td><td>" +
               E(x.nickname || "—") +
-              '</td><td>' +
+              "</td><td>" +
               E(actions[actionKey] || x.action || "—") +
-              '</td><td>' +
+              "</td><td>" +
               '<span class="badge ' + level.className + '">' +
                 E(level.label) +
-              '</span>' +
-              '</td><td>' +
+              "</span>" +
+              "</td><td>" +
               E(pages[pageKey] || x.page || "—") +
-              '</td><td>' +
+              "</td><td>" +
               E(formatAuditDetails(x.details)) +
-              '</td></tr>';
+              "</td></tr>";
           }).join("")
         : '<tr><td colspan="6" class="table-empty">По заданным фильтрам записи не найдены.</td></tr>';
 
+      function sortHeader(key, label) {
+        var active = state.sortKey === key;
+        var arrow = active ? (state.sortDirection === "asc" ? " ↑" : " ↓") : " ↕";
+        return '<th><button type="button" class="logs-sort-button' +
+          (active ? " is-active" : "") + '" data-log-sort="' + key + '">' +
+          label + arrow + "</button></th>";
+      }
+
       root.innerHTML =
         '<div class="box table-box">' +
-          '<table>' +
-            '<thead><tr>' +
-              '<th>Время</th>' +
-              '<th>Никнейм</th>' +
-              '<th>Действие</th>' +
-              '<th>Критичность</th>' +
-              '<th>Раздел</th>' +
-              '<th>Подробности</th>' +
-            '</tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-          '</table>' +
-        '</div>' + (filtered.length > state.visible ? '<button type="button" class="button button-secondary logs-more" id="logsShowMore">Показать ещё</button>' : '');
-      var more = document.getElementById("logsShowMore");
-      if (more) more.onclick = function () { state.visible += 20; renderTable(root, list); };
+          "<table>" +
+            "<thead><tr>" +
+              sortHeader("created_at", "Время") +
+              sortHeader("nickname", "Никнейм") +
+              sortHeader("action", "Действие") +
+              sortHeader("criticality", "Критичность") +
+              sortHeader("page", "Раздел") +
+              sortHeader("details", "Подробности") +
+            "</tr></thead>" +
+            "<tbody>" + rows + "</tbody>" +
+          "</table>" +
+        "</div>" +
+        '<div class="logs-results-count">Найдено записей: <b>' + filtered.length +
+        "</b>" + (filtered.length > state.visible ? " · Показано: " + state.visible : "") + "</div>" +
+        (filtered.length > state.visible
+          ? '<button type="button" class="button button-secondary logs-more" id="logsShowMore">Показать ещё</button>'
+          : "");
+
+      root.querySelectorAll("[data-log-sort]").forEach(function (button) {
+        button.onclick = function () {
+          var key = button.dataset.logSort;
+          if (state.sortKey === key) {
+            state.sortDirection = state.sortDirection === "asc" ? "desc" : "asc";
+          } else {
+            state.sortKey = key;
+            state.sortDirection = key === "created_at" ? "desc" : "asc";
+          }
+          renderTable(root, list);
+        };
+      });
+
+      var more = root.querySelector("#logsShowMore");
+      if (more) more.onclick = function () {
+        state.visible += 20;
+        renderTable(root, list);
+      };
+    }
+
+    async function loadLogs(user) {
+      var root = document.getElementById("logsRoot");
+      if (!root) return;
+
+      var nicknameInput = document.getElementById("logsNickname");
+      var actionInput = document.getElementById("logsAction");
+      var dateInput = document.getElementById("logsDate");
+
+      if (nicknameInput) state.nickname = nicknameInput.value.trim();
+      if (actionInput) state.action = actionInput.value.trim();
+      if (dateInput) state.date = dateInput.value.trim();
+
+      root.innerHTML = '<div class="box"><div class="empty">Загрузка журнала…</div></div>';
+
+      try {
+        var range = rangeForDate(state.date);
+        var result = await window.BR_API.auditLogs(
+          user.token,
+          500,
+          {
+            nickname: state.nickname,
+            action: state.action,
+            created_from: range.from,
+            created_to: range.to
+          }
+        );
+
+        var list = Array.isArray(result.logs) ? result.logs : [];
+        renderTable(root, list);
+      } catch (error) {
+        root.innerHTML =
+          '<div class="box"><div class="empty">' +
+          E(error.message || "Не удалось загрузить журнал.") +
+          "</div></div>";
+      }
     }
 
     return {
       managementOnly: true,
       title: "Журнал действий",
-      subtitle: "История действий администрации с фильтрацией и уровнем критичности",
+      subtitle: "История действий администрации с фильтрацией, сортировкой и уровнем критичности",
       render: function () {
         var options = actionOptions.map(function (key) {
-          return '<option value="' + E(key) + '">' +
-            E(actions[key]) +
-            '</option>';
+          return '<option value="' + E(key) + '">' + E(actions[key]) + "</option>";
         }).join("");
 
         return '<div class="box logs-filter-box">' +
@@ -4781,31 +4841,35 @@
             '<div class="form-field">' +
               '<label for="logsNickname">По никнейму</label>' +
               '<input id="logsNickname" class="form-input" type="search" placeholder="Введите никнейм">' +
-            '</div>' +
+            "</div>" +
             '<div class="form-field">' +
               '<label for="logsAction">По действию</label>' +
               '<select id="logsAction" class="form-select">' +
-                '<option value="">Все действия</option>' +
-                options +
-              '</select>' +
-            '</div>' +
+                '<option value="">Все действия</option>' + options +
+              "</select>" +
+            "</div>" +
             '<div class="form-field">' +
               '<label for="logsDate">Любая дата</label>' +
               '<input id="logsDate" class="form-input" type="date">' +
-            '</div>' +
-            '<div class="logs-severity-chips" aria-label="Критичность"><button type="button" data-log-severity="all" class="active">Все</button><button type="button" data-log-severity="normal">Обычная</button><button type="button" data-log-severity="important">Важная</button><button type="button" data-log-severity="critical">Критическая</button></div>' +
+            "</div>" +
+            '<div class="logs-severity-chips" aria-label="Критичность">' +
+              '<button type="button" data-log-severity="all" class="active">Все</button>' +
+              '<button type="button" data-log-severity="normal">Обычная</button>' +
+              '<button type="button" data-log-severity="important">Важная</button>' +
+              '<button type="button" data-log-severity="critical">Критическая</button>' +
+            "</div>" +
             '<div class="logs-filter-actions">' +
               '<button class="button button-primary" type="submit">Найти</button>' +
               '<button class="button button-secondary" id="logsFilterReset" type="button">Сбросить</button>' +
-            '</div>' +
-          '</form>' +
-        '</div>' +
+            "</div>" +
+          "</form>" +
+        "</div>" +
         '<div id="logsRoot"><div class="box"><div class="empty">Загрузка журнала...</div></div></div>' +
         '<div class="box logs-cleanup-box">' +
           '<div class="logs-cleanup-head">' +
             '<div><small>ОЧИСТКА</small><b>Удаление старых записей</b></div>' +
-            '<span>Действие доступно только руководству</span>' +
-          '</div>' +
+            "<span>Действие доступно только руководству</span>" +
+          "</div>" +
           '<div class="logs-cleanup-controls">' +
             '<div class="form-field">' +
               '<label for="logsCleanupPeriod">Период</label>' +
@@ -4814,17 +4878,14 @@
                 '<option value="older_30_days">За последние 30 дней</option>' +
                 '<option value="older_180_days" selected>За последние 6 месяцев</option>' +
                 '<option value="all">Весь журнал</option>' +
-              '</select>' +
-            '</div>' +
+              "</select>" +
+            "</div>" +
             '<button class="button button-danger" id="logsCleanupButton" type="button">Очистить журнал</button>' +
-          '</div>' +
-        '</div>';
+          "</div>" +
+        "</div>";
       },
       bind: function (user) {
         var form = document.getElementById("logsFilterForm");
-        var nicknameInput = document.getElementById("logsNickname");
-        var actionInput = document.getElementById("logsAction");
-        var dateInput = document.getElementById("logsDate");
         var reset = document.getElementById("logsFilterReset");
         var cleanupPeriod = document.getElementById("logsCleanupPeriod");
         var cleanupButton = document.getElementById("logsCleanupButton");
@@ -4833,62 +4894,40 @@
           chip.onclick = function () {
             state.severity = chip.dataset.logSeverity;
             state.visible = 20;
-            document.querySelectorAll("[data-log-severity]").forEach(function (other) { other.classList.toggle("active", other === chip); });
-            load(user, false);
+            document.querySelectorAll("[data-log-severity]").forEach(function (other) {
+              other.classList.toggle("active", other === chip);
+            });
+            loadLogs(user);
           };
         });
+
         if (cleanupButton) {
           cleanupButton.onclick = async function () {
-            var period = cleanupPeriod
-              ? cleanupPeriod.value
-              : "older_180_days";
-
+            var period = cleanupPeriod ? cleanupPeriod.value : "older_180_days";
             var labels = {
-              older_7_days: "все записи за последние 7 дней",
-              older_30_days: "все записи за последние 30 дней",
-              older_180_days: "все записи за последние 6 месяцев",
+              older_7_days: "записи за последние 7 дней",
+              older_30_days: "записи за последние 30 дней",
+              older_180_days: "записи за последние 6 месяцев",
               all: "весь журнал действий"
             };
-
-            var description =
-              labels[period] || "выбранные записи";
-
             var confirmed = window.confirm(
-              "Внимание! Будут удалены " +
-              description +
-              ".\n\nПродолжить?"
+              "Внимание! Будут удалены " + (labels[period] || "выбранные записи") +
+              ".\\n\\nПродолжить?"
             );
-
             if (!confirmed) return;
 
             cleanupButton.disabled = true;
             cleanupButton.textContent = "Очистка…";
-
             try {
-              var result = await window.BR_API.auditLogsClear(
-                user.token,
-                period
-              );
-
-              var deleted = Number(
-                result && result.deleted_count
-                  ? result.deleted_count
-                  : 0
-              );
-
-              window.alert(
-                deleted
-                  ? "Журнал очищен. Удалено записей: " + deleted
-                  : "За выбранный период записей нет."
-              );
-
-              await load(user, false);
+              var result = await window.BR_API.auditLogsClear(user.token, period);
+              var deleted = Number(result && result.deleted_count ? result.deleted_count : 0);
+              window.alert(deleted
+                ? "Журнал очищен. Удалено записей: " + deleted
+                : "За выбранный период записей нет.");
+              state.visible = 20;
+              await loadLogs(user);
             } catch (error) {
-              window.alert(
-                error && error.message
-                  ? error.message
-                  : "Не удалось очистить журнал."
-              );
+              window.alert(error && error.message ? error.message : "Не удалось очистить журнал.");
             } finally {
               cleanupButton.disabled = false;
               cleanupButton.textContent = "Очистить журнал";
@@ -4899,13 +4938,8 @@
         if (form) {
           form.onsubmit = function (event) {
             event.preventDefault();
-
-            state.nickname = nicknameInput ? nicknameInput.value.trim() : "";
-            state.action = actionInput ? actionInput.value.trim() : "";
-            state.date = dateInput ? dateInput.value.trim() : "";
             state.visible = 20;
-
-            load(user, false);
+            loadLogs(user);
           };
         }
 
@@ -4915,7 +4949,11 @@
             state.action = "";
             state.date = "";
             state.severity = "all";
+            state.visible = 20;
 
+            var nicknameInput = document.getElementById("logsNickname");
+            var actionInput = document.getElementById("logsAction");
+            var dateInput = document.getElementById("logsDate");
             if (nicknameInput) nicknameInput.value = "";
             if (actionInput) actionInput.value = "";
             if (dateInput) dateInput.value = "";
@@ -4924,39 +4962,12 @@
               chip.classList.toggle("active", chip.dataset.logSeverity === "all");
             });
 
-            load(user, false);
+            loadLogs(user);
           };
         }
       },
       load: async function (user) {
-        var root = document.getElementById("logsRoot");
-        if (!root) return;
-
-        try {
-          var range = rangeForDate(state.date);
-
-          var result = await window.BR_API.auditLogs(
-            user.token,
-            500,
-            {
-              nickname: state.nickname,
-              action: state.action,
-              created_from: range.from,
-              created_to: range.to
-            }
-          );
-
-          var list = Array.isArray(result.logs)
-            ? result.logs
-            : [];
-
-          renderTable(root, list);
-        } catch (e) {
-          root.innerHTML =
-            '<div class="box"><div class="empty">' +
-              E(e.message || "Не удалось загрузить журнал.") +
-            '</div></div>';
-        }
+        return loadLogs(user);
       }
     };
   }
