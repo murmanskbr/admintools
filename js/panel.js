@@ -2502,13 +2502,13 @@
                  '<div class="emergency-contact-header"><div><small>ЭКСТРЕННАЯ СВЯЗЬ</small><b>Возникла серьёзная проблема?</b><span>Оповестить администрацию или срочно обратиться к руководству.</span></div><button class="button button-danger" id="toggleEmergencyContact" type="button"><span aria-hidden="true">⚠</span> Экстренная связь</button></div>' +
                  '<div id="emergencyContactPanel" class="emergency-contact-panel" hidden>' +
                    '<div class="emergency-choice-grid">' +
-                     '<button class="emergency-choice emergency-choice-critical" type="button" data-emergency-type="critical_server"><span class="emergency-choice-icon">🚨</span><span><b>Критическая ситуация</b><small>Оповестить всех администраторов и руководство</small></span></button>' +
-                     '<button class="emergency-choice" type="button" data-emergency-type="admin_actions_block"><span class="emergency-choice-icon">🛡️</span><span><b>Заблокированы админ-действия</b><small>Отправить срочное обращение руководству</small></span></button>' +
+                     '<button class="emergency-choice" type="button" data-emergency-type="critical_server" aria-pressed="false"><span class="emergency-choice-icon">🚨</span><span><b>Критическая ситуация</b><small>Оповестить всех администраторов и руководство</small></span></button>' +
+                     '<button class="emergency-choice" type="button" data-emergency-type="admin_actions_block" aria-pressed="false"><span class="emergency-choice-icon">🛡️</span><span><b>Заблокированы админ-действия</b><small>Отправить срочное обращение руководству</small></span></button>' +
                    '</div>' +
                    '<div id="emergencyComposer" class="emergency-composer" hidden>' +
                      '<div class="emergency-composer-title" id="emergencyComposerTitle"></div>' +
                      '<div id="emergencyCriticalReasonField" class="form-field"><label for="emergencyCriticalReason">Причина</label><select id="emergencyCriticalReason" class="form-select"><option value="Сервер нестабилен, возникают проблемы с репортами">Сервер нестабилен, проблемы с репортами</option><option value="Требуется помощь администрации">Требуется помощь администрации</option><option value="Другая критическая ситуация">Другая критическая ситуация</option></select></div>' +
-                     '<div class="form-field"><label for="emergencyDetails">Дополнительная информация <span class="muted">необязательно</span></label><textarea id="emergencyDetails" class="form-textarea" rows="3" maxlength="700" placeholder="Кратко опишите, что происходит"></textarea></div>' +
+                     '<div class="form-field"><label id="emergencyDetailsLabel" for="emergencyDetails">Дополнительная информация (необязательно)</label><textarea id="emergencyDetails" class="form-textarea" rows="3" maxlength="700" placeholder="Кратко опишите, что происходит"></textarea></div>' +
                      '<div id="emergencySignalStatus" class="emergency-signal-status" aria-live="polite"></div>' +
                      '<div class="form-actions emergency-composer-actions"><button class="button button-primary" id="sendEmergencySignal" type="button">Отправить сигнал</button><button class="button button-secondary" id="backEmergencySignal" type="button">Назад</button></div>' +
                    '</div>' +
@@ -2607,9 +2607,17 @@
          if (emergencyToggle && emergencyPanel) {
            emergencyToggle.onclick = function () {
              emergencyPanel.hidden = !emergencyPanel.hidden;
-             if (emergencyPanel.hidden && emergencyComposer) {
-               emergencyComposer.hidden = true;
+             if (emergencyPanel.hidden) {
+               if (emergencyComposer) emergencyComposer.hidden = true;
                selectedEmergencyType = "";
+               document.querySelectorAll("[data-emergency-type]").forEach(function (choice) {
+                 choice.classList.remove("is-selected");
+                 choice.setAttribute("aria-pressed", "false");
+               });
+               if (emergencyDetails) {
+                 emergencyDetails.value = "";
+                 emergencyDetails.required = false;
+               }
                if (emergencyStatus) emergencyStatus.textContent = "";
              }
            };
@@ -2618,20 +2626,45 @@
          document.querySelectorAll("[data-emergency-type]").forEach(function (button) {
            button.onclick = function () {
              selectedEmergencyType = button.dataset.emergencyType;
+
+             document.querySelectorAll("[data-emergency-type]").forEach(function (choice) {
+               var isSelected = choice === button;
+               choice.classList.toggle("is-selected", isSelected);
+               choice.setAttribute("aria-pressed", isSelected ? "true" : "false");
+             });
+
              if (emergencyComposer) emergencyComposer.hidden = false;
-             if (emergencyReasonField) {
-               emergencyReasonField.hidden = selectedEmergencyType !== "critical_server";
+
+             var isCritical = selectedEmergencyType === "critical_server";
+             if (emergencyReasonField) emergencyReasonField.hidden = !isCritical;
+
+             var detailsLabel = document.getElementById("emergencyDetailsLabel");
+             if (detailsLabel) {
+               detailsLabel.textContent = isCritical
+                 ? "Дополнительная информация (необязательно)"
+                 : "Опишите ситуацию";
              }
+
+             if (emergencyDetails) {
+               emergencyDetails.value = "";
+               emergencyDetails.required = !isCritical;
+               emergencyDetails.placeholder = isCritical
+                 ? "Кратко опишите, что происходит (необязательно)"
+                 : "Напишите, что произошло и какая помощь нужна";
+               emergencyDetails.rows = isCritical ? 3 : 5;
+             }
+
              if (emergencyTitle) {
-               emergencyTitle.textContent = selectedEmergencyType === "critical_server"
-                 ? "Сигнал увидит вся администрация, включая руководство."
-                 : "Срочное обращение увидит только руководство.";
+               emergencyTitle.textContent = isCritical
+                 ? "Выберите причину. Уведомление получит вся администрация, включая руководство."
+                 : "Опишите проблему своими словами. Обращение и уведомление получит только руководство.";
              }
-             if (emergencyDetails) emergencyDetails.value = "";
+
              if (emergencyStatus) {
                emergencyStatus.textContent = "";
                delete emergencyStatus.dataset.cooldownActive;
              }
+
              updateEmergencyCooldown();
              if (emergencyDetails) emergencyDetails.focus();
            };
@@ -2642,6 +2675,14 @@
            emergencyBack.onclick = function () {
              if (emergencyComposer) emergencyComposer.hidden = true;
              selectedEmergencyType = "";
+             document.querySelectorAll("[data-emergency-type]").forEach(function (choice) {
+               choice.classList.remove("is-selected");
+               choice.setAttribute("aria-pressed", "false");
+             });
+             if (emergencyDetails) {
+               emergencyDetails.value = "";
+               emergencyDetails.required = false;
+             }
              if (emergencyStatus) emergencyStatus.textContent = "";
            };
          }
@@ -2657,12 +2698,17 @@
 
              var details = emergencyDetails ? emergencyDetails.value.trim() : "";
              var message = "";
+
              if (selectedEmergencyType === "critical_server") {
                message = emergencyReason ? emergencyReason.value : "Критическая ситуация на сервере";
                if (details) message += "\\nДополнительная информация: " + details;
              } else {
-               message = "Система автоматически заблокировала мои административные действия. Прошу руководство проверить ситуацию и помочь снять ограничение.";
-               if (details) message += "\\nДополнительная информация: " + details;
+               message = details;
+               if (!message) {
+                 if (emergencyStatus) emergencyStatus.textContent = "Опишите, что произошло, прежде чем отправлять обращение руководству.";
+                 if (emergencyDetails) emergencyDetails.focus();
+                 return;
+               }
              }
 
              emergencySubmit.disabled = true;
