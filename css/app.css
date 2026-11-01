@@ -6584,3 +6584,10 @@ body[data-page="normatives"] #inactiveEndField[hidden]{display:none!important}
 .response-author-line{display:block;margin:5px 0 7px;color:var(--muted);font-size:11px;line-height:1.4;font-weight:500}
 .response-author-line b{color:var(--text);font-weight:750}
 .response-author-line.is-legacy{color:var(--muted);font-style:italic}
+
+/* Журнал действий: сортируемые заголовки и счётчик результатов. */
+.logs-sort-button{display:inline-flex;align-items:center;gap:5px;padding:3px 2px;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;text-align:left;white-space:nowrap;cursor:pointer}
+.logs-sort-button:hover,.logs-sort-button.is-active{color:var(--text)}
+.logs-results-count{margin:8px 2px 10px;color:var(--muted);font-size:10px}
+.logs-results-count b{color:var(--text)}
+.logs-more{display:block;margin:10px auto 0}
