@@ -2496,21 +2496,20 @@
 
         
          var emergencyControls = user.role !== "management"
-           ? '<div id="emergencyContactRoot" class="emergency-contact-root">' +
-               '<div class="box emergency-contact-card">' +
-                 '<div class="emergency-contact-header"><div><small>ЭКСТРЕННАЯ СВЯЗЬ</small><b>Возникла серьёзная проблема?</b><span>Оповестить администрацию или срочно обратиться к руководству.</span></div><button class="button button-danger" id="toggleEmergencyContact" type="button"><span aria-hidden="true">⚠</span> Экстренная связь</button></div>' +
-                 '<div id="emergencyContactPanel" class="emergency-contact-panel" hidden>' +
-                   '<div class="emergency-choice-grid">' +
-                     '<button class="emergency-choice" type="button" data-emergency-type="critical_server" aria-pressed="false"><span class="emergency-choice-icon">🚨</span><span><b>Критическая ситуация</b><small>Оповестить всех администраторов и руководство</small></span></button>' +
-                     '<button class="emergency-choice" type="button" data-emergency-type="admin_actions_block" aria-pressed="false"><span class="emergency-choice-icon">🛡️</span><span><b>Заблокированы админ-действия</b><small>Отправить срочное обращение руководству</small></span></button>' +
-                   '</div>' +
-                   '<div id="emergencyComposer" class="emergency-composer" hidden>' +
-                     '<div class="emergency-composer-title" id="emergencyComposerTitle"></div>' +
-                     '<div id="emergencyCriticalReasonField" class="form-field"><label for="emergencyCriticalReason">Причина</label><select id="emergencyCriticalReason" class="form-select"><option value="Сервер нестабилен, возникают проблемы с репортами">Сервер нестабилен, проблемы с репортами</option><option value="Требуется помощь администрации">Требуется помощь администрации</option><option value="Другая критическая ситуация">Другая критическая ситуация</option></select></div>' +
-                     '<div class="form-field"><label id="emergencyDetailsLabel" for="emergencyDetails">Дополнительная информация (необязательно)</label><textarea id="emergencyDetails" class="form-textarea" rows="3" maxlength="700" placeholder="Кратко опишите, что происходит"></textarea></div>' +
-                     '<div id="emergencySignalStatus" class="emergency-signal-status" aria-live="polite"></div>' +
-                     '<div class="form-actions emergency-composer-actions"><button class="button button-primary" id="sendEmergencySignal" type="button">Отправить сигнал</button><button class="button button-secondary" id="backEmergencySignal" type="button">Назад</button></div>' +
-                   '</div>' +
+           ? '<div id="emergencyContactRoot" class="emergency-contact-root notification-emergency-root">' +
+               '<button class="button button-danger notification-emergency-toggle" id="toggleEmergencyContact" type="button" aria-controls="emergencyContactPanel" aria-expanded="false"><span aria-hidden="true">⚠</span> Экстренная связь</button>' +
+               '<div id="emergencyContactPanel" class="emergency-contact-panel notification-emergency-panel" hidden>' +
+                 '<div class="emergency-contact-panel-head"><div><small>ЭКСТРЕННАЯ СВЯЗЬ</small><b>Возникла серьёзная проблема?</b><span>Оповестить администрацию или срочно обратиться к руководству.</span></div><button class="emergency-panel-close" id="closeEmergencyContact" type="button" aria-label="Закрыть">×</button></div>' +
+                 '<div class="emergency-choice-grid">' +
+                   '<button class="emergency-choice" type="button" data-emergency-type="critical_server" aria-pressed="false"><span class="emergency-choice-icon">🚨</span><span><b>Критическая ситуация</b><small>Оповестить всех администраторов и руководство</small></span></button>' +
+                   '<button class="emergency-choice" type="button" data-emergency-type="admin_actions_block" aria-pressed="false"><span class="emergency-choice-icon">🛡️</span><span><b>Заблокированы админ-действия</b><small>Отправить срочное обращение руководству</small></span></button>' +
+                 '</div>' +
+                 '<div id="emergencyComposer" class="emergency-composer" hidden>' +
+                   '<div class="emergency-composer-title" id="emergencyComposerTitle"></div>' +
+                   '<div id="emergencyCriticalReasonField" class="form-field"><label for="emergencyCriticalReason">Причина</label><select id="emergencyCriticalReason" class="form-select"><option value="Сервер нестабилен, возникают проблемы с репортами">Сервер нестабилен, проблемы с репортами</option><option value="Требуется помощь администрации">Требуется помощь администрации</option><option value="Другая критическая ситуация">Другая критическая ситуация</option></select></div>' +
+                   '<div class="form-field"><label id="emergencyDetailsLabel" for="emergencyDetails">Дополнительная информация (необязательно)</label><textarea id="emergencyDetails" class="form-textarea" rows="3" maxlength="700" placeholder="Кратко опишите, что происходит"></textarea></div>' +
+                   '<div id="emergencySignalStatus" class="emergency-signal-status" aria-live="polite"></div>' +
+                   '<div class="form-actions emergency-composer-actions"><button class="button button-primary" id="sendEmergencySignal" type="button">Отправить сигнал</button><button class="button button-secondary" id="backEmergencySignal" type="button">Назад</button></div>' +
                  '</div>' +
                '</div>' +
              '</div>'
@@ -2520,7 +2519,7 @@
         var tabs = '<div class="notification-segmented" role="tablist" aria-label="Раздел уведомлений"><button type="button" role="tab" data-notification-tab="notifications" aria-selected="true" class="is-active">Уведомления <span id="notificationTabCount"></span></button>' +
           (user.role==="management" ? '<button type="button" role="tab" data-notification-tab="events" aria-selected="false">Сборы</button>' : '') +
           '</div>';
-        return '<div class="page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + tabs + emergencyControls + createControls +
+        return '<div class="page-toolbar notification-page-toolbar"><div class="notification-page-heading"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div>' + emergencyControls + '</div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + tabs + createControls +
           (user.role === "management" ? '<div id="managementQueueRoot" class="management-queue-root"><div class="box"><div class="empty">Загрузка очереди проверки...</div></div></div>' : '') +
           '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>' +
           '<div id="eventsRoot" class="events-root" hidden><div class="box"><div class="empty">Загрузка мероприятий...</div></div></div>' +
@@ -2604,8 +2603,10 @@
 
          if (emergencyToggle && emergencyPanel) {
            emergencyToggle.onclick = function () {
-             emergencyPanel.hidden = !emergencyPanel.hidden;
-             if (emergencyPanel.hidden) {
+             var opening = emergencyPanel.hidden;
+             emergencyPanel.hidden = !opening;
+             emergencyToggle.setAttribute("aria-expanded", opening ? "true" : "false");
+             if (!opening) {
                if (emergencyComposer) emergencyComposer.hidden = true;
                selectedEmergencyType = "";
                document.querySelectorAll("[data-emergency-type]").forEach(function (choice) {
@@ -2618,6 +2619,13 @@
                }
                if (emergencyStatus) emergencyStatus.textContent = "";
              }
+           };
+         }
+
+         var emergencyClose = document.getElementById("closeEmergencyContact");
+         if (emergencyClose && emergencyToggle) {
+           emergencyClose.onclick = function () {
+             if (emergencyToggle.getAttribute("aria-expanded") === "true") emergencyToggle.click();
            };
          }
 
