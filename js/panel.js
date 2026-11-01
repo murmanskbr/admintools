@@ -3244,9 +3244,7 @@
                   '<div id="normPreview" class="norm-preview"></div>' +
                 '</div>' +
                 '<div class="form-field"><label>Дата норматива</label><input id="normDate" class="form-input" type="date" value="' + E(dateIso(0)) + '" required></div>' +
-                '<div class="form-field"><label>Должность</label>' +
-  positionSelect("normPosition", "position", user.position || "") +
-'</div>' +
+                '<div class="form-field"><label>Должность из таблицы статистики</label><input id="normPosition" type="hidden" value=""><div id="normPositionDisplay" class="normative-position-display" role="status">Получаем должность из таблицы…</div></div>' +
                 '<div class="form-field form-full"><label>Комментарий / что выполнено</label><textarea id="normComment" class="form-textarea" placeholder="Например: недельная норма, вечерняя смена и т. п."></textarea></div>' +
               '</div>' +
               '<div id="normEditHint" class="field-hint" hidden></div>' +
@@ -3260,7 +3258,73 @@
           var form = document.getElementById("normForm");
           var fileInput = document.getElementById("normFile");
           var preview = document.getElementById("normPreview");
+          var positionInput = document.getElementById("normPosition");
+          var positionDisplay = document.getElementById("normPositionDisplay");
+          var normativeSubmitButton = form ? form.querySelector('button[type="submit"]') : null;
+          var loadedNormativePosition = "";
+          var normativePositionLoaded = false;
           normativeEdit.date = "";
+
+          async function loadNormativePosition() {
+            if (positionDisplay) positionDisplay.textContent = "Получаем должность из таблицы статистики…";
+            if (normativeSubmitButton) {
+              normativeSubmitButton.disabled = true;
+              normativeSubmitButton.textContent = "Загрузка должности…";
+            }
+
+            try {
+              var rowResult = await window.BR_API.getStatisticsAdmin(user.token, user.nickname);
+              var rowData = googleRowPayload(rowResult);
+              var positionIndex = -1;
+
+              for (var i = 0; i < rowData.headers.length; i += 1) {
+                var header = String(rowData.headers[i] || "")
+                  .trim()
+                  .toLowerCase()
+                  .replace(/ё/g, "е")
+                  .replace(/[^a-zа-я0-9]+/g, "");
+                if (header === "должность" || header === "position" || header === "adminposition") {
+                  positionIndex = i;
+                  break;
+                }
+              }
+
+              var position = positionIndex >= 0
+                ? String(rowData.raw[positionIndex] == null ? "" : rowData.raw[positionIndex]).trim()
+                : "";
+
+              if (!position) {
+                throw new Error("В строке администратора не найдена должность.");
+              }
+
+              loadedNormativePosition = position;
+              normativePositionLoaded = true;
+              if (positionInput) positionInput.value = position;
+              if (positionDisplay) {
+                positionDisplay.textContent = position;
+                positionDisplay.classList.remove("is-error");
+              }
+              if (normativeSubmitButton) {
+                normativeSubmitButton.disabled = false;
+                normativeSubmitButton.textContent = "Отправить норматив";
+              }
+            } catch (error) {
+              normativePositionLoaded = false;
+              loadedNormativePosition = "";
+              if (positionInput) positionInput.value = "";
+              if (positionDisplay) {
+                positionDisplay.textContent = "Не удалось получить должность из таблицы. Обновите страницу или обратитесь к руководству.";
+                positionDisplay.classList.add("is-error");
+              }
+              if (normativeSubmitButton) {
+                normativeSubmitButton.disabled = true;
+                normativeSubmitButton.textContent = "Должность не определена";
+              }
+              console.error("[BR AdminTools] Не удалось определить должность для норматива:", error);
+            }
+          }
+
+          loadNormativePosition();
           var cancelEditButton = document.getElementById("normCancelEdit");
            normativeEdit.form = form;
            normativeEdit.fileInput = fileInput;
@@ -3271,9 +3335,14 @@
             fileInput.required = true;
             form.reset();
             document.getElementById("normDate").value = dateIso(0);
+            if (positionInput) positionInput.value = loadedNormativePosition;
+            if (positionDisplay && normativePositionLoaded) positionDisplay.textContent = loadedNormativePosition;
             if (preview) preview.innerHTML = "";
             var submit = form.querySelector("button[type=submit]");
-            if (submit) submit.textContent = "Отправить норматив";
+            if (submit) {
+              submit.disabled = !normativePositionLoaded;
+              submit.textContent = normativePositionLoaded ? "Отправить норматив" : "Должность не определена";
+            }
             if (cancelEditButton) cancelEditButton.hidden = true;
             var hint = document.getElementById("normEditHint");
             if (hint) { hint.hidden = true; hint.textContent = ""; }
@@ -3313,6 +3382,10 @@
           form.onsubmit = async function (event) {
             event.preventDefault();
             var files = Array.from(fileInput.files || []);
+            if (!normativePositionLoaded || !positionInput || !positionInput.value.trim()) {
+              await requestModal("Должность не определена", "Не удалось получить актуальную должность из таблицы статистики. Обновите страницу и попробуйте ещё раз.");
+              return;
+            }
             if (!files.length && !normativeEdit.date) {
               await requestModal("Файлы норматива", "Выберите хотя бы один файл.");
               return;
@@ -3340,8 +3413,10 @@
               await requestModal("Ошибка", e.message || "Не удалось отправить норматив.");
             } finally {
               if (button) {
-                button.disabled = false;
-                button.textContent = normativeEdit.date ? "Сохранить изменения" : "Отправить норматив";
+                button.disabled = !normativePositionLoaded;
+                button.textContent = !normativePositionLoaded
+                  ? "Должность не определена"
+                  : (normativeEdit.date ? "Сохранить изменения" : "Отправить норматив");
               }
             }
           };
@@ -3424,7 +3499,7 @@
                 var commentField = document.getElementById("normComment");
                 var submit = normativeEdit.form && normativeEdit.form.querySelector("button[type=submit]");
                 if (dateField) dateField.value = date;
-                if (positionField) positionField.value = button.dataset.editPosition || "";
+                if (positionField) positionField.value = loadedNormativePosition;
                 if (commentField) commentField.value = button.dataset.editComment || "";
                 normativeEdit.id = Number(button.dataset.editNorm || 0);
                 normativeEdit.date = date;
@@ -3435,7 +3510,7 @@
                 var hint = document.getElementById("normEditHint");
                 if (hint) {
                   hint.hidden = false;
-                  hint.textContent = "Редактируется норматив за " + date + ". Если выберете новые файлы, прежние файлы будут заменены. Без новых файлов изменятся только должность и комментарий.";
+                  hint.textContent = "Редактируется норматив за " + date + ". Должность автоматически берётся из актуальной строки администратора в таблице статистики. Если выберете новые файлы, прежние файлы будут заменены.";
                 }
                 if (normativeEdit.form) normativeEdit.form.scrollIntoView({ behavior: "smooth", block: "start" });
               };
