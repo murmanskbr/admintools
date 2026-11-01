@@ -4833,6 +4833,7 @@
           {
             nickname: state.nickname,
             action: state.action,
+            criticality: state.severity === "all" ? "" : state.severity,
             created_from: range.from,
             created_to: range.to
           }
