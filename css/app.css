@@ -6591,3 +6591,47 @@ body[data-page="normatives"] #inactiveEndField[hidden]{display:none!important}
 .logs-results-count{margin:8px 2px 10px;color:var(--muted);font-size:10px}
 .logs-results-count b{color:var(--text)}
 .logs-more{display:block;margin:10px auto 0}
+
+
+/* Mobile: make the statistics cache timestamp a clear, full-width status chip. */
+@media (max-width: 800px) {
+  body[data-page="statistics-all"] .stats-date-actions .cache-page-tools {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  body[data-page="statistics-all"] .stats-date-actions .cache-page-tools #allStatsUpdated {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 9px 12px !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 11px !important;
+    background: var(--surface2) !important;
+    color: var(--muted) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+    letter-spacing: normal !important;
+    text-align: center !important;
+    white-space: normal !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  body[data-page="statistics-all"] .stats-date-actions .cache-page-tools #allStatsUpdated::before {
+    content: "◷";
+    flex: 0 0 auto;
+    margin-right: 7px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1;
+  }
+}
