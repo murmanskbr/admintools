@@ -313,20 +313,11 @@
 
   function insertManagementRosterCard(user) {
     if (!user || user.role !== "management") return;
-    if (document.getElementById("pushManagementRosterCard")) return;
 
-    var grid = document.querySelector(".settings-grid");
-    if (!grid) return;
-
-    var card = document.createElement("section");
-    card.className = "box settings-card settings-push-roster-card";
-    card.id = "pushManagementRosterCard";
-    card.innerHTML =
-      '<div class="settings-card-head"><div><small>СОСТОЯНИЕ PUSH</small><h2>Подписки администрации</h2></div><span>Статус Push на устройствах администраторов.</span></div>' +
-      '<div id="pushManagementRosterRoot"><div class="empty">Загрузка подписок…</div></div>';
-    grid.appendChild(card);
-
-    var root = document.getElementById("pushManagementRosterRoot");
+    var root = document.getElementById("managementPushRosterRoot");
+    if (!root || root.dataset.initialized === "1") return;
+    root.dataset.initialized = "1";
+    root.innerHTML = '<div class="empty">Загрузка подписок…</div>';
 
     function render(result) {
       var list = Array.isArray(result && result.administrators) ? result.administrators.slice() : [];
@@ -410,11 +401,11 @@
     if (!user) return;
 
     window.setTimeout(function () {
-      insertPersonalCard(user);
-      if (user.role === "management") {
-        insertCard(user);
-        insertManagementRosterCard(user);
+      if (document.querySelector(".settings-grid")) {
+        insertPersonalCard(user);
+        if (user.role === "management") insertCard(user);
       }
+      if (user.role === "management") insertManagementRosterCard(user);
     }, 0);
   }
 
