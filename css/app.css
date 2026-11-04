@@ -6758,3 +6758,70 @@ body[data-page="normatives"] #inactiveEndField[hidden]{display:none!important}
   body[data-page="notifications"] #toggleManagementPushRoster { width: 100%; min-height: 44px; }
   body[data-page="notifications"] .management-push-roster-content { margin-top: 14px; min-width: 0; }
 }
+
+
+/* Subscriptions tab: clear, spacious heading on desktop and mobile. */
+body[data-page="notifications"] .subscriptions-root .management-push-roster {
+  padding: 22px;
+  border-radius: 16px;
+}
+body[data-page="notifications"] .subscriptions-root .management-push-roster-head {
+  display: block;
+  margin: 0 0 18px;
+  padding: 0 0 17px;
+  border-bottom: 1px solid var(--line);
+}
+body[data-page="notifications"] .subscriptions-root .management-push-roster-copy {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  min-width: 0;
+}
+body[data-page="notifications"] .subscriptions-root .management-push-roster-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border: 1px solid rgba(90, 145, 230, .24);
+  border-radius: 999px;
+  background: rgba(90, 145, 230, .10);
+  color: var(--blue);
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: .09em;
+}
+body[data-page="notifications"] .subscriptions-root .management-push-roster-copy h2 {
+  margin: 2px 0 0;
+  color: var(--text);
+  font-size: clamp(19px, 2vw, 23px);
+  line-height: 1.25;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+body[data-page="notifications"] .subscriptions-root .management-push-roster-copy p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+body[data-page="notifications"] .subscriptions-root .management-push-roster-content {
+  min-width: 0;
+  margin-top: 0;
+}
+@media (max-width: 640px) {
+  body[data-page="notifications"] .subscriptions-root .management-push-roster {
+    padding: 16px;
+    border-radius: 14px;
+  }
+  body[data-page="notifications"] .subscriptions-root .management-push-roster-head {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+  }
+  body[data-page="notifications"] .subscriptions-root .management-push-roster-copy h2 {
+    font-size: 19px;
+  }
+  body[data-page="notifications"] .subscriptions-root .management-push-roster-copy p {
+    font-size: 12px;
+  }
+}
