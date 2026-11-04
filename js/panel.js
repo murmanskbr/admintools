@@ -2566,13 +2566,30 @@
           (user.role==="management" ? '<button type="button" role="tab" data-notification-tab="events" aria-selected="false">Сборы</button>' : '') +
           emergencyControls +
           '</div>';
-        return '<div class="page-toolbar notification-page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + tabs + createControls +
+        var managementPushRoster = user.role === "management"
+          ? '<section class="box management-push-roster">' +
+              '<div class="management-push-roster-head"><div><small>СОСТОЯНИЕ PUSH</small><b>Подписки администрации</b><span class="muted">Просмотр Push-статуса на устройствах администраторов.</span></div>' +
+              '<button class="button button-secondary" id="toggleManagementPushRoster" type="button" aria-expanded="false" aria-controls="managementPushRosterRoot">Подписки администрации</button></div>' +
+              '<div id="managementPushRosterRoot" class="management-push-roster-content" hidden></div>' +
+            '</section>'
+          : '';
+        return '<div class="page-toolbar notification-page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + tabs + createControls + managementPushRoster +
           (user.role === "management" ? '<div id="managementQueueRoot" class="management-queue-root"><div class="box"><div class="empty">Загрузка очереди проверки...</div></div></div>' : '') +
           '<div id="notificationsRoot"><div class="box"><div class="empty">Загрузка уведомлений...</div></div></div>' +
           '<div id="eventsRoot" class="events-root" hidden><div class="box"><div class="empty">Загрузка мероприятий...</div></div></div>' +
           '<input type="hidden" id="initialNotificationTab" value="' + E(initial) + '">';
       },
       bind: function () {
+        var pushRosterToggle = document.getElementById("toggleManagementPushRoster");
+        var pushRosterRoot = document.getElementById("managementPushRosterRoot");
+        if (pushRosterToggle && pushRosterRoot) {
+          pushRosterToggle.onclick = function () {
+            var opening = pushRosterRoot.hidden;
+            pushRosterRoot.hidden = !opening;
+            pushRosterToggle.setAttribute("aria-expanded", opening ? "true" : "false");
+            pushRosterToggle.textContent = opening ? "Скрыть подписки" : "Подписки администрации";
+          };
+        }
         document.querySelectorAll("[data-notification-tab]").forEach(function(button){button.onclick=function(){setActiveTab(button.dataset.notificationTab,false);};});
         window.addEventListener("hashchange",function(){setActiveTab((location.hash||"#notifications").slice(1),false);});
         var refresh = document.getElementById("notificationsRefresh");
