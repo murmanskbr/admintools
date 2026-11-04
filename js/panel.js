@@ -2405,14 +2405,18 @@
       });
     }
     async function refreshAll(force) {
-
       if (activeTab === "events" && user.role === "management") return loadEvents(force);
+      if (activeTab === "subscriptions" && user.role === "management") {
+        var pushRefresh = document.getElementById("refreshPushRoster");
+        if (pushRefresh) pushRefresh.click();
+        return Promise.resolve();
+      }
       var jobs = [loadNotifications(force)];
       if (user.role === "management") jobs.push(loadManagementQueue(force));
       return Promise.all(jobs);
     }
     function setActiveTab(tab, force) {
-      var allowed = user.role === "management" ? ["notifications","events"] : ["notifications"];
+      var allowed = user.role === "management" ? ["notifications","events","subscriptions"] : ["notifications"];
       if (allowed.indexOf(tab) < 0) tab = "notifications";
       activeTab = tab;
       try { sessionStorage.setItem("br_notifications_tab", tab); } catch (_) {}
@@ -2429,6 +2433,7 @@
       show("emergencyContactRoot", tab==="notifications" && user.role!=="management");
       show("managementQueueRoot", tab==="notifications" && user.role==="management");
       show("eventsRoot", tab==="events");
+      show("subscriptionsRoot", tab==="subscriptions" && user.role==="management");
       var createN=document.getElementById("openNotificationForm"), createE=document.getElementById("openEventForm");
       if(createN)createN.hidden=tab!=="notifications" || !!document.getElementById("notificationCreateRoot")?.dataset.open;
       if(createE)createE.hidden=tab!=="events" || !!document.getElementById("eventCreateRoot")?.dataset.open;
@@ -2563,15 +2568,16 @@
 
          var initial = (location.hash || "").replace("#","") || (function(){try{return sessionStorage.getItem("br_notifications_tab")||"notifications";}catch(_){return "notifications";}})();
         var tabs = '<div class="notification-segmented notification-segmented-emergency" role="tablist" aria-label="Раздел уведомлений"><button type="button" role="tab" data-notification-tab="notifications" aria-selected="true" class="is-active">Уведомления <span id="notificationTabCount"></span></button>' +
-          (user.role==="management" ? '<button type="button" role="tab" data-notification-tab="events" aria-selected="false">Сборы</button>' : '') +
+          (user.role==="management" ? '<button type="button" role="tab" data-notification-tab="events" aria-selected="false">Сборы</button><button type="button" role="tab" data-notification-tab="subscriptions" aria-selected="false">Подписки</button>' : '') +
           emergencyControls +
           '</div>';
         var managementPushRoster = user.role === "management"
-          ? '<section class="box management-push-roster">' +
-              '<div class="management-push-roster-head"><div><small>СОСТОЯНИЕ PUSH</small><b>Подписки администрации</b><span class="muted">Просмотр Push-статуса на устройствах администраторов.</span></div>' +
-              '<button class="button button-secondary" id="toggleManagementPushRoster" type="button" aria-expanded="false" aria-controls="managementPushRosterRoot">Подписки администрации</button></div>' +
-              '<div id="managementPushRosterRoot" class="management-push-roster-content" hidden></div>' +
-            '</section>'
+          ? '<div id="subscriptionsRoot" class="subscriptions-root" hidden>' +
+              '<section class="box management-push-roster">' +
+                '<div class="management-push-roster-head"><div><small>СОСТОЯНИЕ PUSH</small><b>Подписки администрации</b><span class="muted">Просмотр Push-статуса на устройствах администраторов.</span></div></div>' +
+                '<div id="managementPushRosterRoot" class="management-push-roster-content"></div>' +
+              '</section>' +
+            '</div>'
           : '';
         return '<div class="page-toolbar notification-page-toolbar"><div><small>ОБНОВЛЕНИЯ</small><b>Уведомления</b></div><button class="button button-secondary" id="notificationsRefresh" type="button">⟳ Обновить</button></div>' + tabs + createControls + managementPushRoster +
           (user.role === "management" ? '<div id="managementQueueRoot" class="management-queue-root"><div class="box"><div class="empty">Загрузка очереди проверки...</div></div></div>' : '') +
@@ -2580,16 +2586,6 @@
           '<input type="hidden" id="initialNotificationTab" value="' + E(initial) + '">';
       },
       bind: function () {
-        var pushRosterToggle = document.getElementById("toggleManagementPushRoster");
-        var pushRosterRoot = document.getElementById("managementPushRosterRoot");
-        if (pushRosterToggle && pushRosterRoot) {
-          pushRosterToggle.onclick = function () {
-            var opening = pushRosterRoot.hidden;
-            pushRosterRoot.hidden = !opening;
-            pushRosterToggle.setAttribute("aria-expanded", opening ? "true" : "false");
-            pushRosterToggle.textContent = opening ? "Скрыть подписки" : "Подписки администрации";
-          };
-        }
         document.querySelectorAll("[data-notification-tab]").forEach(function(button){button.onclick=function(){setActiveTab(button.dataset.notificationTab,false);};});
         window.addEventListener("hashchange",function(){setActiveTab((location.hash||"#notifications").slice(1),false);});
         var refresh = document.getElementById("notificationsRefresh");
