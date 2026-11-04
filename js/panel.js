@@ -2574,7 +2574,13 @@
         var managementPushRoster = user.role === "management"
           ? '<div id="subscriptionsRoot" class="subscriptions-root" hidden>' +
               '<section class="box management-push-roster">' +
-                '<div class="management-push-roster-head"><div><small>СОСТОЯНИЕ PUSH</small><b>Подписки администрации</b><span class="muted">Просмотр Push-статуса на устройствах администраторов.</span></div></div>' +
+                '<div class="management-push-roster-head">' +
+                  '<div class="management-push-roster-copy">' +
+                    '<span class="management-push-roster-eyebrow">PUSH-УВЕДОМЛЕНИЯ</span>' +
+                    '<h2>Подписки администрации</h2>' +
+                    '<p>Статус push-уведомлений и подключённых устройств администраторов</p>' +
+                  '</div>' +
+                '</div>' +
                 '<div id="managementPushRosterRoot" class="management-push-roster-content"></div>' +
               '</section>' +
             '</div>'
